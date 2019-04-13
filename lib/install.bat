@@ -1,0 +1,1 @@
+mvn install:install-file -Dfile=commons-jettech.jar -DgroupId=commons-jettech.jar -DartifactId=commons-jettech -Dversion=1.1 -Dpackaging=jar
