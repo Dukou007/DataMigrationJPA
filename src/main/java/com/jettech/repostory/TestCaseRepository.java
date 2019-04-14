@@ -92,10 +92,10 @@ public interface TestCaseRepository
 	@Query(value = "UPDATE test_case t SET  t.test_suite_id=null WHERE t.id=?1", nativeQuery = true)
 	void backDisorder(Integer testCaseID);
 
-	// @Query(value="SELECT * FROM test_case t WHERE 1=1 AND t.test_suite_id is
-	// ?1",countQuery="SELECT COUNT(*) FROM test_case t WHERE 1=1 AND
-	// t.test_suite_id is ?1",nativeQuery=true)
-	// Page<TestCase> findByTestSuiteIsNull(Pageable pageable);
+	@Transactional(timeout=30000)
+	@Query(value="FROM TestCase WHERE id in (SELECT caseId from TestSuiteCase where suiteId is Null)",
+			countQuery="SELECT COUNT(*) FROM TestCase WHERE id in (SELECT caseId from TestSuiteCase where suiteId is Null)")
+	Page<TestCase> findByTestSuiteIsNull(Pageable pageable);
 
 //	Page<TestCase> findByTestSuiteIsNullAndNameContaining(String name,Pageable pageable);
 	/**
@@ -136,7 +136,7 @@ public interface TestCaseRepository
 //			countQuery = "SELECT count(*) FROM test_case tc WHERE tc.id NOT IN (SELECT tsc1.case_id FROM test_suite_case tsc1 INNER JOIN test_case tc1  on tsc1.case_id=tc1.id WHERE tsc1.suite_id =4 AND tc1.`name` LIKE CONCAT('%','?1','%') )",
 //			nativeQuery=true)
 	@Query(value = "FROM TestCase WHERE id NOT IN ( SELECT t.caseId FROM TestSuiteCase t inner join TestCase tc on t.caseId=tc.id WHERE t.suiteId =?1 ) and name like CONCAT('%',?2,'%') ", countQuery = "select count(*) FROM TestCase WHERE id NOT IN ( SELECT t.caseId FROM TestSuiteCase t inner join TestCase tc on t.caseId=tc.id WHERE t.suiteId =?1 ) and name like CONCAT('%',?2,'%') ")
-	Page<TestCase> findByTestSuiteIsNullAndNameContaining(Integer testSuiteID,String name, Pageable pageable);
+	Page<TestCase> findByTestSuiteIsNullAndNameContaining(Integer testSuiteID, String name, Pageable pageable);
 
 	/**
 	 * @param testSuiteID

@@ -50,8 +50,9 @@ public interface ITestCaseService extends IService<TestCase, Integer> {
 	 * @Tips: 将testSuiteID为null的案例付testSuiteID;
 	 * @State: being used 
 	 * @author:zhou_xiaolong in 2019年2月24日下午7:52:56
+	 * @throws BizException 
 	 */
-	void changeTestCasePosition(Integer testSuiteID, String testCaseIDS);
+	void changeTestCasePosition(Integer testSuiteID, String testCaseIDS) throws BizException;
 
 
 
@@ -60,8 +61,10 @@ public interface ITestCaseService extends IService<TestCase, Integer> {
 	 * @Tips: testSuiteID设为null;
 	 * @State: being used / drop
 	 * @author:zhou_xiaolong in 2019年2月25日下午11:56:36
+	 * @param suiteId 
+	 * @throws BizException 
 	 */
-	void backDisorder(String testCaseIDS);
+	void backDisorder(String testCaseIDS, Integer suiteId) throws BizException;
 
 	/**
 	 * 新增迁移测试案例的接口

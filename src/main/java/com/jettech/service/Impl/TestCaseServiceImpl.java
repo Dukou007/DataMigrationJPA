@@ -12,14 +12,12 @@ import javax.transaction.Transactional;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.aop.ThrowsAdvice;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.w3c.dom.css.ElementCSSInlineStyle;
 
 import com.jettech.BizException;
 import com.jettech.EnumPageType;
@@ -27,16 +25,16 @@ import com.jettech.EnumTestCaseType;
 import com.jettech.domain.CaseModel;
 import com.jettech.domain.CompareCaseModel;
 import com.jettech.entity.CodeMap;
+import com.jettech.entity.DataField;
 import com.jettech.entity.DataSource;
 import com.jettech.entity.Product;
 import com.jettech.entity.QualityTestCase;
-import com.jettech.entity.QualityTestPoint;
 import com.jettech.entity.QualityTestQuery;
 import com.jettech.entity.TestCase;
-import com.jettech.entity.DataField;
 import com.jettech.entity.TestQuery;
 import com.jettech.entity.TestRule;
 import com.jettech.entity.TestSuite;
+import com.jettech.entity.TestSuiteCase;
 import com.jettech.repostory.CodeMapRepository;
 import com.jettech.repostory.CompareTestCaseRepository;
 import com.jettech.repostory.DataFieldRepository;
@@ -639,7 +637,7 @@ public class TestCaseServiceImpl implements ITestCaseService {
 			list = caseRepository.findByTestSuiteNotContain(testSuiteID, pageable);
 		} else {
 			// 名称不为空，根据三个条件查询所有
-		list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, "%"+name+"%", pageable);
+			list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, "%" + name + "%", pageable);
 //			list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, name, pageable);
 		}
 
@@ -653,7 +651,7 @@ public class TestCaseServiceImpl implements ITestCaseService {
 	@Override
 	public Page<TestCase> findBySuiteId(Integer testSuiteID, String name, Pageable pageable) {
 		Page<TestCase> list;
-		if (name==null||name.equals("")) {
+		if (name == null || name.equals("")) {
 			// 名称为空时右侧的所有案例
 			list = caseRepository.findByTestSuiteId(testSuiteID, pageable);
 		} else {
@@ -671,9 +669,9 @@ public class TestCaseServiceImpl implements ITestCaseService {
 	public Page<TestCase> findBySuiteId(Integer testSuiteID, Pageable pageable) {
 		Page<TestCase> list;
 		if (testSuiteID != null && testSuiteID > 0) {
-			list = null/* caseRepository.findByTestSuiteId(testSuiteID, pageable) */;
+			list = caseRepository.findByTestSuiteId(testSuiteID, pageable);
 		} else {
-			list = null/* caseRepository.findByTestSuiteIsNull(pageable) */;
+			list = caseRepository.findByTestSuiteIsNull(pageable);
 		}
 		if (list.getSize() > 0) {
 			return list;
@@ -780,11 +778,21 @@ public class TestCaseServiceImpl implements ITestCaseService {
 	}
 
 	@Override
-	public void changeTestCasePosition(Integer testSuiteID, String testCaseIDS) {
-		if (testCaseIDS != null) {
+	@Transactional
+	public void changeTestCasePosition(Integer testSuiteID, String testCaseIDS) throws BizException {
+		if (StringUtils.isNotBlank(testCaseIDS)) {
 			String[] ids = testCaseIDS.split(",");
 			for (String testCaseID : ids) {
-				testSuiteCaseRepository.changeTestCasePosition(testSuiteID, Integer.valueOf(testCaseID));
+				Integer caseId = Integer.valueOf(testCaseID);
+				TestCase testCase = caseRepository.getOne(caseId);
+				if(testCase==null||testCase.equals("")) {
+					throw new BizException("该案例不存在，请勿添加,该案例id："+caseId);
+				}
+				TestSuiteCase testSuiteCase = testSuiteCaseRepository.findByCaseIdAndSuiteId(caseId,testSuiteID);
+				if (testSuiteCase != null && !testSuiteCase.equals("")) {
+					throw new BizException("该案例已经存在，请勿重复添加,重复的第一个案例id："+caseId);
+				}
+				testSuiteCaseRepository.changeTestCasePosition(testSuiteID, caseId);
 			}
 		} else {
 			System.out.println("请输入合法参数");
@@ -793,14 +801,24 @@ public class TestCaseServiceImpl implements ITestCaseService {
 
 	@Override
 	@Transactional
-	public void backDisorder(String testCaseIDS) {
-		if (testCaseIDS != null) {
+	public void backDisorder(String testCaseIDS,Integer suiteId) throws BizException {
+		if (testCaseIDS != null&&suiteId!=null) {
 			String[] ids = testCaseIDS.split(",");
 			for (String testCaseID : ids) {
-				testSuiteCaseRepository.backDisorder(Integer.valueOf(testCaseID));
+				Integer caseId = Integer.valueOf(testCaseID);
+				TestCase testCase = caseRepository.getOne(caseId);
+				if(testCase==null||testCase.equals("")) {
+					throw new BizException("该案例不存在，该案例的id是："+caseId);	
+				}
+				TestSuiteCase tsc = testSuiteCaseRepository.findByCaseIdAndSuiteId(caseId, suiteId);
+				if(tsc==null|| tsc.equals("")) {
+					throw new BizException("案例和案例集不匹配，第一个案例的id是："+caseId);
+				}
+				tsc.setSuiteId(null);
+				testSuiteCaseRepository.save(tsc);
 			}
 		} else {
-			System.out.println("输入合法参数");
+			throw new BizException("输入合法参数");
 		}
 	}
 

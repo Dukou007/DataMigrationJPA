@@ -562,25 +562,6 @@ public class TestCaseController {
 
 	}
 
-	@RequestMapping(value = "findTestCaseBysuiteId", method = RequestMethod.GET)
-	public ResultVO findTestCaseBysuiteId(
-			@RequestParam(value = "suiteId", defaultValue = "", required = false) Integer suiteId/*,
-			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
-			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize*/) {
-		ArrayList<TestCaseVO> voList = new ArrayList<TestCaseVO>();
-		/*Pageable pageable = PageRequest.of(pageNum-1, pageSize);*/
-		try {
-			List<TestCase> list = testCaseService.findTestCaseBysuiteId(suiteId);
-			for (TestCase testCase : list) {
-				TestCaseVO testCaseVO = new TestCaseVO(testCase);
-				voList.add(testCaseVO);
-			}
-			return new ResultVO(true, StatusCode.OK, "查询成功", voList);
-		} catch (Exception e) {
-			e.printStackTrace();
-			log.error("查询报错为："+suiteId,e);
-			return new ResultVO(false, StatusCode.ERROR, "查询出错");
-		}
-	}
+
 
 }

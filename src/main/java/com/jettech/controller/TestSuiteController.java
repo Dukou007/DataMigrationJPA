@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.jettech.BizException;
 import com.jettech.entity.Product;
 import com.jettech.entity.TestCase;
 import com.jettech.entity.TestSuite;
@@ -124,6 +125,7 @@ public class TestSuiteController {
 	 * @tips:
 	 * 
 	 * @author:zhou_xiaolong in 2019年2月23日下午6:52:06
+	 * @throws BizException 
 	 */
 	@SuppressWarnings("unused")
 	@ResponseBody
@@ -135,11 +137,11 @@ public class TestSuiteController {
 			@ApiImplicitParam(paramType = "Integer", name = "pageNum", value = "页码数", required = false, dataType = "Integer"),
 			@ApiImplicitParam(paramType = "Integer", name = "pageSize", value = "每页条数", required = false, dataType = "Integer") })
 	public ResultVO changeTestCasePosition(@RequestParam(value = "testCaseIDs") String testCaseIDs,
-			@RequestParam(value = "testSuiteID") Integer testSuiteID,
+			@RequestParam(value = "testSuiteID") Integer testSuiteID/*,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
-			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
-		HashMap<Object, Object> resultMap = new HashMap<>();
-		PageRequest pageable = PageRequest.of(pageNum - 1, pageSize);
+			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize*/) throws BizException {
+	/*	HashMap<Object, Object> resultMap = new HashMap<>();
+		PageRequest pageable = PageRequest.of(pageNum - 1, pageSize);*/
 		try {
 			testCaseService.changeTestCasePosition(testSuiteID, testCaseIDs);
 			/*Page<TestCase> testCaseList = testCaseService.findBySuiteId(testSuiteID, pageable);
@@ -165,7 +167,7 @@ public class TestSuiteController {
 		} catch (BeansException e) {
 			e.printStackTrace();
 			log.error("转移失败"+testCaseIDs,e);
-			return new ResultVO(false, StatusCode.ERROR, "转移进入测试集失败");
+			return new ResultVO(false, StatusCode.ERROR, "转移进入测试集失败"+e.getLocalizedMessage());
 		}
 
 	}
@@ -175,6 +177,7 @@ public class TestSuiteController {
 	 * @Tips: null;
 	 * @State: being used
 	 * @author:zhou_xiaolong in 2019年2月24日下午8:46:58
+	 * @throws BizException 
 	 */
 	@ResponseBody
 	@RequestMapping(value = "backDisorder", produces = {
@@ -184,15 +187,17 @@ public class TestSuiteController {
 			@ApiImplicitParam(paramType = "query", name = "testCaseIDS", value = "测试案例的ID", required = true, dataType = "String"),
 			@ApiImplicitParam(paramType = "query", name = "pageNum", value = "页码数", required = false, dataType = "Long"),
 			@ApiImplicitParam(paramType = "query", name = "pageSize", value = "每页条数", required = false, dataType = "Long") })
-	public ResultVO backDisorder(@RequestParam(value = "testCaseIDS", required = true) String testCaseIDS,
+	public ResultVO backDisorder(
+			@RequestParam(value = "testCaseIDS", required = true) String testCaseIDS,
+			@RequestParam(value = "suiteId", required = true) Integer suiteId/*,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
-			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
+			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize*/) throws BizException {
 		try {
-			testCaseService.backDisorder(testCaseIDS);
+			testCaseService.backDisorder(testCaseIDS,suiteId);
 			return new ResultVO(true, StatusCode.OK, "转移进入测试集成功");
 		} catch (BeansException e) {
 			e.printStackTrace();
-			return new ResultVO(false, StatusCode.OK, "转移进入测试集失败");
+			return new ResultVO(false, StatusCode.ERROR, "转移进入测试集失败"+e.getLocalizedMessage());
 		}
 
 	}
