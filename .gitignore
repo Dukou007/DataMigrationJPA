@@ -5,3 +5,8 @@
 *.project
 *.settings
 *.xml
+*.classpath
+*.gz
+*.*path
+*.factorypath
+*.lic
