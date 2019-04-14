@@ -1,1 +1,7 @@
 /target/
+*.jar
+*.iml
+*.log
+*.project
+*.settings
+*.xml

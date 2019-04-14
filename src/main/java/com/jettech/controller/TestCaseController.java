@@ -343,7 +343,7 @@ public class TestCaseController {
 //			@ApiImplicitParam(paramType = "query", name = "pageNum", value = "第几页", required = false, dataType = "Long"),
 //			@ApiImplicitParam(paramType = "query", name = "pageSize", value = "每页条数", required = false, dataType = "Long") })
 	public ResultVO findAllNotInSuite(
-			@RequestParam(value = "testSuiteID"/*, defaultValue ="",required=true*/) Integer testSuiteID,
+			@RequestParam(value = "testSuiteID") Integer testSuiteID,
 			@RequestParam(value = "name", required = false) String name,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
@@ -375,7 +375,7 @@ public class TestCaseController {
 	
 	
 	
-	/** suiteid，案例名称查询所有的案例，未在指定的集合中
+	/** suiteid，案例名称查询指定的案例集中的案例，未在指定的集合中
 	 * @param suiteId
 	 * @param name
 	 * @param pageNum
@@ -384,7 +384,11 @@ public class TestCaseController {
 	 * getTestCaseListByTestSuiteID
 	 */
 	@RequestMapping(value = "/getTestCaseListByTestSuiteID",method=RequestMethod.GET)
-	public ResultVO getTestCaseListByTestSuiteID(@RequestParam Integer testSuiteID,@RequestParam String name,@RequestParam Integer pageNum,@RequestParam Integer pageSize) {
+	public ResultVO getTestCaseListByTestSuiteID(
+			@RequestParam(value = "testSuiteID") Integer testSuiteID,
+			@RequestParam(value = "name", required = false) String name,
+			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
+			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
 		Pageable pageable = PageRequest.of(pageNum-1, pageSize);
 		HashMap<String, Object> resultMap = new HashMap<String, Object>();
 		try {

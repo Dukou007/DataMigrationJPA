@@ -144,7 +144,7 @@ public interface TestCaseRepository
 	 * @param pageable
 	 * @return 右侧根据案例集id查询所有案例
 	 */
-	@Query(value = " FROM TestCase  WHERE id  IN ( SELECT caseId FROM TestSuiteCase  WHERE suiteId =?1 and name like CONCAT('%',?1,'%')) ", countQuery = " select count(*) FROM TestCase  WHERE id  IN ( SELECT caseId FROM TestSuiteCase  WHERE suiteId =?1 and name like CONCAT('%',?1,'%') ) ")
+	@Query(value = "FROM TestCase  WHERE id  IN ( SELECT caseId FROM TestSuiteCase  WHERE suiteId =?1) and name like CONCAT('%',?2,'%')", countQuery = "select count(*) FROM TestCase  WHERE id  IN ( SELECT caseId FROM TestSuiteCase  WHERE suiteId =?1) and name like CONCAT('%',?2,'%')")
 	Page<TestCase> findByTestSuiteIdAndNameContaining(Integer testSuiteID, String name, Pageable pageable);
 
 	/**
@@ -152,7 +152,7 @@ public interface TestCaseRepository
 	 * @param pageable
 	 * @return 右侧根据案例集id查询所有案例
 	 */
-	@Query(value = " FROM TestCase  WHERE id  IN ( SELECT caseId FROM TestSuiteCase  WHERE suiteId =?1 and name like CONCAT('%',?1,'%') ) ", countQuery = " select count(*) FROM TestCase  WHERE id  IN ( SELECT caseId FROM TestSuiteCase  WHERE suiteId =?1 and name like CONCAT('%',?1,'%') ) ")
+	@Query(value = "FROM TestCase  WHERE id  IN ( SELECT caseId FROM TestSuiteCase  WHERE suiteId =?1)", countQuery = "select count(*) FROM TestCase  WHERE id  IN ( SELECT caseId FROM TestSuiteCase  WHERE suiteId =?1)")
 	Page<TestCase> findByTestSuiteId(Integer testSuiteID, Pageable pageable);
 
 	@Query(value = "SELECT tc.* FROM test_suite_case tsc  INNER JOIN test_case tc  on tsc.case_id =tc.id INNER JOIN test_suite ts on tsc.suite_id = ts.id WHERE tc.name LIKE CONCAT('%','?1','%') AND ts.name LIKE CONCAT('%','?2','%')", nativeQuery = true)

@@ -653,7 +653,7 @@ public class TestCaseServiceImpl implements ITestCaseService {
 	@Override
 	public Page<TestCase> findBySuiteId(Integer testSuiteID, String name, Pageable pageable) {
 		Page<TestCase> list;
-		if ("".equals(name)) {
+		if (name==null||name.equals("")) {
 			// 名称为空时右侧的所有案例
 			list = caseRepository.findByTestSuiteId(testSuiteID, pageable);
 		} else {
