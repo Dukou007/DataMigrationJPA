@@ -332,18 +332,19 @@ public class TestCaseController {
 	 * @param pageNum
 	 * @param pageSize
 	 * @return 左侧
+	 * findAllNotInSuite
 	 */
 	@ResponseBody
-	@RequestMapping(value = "/getTestCaseListByTestSuiteID", produces = {
+	@RequestMapping(value = "/findAllNotInSuite", produces = {
 			"application/json;charset=UTF-8" }, method = RequestMethod.GET)
 //	@ApiOperation(value = "根据测试集ID查询所有并分页", notes = "根据测试集的ID查看测试案例")
 //	@ApiImplicitParams({
 //			@ApiImplicitParam(paramType = "query", name = "testSuiteID", value = "测试集ID", required = false, dataType = "String"),
 //			@ApiImplicitParam(paramType = "query", name = "pageNum", value = "第几页", required = false, dataType = "Long"),
 //			@ApiImplicitParam(paramType = "query", name = "pageSize", value = "每页条数", required = false, dataType = "Long") })
-	public ResultVO getTestCaseListByTestSuiteID(
-			@RequestParam(value = "testSuiteID", defaultValue ="-1",required=false) Integer testSuiteID,
-			@RequestParam(value = "name", defaultValue = "", required = false) String name,
+	public ResultVO findAllNotInSuite(
+			@RequestParam(value = "testSuiteID"/*, defaultValue ="",required=true*/) Integer testSuiteID,
+			@RequestParam(value = "name", required = false) String name,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
 		HashMap<String, Object> resultMap = new HashMap<String, Object>();
@@ -380,9 +381,10 @@ public class TestCaseController {
 	 * @param pageNum
 	 * @param pageSize
 	 * @return 右侧
+	 * getTestCaseListByTestSuiteID
 	 */
-	@RequestMapping(value = "/findAllNotInSuite",method=RequestMethod.GET)
-	public ResultVO findAllNotInSuite(@RequestParam Integer testSuiteID,@RequestParam String name,@RequestParam Integer pageNum,@RequestParam Integer pageSize) {
+	@RequestMapping(value = "/getTestCaseListByTestSuiteID",method=RequestMethod.GET)
+	public ResultVO getTestCaseListByTestSuiteID(@RequestParam Integer testSuiteID,@RequestParam String name,@RequestParam Integer pageNum,@RequestParam Integer pageSize) {
 		Pageable pageable = PageRequest.of(pageNum-1, pageSize);
 		HashMap<String, Object> resultMap = new HashMap<String, Object>();
 		try {

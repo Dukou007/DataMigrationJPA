@@ -122,6 +122,7 @@ public interface TestCaseRepository
 	 * @return 左侧所有的案例
 	 */
 
+//	@Query(value = "SELECT tc.* FROM test_case tc WHERE tc.id NOT IN (SELECT tsc.case_id FROM test_suite_case tsc WHERE tsc.suite_id =?1)", countQuery = " SELECT count(*) FROM test_case tc WHERE tc.id NOT IN (SELECT tsc.case_id FROM test_suite_case tsc WHERE tsc.suite_id =?1)",nativeQuery=true)
 	@Query(value = " FROM TestCase  WHERE id NOT IN ( SELECT caseId FROM TestSuiteCase  WHERE suiteId =?1 ) ", countQuery = " select count(*) FROM TestCase  WHERE id NOT IN ( SELECT caseId FROM TestSuiteCase  WHERE suiteId =?1 ) ")
 	Page<TestCase> findByTestSuiteNotContain(Integer testSuiteID, Pageable pageable);
 
@@ -131,8 +132,11 @@ public interface TestCaseRepository
 	 * @param pageable
 	 * @return 左侧所有的案例
 	 */
-	@Query(value = " FROM TestCase  WHERE id NOT IN ( SELECT caseId FROM TestSuiteCase  WHERE suiteId =?1 and name like CONCAT('%',?1,'%') ) ", countQuery = " select count(*) FROM TestCase  WHERE id NOT IN ( SELECT caseId FROM TestSuiteCase  WHERE suiteId =?1 and name like CONCAT('%',?1,'%') ) ")
-	Page<TestCase> findByTestSuiteIsNullAndNameContaining(Integer testSuiteID, String name, Pageable pageable);
+//	@Query(value = "SELECT tc.* FROM test_case tc WHERE tc.id NOT IN (SELECT tsc1.case_id FROM test_suite_case tsc1 INNER JOIN test_case tc1  on tsc1.case_id=tc1.id WHERE tsc1.suite_id =4 AND tc1.`name` LIKE CONCAT('%','?1','%') )",
+//			countQuery = "SELECT count(*) FROM test_case tc WHERE tc.id NOT IN (SELECT tsc1.case_id FROM test_suite_case tsc1 INNER JOIN test_case tc1  on tsc1.case_id=tc1.id WHERE tsc1.suite_id =4 AND tc1.`name` LIKE CONCAT('%','?1','%') )",
+//			nativeQuery=true)
+	@Query(value = "FROM TestCase WHERE id NOT IN ( SELECT t.caseId FROM TestSuiteCase t inner join TestCase tc on t.caseId=tc.id WHERE t.suiteId =?1 ) and name like CONCAT('%',?2,'%') ", countQuery = "select count(*) FROM TestCase WHERE id NOT IN ( SELECT t.caseId FROM TestSuiteCase t inner join TestCase tc on t.caseId=tc.id WHERE t.suiteId =?1 ) and name like CONCAT('%',?2,'%') ")
+	Page<TestCase> findByTestSuiteIsNullAndNameContaining(Integer testSuiteID,String name, Pageable pageable);
 
 	/**
 	 * @param testSuiteID

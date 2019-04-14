@@ -634,12 +634,13 @@ public class TestCaseServiceImpl implements ITestCaseService {
 	@Override
 	public Page<TestCase> findALLBySuiteId(Integer testSuiteID, String name, Pageable pageable) {
 		Page<TestCase> list;
-		if ("".equals(name)) {
+		if (StringUtils.isBlank(name)) {
 			// 名称为空，根据案例ID查询所有
 			list = caseRepository.findByTestSuiteNotContain(testSuiteID, pageable);
 		} else {
 			// 名称不为空，根据三个条件查询所有
-			list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, name, pageable);
+		list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, "%"+name+"%", pageable);
+//			list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, name, pageable);
 		}
 
 		if (list != null && list.getSize() > 0) {
