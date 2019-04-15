@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.servlet.ServletContext;
@@ -24,11 +25,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.ModelAndView;
 
 import com.jettech.entity.TestCase;
 import com.jettech.entity.TestResultItem;
-import com.jettech.service.ITestResultItemService;
 import com.jettech.service.ITestCaseService;
+import com.jettech.service.ITestResultItemService;
+import com.jettech.util.XlsxStreamingView;
 import com.jettech.vo.ResultVO;
 import com.jettech.vo.StatusCode;
 
@@ -428,7 +431,7 @@ public class UploadAndDownLoadController {
 			}
 
 			System.out.println("……………………………………………………");
-			return new ResultVO(true, StatusCode.OK, "下载成功");
+			return null;
 		} catch (Exception e) {
 			log.error("根据caseid导出当前下载失败原因：", e);
 			e.printStackTrace();
@@ -436,5 +439,22 @@ public class UploadAndDownLoadController {
 		}
 
 	}
-
+	@RequestMapping(value="/exportExcel",method=RequestMethod.GET)
+	public ModelAndView exportExcel(@RequestParam(value="ids",required=false,defaultValue="") String ids) {
+		try {
+			List<TestCase> list = testCaseService.findByCaseIDs(ids);
+			 Map<String, Object> map = new HashMap<String, Object>();
+			 map.put("list", list);
+//			 map.put("name", "案例的vo");
+			 XlsxStreamingView newExcelView = new XlsxStreamingView();
+			return new ModelAndView(newExcelView, map);
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error("导出报错为：",e);
+			return null;
+		}
+//		return null;
+	}
+	
+	
 }

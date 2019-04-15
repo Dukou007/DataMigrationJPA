@@ -15,6 +15,7 @@ import org.apache.poi.hssf.usermodel.HSSFDataFormat;
 import org.apache.poi.hssf.usermodel.HSSFFont;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.Row;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -275,7 +276,7 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 		// 设置为居中加粗
 		HSSFCellStyle style = workbook.createCellStyle();
 		HSSFFont font = workbook.createFont();
-		style.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+		style.setAlignment(HorizontalAlignment.CENTER);
 		style.setFont(font);
 		Row header = sheet.createRow(0);
 		header.createCell(0).setCellValue("编号");

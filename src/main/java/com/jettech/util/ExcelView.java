@@ -59,7 +59,7 @@ public class ExcelView extends AbstractXlsView{
         font.setFontName("Arial");
         style.setFillForegroundColor(HSSFColor.BLUE.index);
 //        font.setBold(true);
-        font.setBoldweight(Font.BOLDWEIGHT_NORMAL);
+//        font.setBoldweight(Font.BOLDWEIGHT_NORMAL);
         font.setColor(HSSFColor.BLACK.index);
         style.setFont(font);
         Row header = sheet.createRow(0);
