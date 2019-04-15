@@ -2,6 +2,8 @@ package com.jettech.service.Impl;
 
 import java.util.List;
 
+import javax.transaction.Transactional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -72,6 +74,15 @@ public class TestSuiteCaseServiceImpl implements TestSuiteCaseService {
 	public Integer CountCase(Integer suiteId) {
 		
 		return testSuiteCaseRepository.CountCase(suiteId);
+	}
+
+
+
+	@Override
+	@Transactional
+	public void deleteRelationBySuiteId(int id) {
+		// TODO Auto-generated method stub
+		testSuiteCaseRepository.deleteRelationBySuiteId(id);
 	}
 
 }

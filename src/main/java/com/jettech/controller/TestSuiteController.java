@@ -366,6 +366,7 @@ public class TestSuiteController {
 			String[] list = ids.split(",");
 			for (int i = 0; i < list.length; i++) {
 				int id = Integer.parseInt(list[i]);
+				testSuiteCaseService.deleteRelationBySuiteId(id);
 				testSuiteService.delete(id);
 			}
 			return new ResultVO(true, StatusCode.OK, "删除成功");

@@ -125,6 +125,7 @@ public class TestCaseServiceImpl implements ITestCaseService {
 	public void delete(Integer id) {
 		TestCase testCase = this.findById(id);
 		String name = testCase.getName();
+		testSuiteCaseRepository.deleteRelationByCaseId(id);
 		caseRepository.deleteById(id);
 		if (testCase.getTargetQuery() != null)
 			testQueryRepository.deleteById(testCase.getTargetQuery().getId());

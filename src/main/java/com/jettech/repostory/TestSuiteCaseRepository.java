@@ -40,4 +40,12 @@ public interface TestSuiteCaseRepository extends JpaRepository<TestSuiteCase, In
 	@Query(value = "SELECT * FROM test_suite_case tsc WHERE tsc.case_id=?1 AND tsc.suite_id=?2", nativeQuery = true)
 	TestSuiteCase findByCaseIdAndSuiteId(Integer caseId, Integer testSuiteID);
 
+	@Modifying
+	@Query(value = "DELETE FROM test_suite_case  WHERE case_id=?1", nativeQuery = true)
+	void deleteRelationByCaseId(Integer id);
+
+	@Modifying
+	@Query(value = "DELETE FROM test_suite_case WHERE suite_id=?1", nativeQuery = true)
+	void deleteRelationBySuiteId(int id);
+
 }
