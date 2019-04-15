@@ -201,7 +201,7 @@ public class UploadAndDownLoadController {
 			workbook.write(out);
 			out.flush();
 			out.close();
-			return new ResultVO(true, StatusCode.OK, "下载成功");
+			return null;
 		} catch (Exception e) {
 			e.printStackTrace();
 			log.error("导出当前页 resultItem数据到Excel失败：", e);
@@ -292,7 +292,7 @@ public class UploadAndDownLoadController {
 				e.printStackTrace();
 			}
 			System.out.println("……………………………………………………");
-			return new ResultVO(true, StatusCode.OK, "下载成功", fileName);
+			return null;
 		} catch (Exception e) {
 			log.error("下载失败:", e);
 			e.printStackTrace();
@@ -374,13 +374,13 @@ public class UploadAndDownLoadController {
 
 				}
 				if (testCase.getSourceQuery() != null) {
-					rowItem.createCell(4).setCellValue(testCase.getSourceQuery().toString());
+					rowItem.createCell(4).setCellValue(testCase.getSourceQuery().getDataSource().getName());
 				} else {
 					rowItem.createCell(4).setCellValue("null");
 
 				}
 				if (testCase.getTargetQuery() != null) {
-					rowItem.createCell(5).setCellValue(testCase.getTargetQuery().toString());
+					rowItem.createCell(5).setCellValue(testCase.getTargetQuery().getDataSource().getName());
 				} else {
 					rowItem.createCell(5).setCellValue("null");
 
