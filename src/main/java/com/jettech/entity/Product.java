@@ -67,7 +67,7 @@ public class Product extends BaseEntity {
 		this.subProducts = subProducts;
 	}
 
-	@OneToMany(fetch = FetchType.LAZY)
+	@OneToMany(fetch = FetchType.LAZY,cascade=CascadeType.PERSIST)
 	@JoinColumn(name = "product_id", referencedColumnName = "id")
 	public List<TestSuite> getTestSuites() {
 		return testSuites;

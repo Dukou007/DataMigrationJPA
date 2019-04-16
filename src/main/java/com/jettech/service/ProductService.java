@@ -5,7 +5,9 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import com.jettech.BizException;
 import com.jettech.entity.Product;
+import com.jettech.vo.ProductVO;
 
 public interface ProductService extends IService<Product, Integer> {
 
@@ -37,6 +39,17 @@ public interface ProductService extends IService<Product, Integer> {
 	 * @author:zhou_xiaolong in 2019年2月24日下午11:58:38
 	 */
 	Page<Product> findProductByProductName(String productName, Pageable pageable);
+
+
+	Page<Product> findByProductIdIsNull(Pageable pageable);
+
+	Page<Product> findProductByParentId(Integer parentId, Pageable pageable) throws BizException;
+
+	void addProduct(ProductVO productVO) throws BizException;
+
+	void updateProduct(ProductVO productVO) throws BizException;
+
+	void deleteProduct(String ids) throws BizException;
 
 
 }

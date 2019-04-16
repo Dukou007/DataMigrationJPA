@@ -38,7 +38,7 @@ public class TestSuite extends BaseEntity {
 		this.name = name;
 	}
 
-	@JoinColumn(name = "product_id", nullable = false)
+	@JoinColumn(name = "product_id", nullable = true)
 	@ManyToOne
 	public Product getProduct() {
 		return product;

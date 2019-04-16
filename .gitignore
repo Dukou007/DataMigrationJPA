@@ -12,3 +12,4 @@
 *.lic
 /bin/
 /bin/
+*.tmp
