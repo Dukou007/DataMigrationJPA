@@ -152,8 +152,10 @@ public class ProductServiceImpl implements ProductService {
 				throw new BizException("父产品不存在");
 			} else {
 				BeanUtils.copyProperties(productVO, p);
+				parentProduct.getSubProducts().add(p);
 				p.setParent(parentProduct);
 				repository.save(p);
+				repository.saveAndFlush(parentProduct);
 			}
 		} else {
 			// parentProduct
@@ -173,11 +175,62 @@ public class ProductServiceImpl implements ProductService {
 			throw new BizException("要更新的案例不存在");
 		} else if (p.getParent() != null && !p.getParent().equals("")) {
 			Product parentProduct = p.getParent();
-			BeanUtils.copyProperties(productVO, p);
+			
+			if(productVO.getCreateTime()==null) {
+				p.setCreateUser(p.getCreateUser());
+			}else {
+				p.setCreateTime(productVO.getCreateTime());
+			}
+			if(productVO.getEditTime()==null) {
+				p.setEditTime(p.getEditTime());
+			}else {
+				p.setEditTime(productVO.getEditTime());
+			}
+			if(productVO.getCreateUser()==null) {
+				p.setCreateUser(p.getCreateUser());
+			}else {
+				p.setCreateUser(productVO.getCreateUser());
+			}
+			if(productVO.getEditUser()==null) {
+				p.setEditUser(p.getEditUser());
+			}else {
+				p.setEditUser(productVO.getEditUser());
+			}
+			if(productVO.getName()==null) {
+				p.setName(p.getName());
+			}else {
+				p.setName(productVO.getName());
+			}
 			p.setParent(parentProduct);
 			repository.save(p);
+			repository.saveAndFlush(parentProduct);
 		} else {
-			BeanUtils.copyProperties(productVO, p);
+			if(productVO.getCreateTime()==null) {
+				p.setCreateUser(p.getCreateUser());
+			}else {
+				p.setCreateTime(productVO.getCreateTime());
+			}
+			if(productVO.getEditTime()==null) {
+				p.setEditTime(p.getEditTime());
+			}else {
+				p.setEditTime(productVO.getEditTime());
+			}
+			if(productVO.getCreateUser()==null) {
+				p.setCreateUser(p.getCreateUser());
+			}else {
+				p.setCreateUser(productVO.getCreateUser());
+			}
+			if(productVO.getEditUser()==null) {
+				p.setEditUser(p.getEditUser());
+			}else {
+				p.setEditUser(productVO.getEditUser());
+			}
+			if(productVO.getName()==null) {
+				p.setName(p.getName());
+			}else {
+				p.setName(productVO.getName());
+			}
+//			BeanUtils.copyProperties(productVO, p);
 			p.setParent(null);
 			repository.save(p);
 		}
