@@ -52,4 +52,9 @@ public interface ProductRepository extends JpaRepository<Product, Integer>, JpaS
 	@Query(value = "SELECT * FROM product  WHERE parent_id=?1", countQuery = "SELECT count(*) FROM product  WHERE parent_id=?1", nativeQuery = true)
 	Page<Product> findProductByParentId(Integer parentId, Pageable pageable);
 
+	
+	@Transactional(timeout = 30000)
+	@Query(value = "SELECT * FROM product  WHERE name=?1",  nativeQuery = true)
+	Product findByProductName(String name);
+
 }

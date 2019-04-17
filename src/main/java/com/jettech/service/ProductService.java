@@ -51,5 +51,7 @@ public interface ProductService extends IService<Product, Integer> {
 
 	void deleteProduct(String ids) throws BizException;
 
+	Product findByName(String name);
+
 
 }

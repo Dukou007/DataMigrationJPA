@@ -296,4 +296,10 @@ public class ProductServiceImpl implements ProductService {
 		
 	}
 
+	@Override
+	public Product findByName(String name) {
+		
+		return repository.findByProductName(name);
+	}
+
 }

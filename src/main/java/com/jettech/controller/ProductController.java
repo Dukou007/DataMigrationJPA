@@ -287,6 +287,10 @@ public class ProductController {
 	@ApiImplicitParam(name = "productVO", value = "productVO实体", required = true, paramType = "ProductVO")
 	public ResultVO addProduct(@RequestBody ProductVO productVO) {
 		try {
+		Product product=productService.findByName(productVO.getName());
+		if(product!=null) {
+			return new ResultVO(false, StatusCode.ERROR, "新增失败，已存在相同名称的被测系统");
+		}
 			productService.addProduct(productVO);
 			return new ResultVO(true,StatusCode.OK,"新增成功");
 		} catch (Exception e) {
