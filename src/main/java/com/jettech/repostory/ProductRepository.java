@@ -47,4 +47,6 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 	@Query(value="select * FROM product p WHERE 1=1 AND p.name LIKE CONCAT('%',?1,'%') ",countQuery="select count(*) from product p where 1=1 and p.name like CONCAT('%',?1,'%')",nativeQuery=true)
 	Page<Product> findProductByProductName(String productName, Pageable pageable);
 
+	Page<Product> findByNameLike(String name,Pageable pageable);
+
 }

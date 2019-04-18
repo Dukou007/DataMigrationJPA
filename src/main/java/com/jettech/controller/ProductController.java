@@ -11,6 +11,7 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -346,7 +347,24 @@ public class ProductController {
 		
 	}
 
-	
+	/**根据名称模糊查询
+	 * @return
+	 */
+	@RequestMapping(value="findByNameLike",method=RequestMethod.GET)
+	public ResultVO findByNameLike(@RequestParam String name,@RequestParam Integer pageNum,@RequestParam Integer pageSize) {
+	Pageable pageable=PageRequest.of(pageNum-1, pageSize);
+		Page<Product>list=	productService.findByNameLike(name,pageable);
+		ArrayList<ProductVO> volist = new ArrayList<ProductVO>();
+		for (Product product : list) {
+			ProductVO vo = new ProductVO(product);
+			volist.add(vo);
+		}
+		HashMap<String, Object> resultMap = new HashMap<String,Object>();
+		resultMap.put("totalPages", list.getTotalPages());
+		resultMap.put("totalElements", list.getTotalElements());
+		resultMap.put("list", volist);
+		return new ResultVO(true, StatusCode.OK, "查找成功",resultMap );
+	}
 	
 	
 	

@@ -105,5 +105,11 @@ public class ProductServiceImpl implements ProductService {
 		}
 	}
 
+	@Override
+	public Page<Product> findByNameLike(String name, Pageable pageable) {
+		// TODO Auto-generated method stub
+		return repository.findByNameLike("%"+name+"%",pageable);
+	}
+
 	
 }

@@ -39,4 +39,7 @@ public interface ProductService extends IService<Product, Integer> {
 	Page<Product> findProductByProductName(String productName, Pageable pageable);
 
 
+	Page<Product> findByNameLike(String name, Pageable pageable);
+
+
 }
