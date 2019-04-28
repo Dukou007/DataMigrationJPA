@@ -1,7 +1,6 @@
 package com.jettech.vo;
 
 import com.jettech.entity.FileDataSource;
-import com.jettech.entity.Product;
 
 public class FileDataSourceVO extends BaseVO{
     /**
@@ -13,16 +12,16 @@ public class FileDataSourceVO extends BaseVO{
 	private String name; //名称
 	
 	private String fileType;//文件类型
-	
+	private String fileName;//文件名称
 	private String characterSet;//字符集
 	
 	private Boolean usePage;//默认不分页
 	
 	private Integer pageSize;//分页大小
-	
+	private Integer pageNum;//页数
 	private String host;//服务器(IP)
 	
-	private Integer connectionType;//连接协议类型
+	private Integer connectionType;//连接协议类型 1:ftp,2:sftp,3:ssh
 	
 	private String userName;//连接用户名
 	
@@ -31,7 +30,7 @@ public class FileDataSourceVO extends BaseVO{
 	private String filePath;//文件路径(相对路径)
 
 	private Integer version;
-	
+	private Integer row;
 	public FileDataSourceVO(FileDataSource fileDataSource) {
 		super(fileDataSource);
 		}
@@ -127,22 +126,52 @@ public class FileDataSourceVO extends BaseVO{
 		this.version = version;
 	}
 
-	public FileDataSourceVO(String name, String fileType, String characterSet,
-			Boolean usePage, Integer pageSize, String host,
-			Integer connectionType, String userName, String password,
-			String filePath, Integer version) {
+	public String getFileName() {
+		return fileName;
+	}
+
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
+	}
+
+	public Integer getRow() {
+		return row;
+	}
+
+	public void setRow(Integer row) {
+		this.row = row;
+	}
+
+	public Integer getPageNum() {
+		return pageNum;
+	}
+
+	public void setPageNum(Integer pageNum) {
+		this.pageNum = pageNum;
+	}
+
+	
+
+	public FileDataSourceVO(String name, String fileType, String fileName,
+			String characterSet, Boolean usePage, Integer pageSize,
+			Integer pageNum, String host, Integer connectionType,
+			String userName, String password, String filePath, Integer version,
+			Integer row) {
 		super();
 		this.name = name;
 		this.fileType = fileType;
+		this.fileName = fileName;
 		this.characterSet = characterSet;
 		this.usePage = usePage;
 		this.pageSize = pageSize;
+		this.pageNum = pageNum;
 		this.host = host;
 		this.connectionType = connectionType;
 		this.userName = userName;
 		this.password = password;
 		this.filePath = filePath;
 		this.version = version;
+		this.row = row;
 	}
 
 	public FileDataSourceVO() {

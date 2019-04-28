@@ -41,6 +41,12 @@ public class QualityTestResult extends BaseEntity {
 	private String testCaseName;
 	// 明细表名称
 	private String secordaryTable;
+	//轮次ID
+	private Integer testRoundId;
+	//测试意图
+	private String testPurpose;
+	//期望值
+	private String purposeValue = "0";
 
 	public Integer getDataCount() {
 		return dataCount;
@@ -141,8 +147,28 @@ public class QualityTestResult extends BaseEntity {
 		this.testCaseName = testCaseName;
 	}
 
-	
 
+	public Integer getTestRoundId() {
+		return testRoundId;
+	}
 
-	
+	public void setTestRoundId(Integer testRoundId) {
+		this.testRoundId = testRoundId;
+	}
+
+	public String getTestPurpose() {
+		return testPurpose;
+	}
+
+	public void setTestPurpose(String testPurpose) {
+		this.testPurpose = testPurpose;
+	}
+
+	public String getPurposeValue() {
+		return purposeValue;
+	}
+
+	public void setPurposeValue(String purposeValue) {
+		this.purposeValue = purposeValue;
+	}
 }

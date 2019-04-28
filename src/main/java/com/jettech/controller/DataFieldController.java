@@ -4,7 +4,9 @@
 package com.jettech.controller;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.websocket.server.PathParam;
 
@@ -19,6 +21,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.jettech.entity.DataField;
 import com.jettech.service.ITestFieldService;
 import com.jettech.vo.ResultVO;
+import com.jettech.vo.StatusCode;
 import com.jettech.vo.TestFieldVO;
 
 /**
@@ -64,12 +67,37 @@ public class DataFieldController {
 		return result.toJSONString();
 	}
 	
-	/**
-	 * 字段的复制
-	 */
+		/**
+		 * 字段的复制
+		 */
 		@ResponseBody
 		@RequestMapping(method = RequestMethod.POST, value = "/copyDataField")
 		public ResultVO copyDataField(@PathParam(value = "id") Integer id,@PathParam(value = "name") String name) {
 	       return testFieldService.copyDataField(id, name);
+		}
+		
+		/**
+		 * 通过schemaID获取表信息
+		 * @param schemaID
+		 * @return
+		 */
+		@ResponseBody
+	    @RequestMapping(value="/getFieldsByTableID",produces = { "application/json;charset=UTF-8" },method = RequestMethod.GET)
+	    public  ResultVO getFieldsByTableID(@PathParam(value = "tableID") Integer tableID,@PathParam(value = "fieldName") String fieldName){
+			Map<String,Object> resultmap = new HashMap<String,Object>();
+			List<TestFieldVO> arrvolist=new ArrayList<>();
+	        try {
+	        	List<DataField> dtlist= testFieldService.findFieldNameByTableID(tableID,fieldName);
+		        for(DataField df : dtlist) {
+		        	TestFieldVO testFieldVO = new TestFieldVO(df);
+		        	arrvolist.add(testFieldVO);
+		        }
+		        resultmap.put("list",arrvolist);
+		        return new ResultVO(true, StatusCode.OK, "查询成功", resultmap);
+		    }catch(Exception e) {
+		    	e.printStackTrace();
+		    	e.getLocalizedMessage();
+		    	return new ResultVO(false, StatusCode.ERROR, "查询失败", resultmap);
+		    }
 		}
 }

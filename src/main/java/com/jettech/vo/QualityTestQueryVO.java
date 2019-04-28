@@ -8,6 +8,15 @@ public class QualityTestQueryVO extends BaseVO {
 
 	private String name;
 	private Integer dataSourceId;
+	private String dataSourceName;
+	public String getDataSourceName() {
+		return dataSourceName;
+	}
+
+	public void setDataSourceName(String dataSourceName) {
+		this.dataSourceName = dataSourceName;
+	}
+
 	private String testFieldNames;
 	private String sqlText;
 
@@ -40,6 +49,7 @@ public class QualityTestQueryVO extends BaseVO {
 		if (entity != null) {
 			QualityTestQuery e = (QualityTestQuery) entity;
 			this.dataSourceId = e.getDataSource().getId();
+			this.dataSourceName=e.getDataSource().getName();
 			this.setId(e.getId());
 			if (e.getDataFields() != null) {
 				this.testFieldNames = "";

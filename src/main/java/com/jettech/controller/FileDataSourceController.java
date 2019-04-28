@@ -1,8 +1,10 @@
 package com.jettech.controller;
 
 
+import java.util.List;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.websocket.server.PathParam;
 
 import org.slf4j.Logger;
@@ -67,13 +69,21 @@ public class FileDataSourceController {
 		return fileDataSourceService.getAllByPage(name,pageable);
 	}
 /**
- * 文件的预览
+ *本地 文件的预览
  */
 	@ResponseBody
     @RequestMapping(value="/preview",produces = { "application/json;charset=UTF-8" })
-    public  String preview(@RequestBody  Map map){
-		return fileDataSourceService.preview(String.valueOf(map.get("filePath")),String.valueOf(map.get("characterSet")),Integer.parseInt(map.get("row")+""));
+    public  Map preview(@RequestBody  FileDataSourceVO fileDataSourceVO){
+		return fileDataSourceService.preview(fileDataSourceVO.getFilePath(),fileDataSourceVO.getFileName(),fileDataSourceVO.getFileType(),fileDataSourceVO.getCharacterSet(),fileDataSourceVO.getRow(),fileDataSourceVO.getPageNum(),fileDataSourceVO.getPageSize());
 	}
+	/**
+	 *服务器上 文件的预览
+	 */
+		@ResponseBody
+	    @RequestMapping(value="/previewfwq",produces = { "application/json;charset=UTF-8" })
+	    public  Map previewfwq(@RequestBody  FileDataSourceVO fileDataSourceVO,HttpServletRequest req){
+			return fileDataSourceService.preview(fileDataSourceVO,req);
+		}
 
 	/**
 	 * 测试连接方法 ftp sftp ssh 20190312

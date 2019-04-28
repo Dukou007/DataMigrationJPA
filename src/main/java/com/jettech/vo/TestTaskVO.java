@@ -32,6 +32,8 @@ public class TestTaskVO extends BaseVO {
 
 	private boolean status;// 执行状态 true执行中false未执行
 
+	private int type;//集合类型，0迁移，1质量
+
 	public TestTaskVO() {
 	}
 
@@ -138,4 +140,12 @@ public class TestTaskVO extends BaseVO {
 		this.status = status;
 	}
 
+
+	public int getType() {
+		return type;
+	}
+
+	public void setType(int type) {
+		this.type = type;
+	}
 }

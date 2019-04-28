@@ -21,7 +21,7 @@ public class TestTask extends BaseEntity {
 	private TestSuite testSuite;
 	private boolean actived;//true激活中false未激活
 	private boolean status;//执行状态 true执行中false未执行
-	
+	private int type;//集合类型，0迁移，1质量
 	public TestTask() {
 		super();
 	}
@@ -85,4 +85,12 @@ public class TestTask extends BaseEntity {
 		this.cron = cron;
 	}
 
+
+	public int getType() {
+		return type;
+	}
+
+	public void setType(int type) {
+		this.type = type;
+	}
 }

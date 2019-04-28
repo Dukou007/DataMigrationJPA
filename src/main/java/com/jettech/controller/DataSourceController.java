@@ -319,6 +319,8 @@ public class DataSourceController {
 				ds.setDatabaseType(EnumDatabaseType.DB2);
 			}else if(type.equals("Informix")){				
 				ds.setDatabaseType(EnumDatabaseType.Informix);
+			}else if(type.equals("SyBase")){				
+				ds.setDatabaseType(EnumDatabaseType.SyBase);
 			}
 	        boolean re=dataSourceService.GetDBLink(ds);
 	        result.put("result", String.valueOf(re));

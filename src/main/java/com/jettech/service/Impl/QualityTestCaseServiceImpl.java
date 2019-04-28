@@ -5,7 +5,14 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 import javax.transaction.Transactional;
+
+import com.jettech.domain.QualityTestCaseModel;
+import com.jettech.thread.JobWorker;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -15,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.alibaba.fastjson.JSONArray;
@@ -94,9 +102,10 @@ public class QualityTestCaseServiceImpl implements IQualityTestCaseService {
 		if (qualityTestCase == null)
 			return "not found qualityTestCase id:" + testCaseId;
 		logger.info("ready doTestCase:" + qualityTestCase.getId() + "_" + qualityTestCase.getName());
-		QualityCaseModel caseModel = null;
+		// QualityCaseModel caseModel = null;
+		QualityTestCaseModel caseModel = null;
 		try {
-			caseModel = new QualityCaseModel(qualityTestCase);
+			caseModel = new QualityTestCaseModel(qualityTestCase);
 			// 特殊的：以下属性不能复制,手工复制一次(暂未查明原因)
 //			caseModel.parseEntity(qualityTestCase);
 
@@ -137,10 +146,9 @@ public class QualityTestCaseServiceImpl implements IQualityTestCaseService {
 			e.printStackTrace();
 			return e.getMessage();
 		}
-		/*
-		 * QualityJobWorker job = new QualityJobWorker(caseModel); Thread thread = new
-		 * Thread(job); thread.start();
-		 */
+		JobWorker job = new JobWorker(caseModel);
+		Thread thread = new Thread(job);
+		thread.start();
 		return null;
 	}
 
@@ -322,8 +330,17 @@ public class QualityTestCaseServiceImpl implements IQualityTestCaseService {
 	}
 
 	@Override
-	public void updateTestQualityCase(QualityTestCaseVO testCaseVO) {
+	public void updateTestQualityCase(QualityTestCaseVO testCaseVO) throws BizException {
 		QualityTestCase testCase = caseRepository.findById(testCaseVO.getId()).get();
+		// 处理新增名称不能重复
+		List<QualityTestCase> qtc = caseRepository.findByCaseName(testCaseVO.getName());
+		for (QualityTestCase tc : qtc) {
+			if (tc.getId().equals(testCaseVO.getId()) && tc.getName().equals(testCaseVO.getName())) {
+				break;
+			} else {
+				throw new BizException("案例名称已存在");
+			}
+		}
 		BeanUtils.copyProperties(testCaseVO, testCase);
 		QualityTestQuery testQuery = qualityTestQueryRepository.findById(testCase.getQualityTestQuery().getId()).get();
 		testQuery.setName(testCaseVO.getQualityTestQueryVo().getName());
@@ -344,6 +361,7 @@ public class QualityTestCaseServiceImpl implements IQualityTestCaseService {
 	}
 
 	@Override
+	@Transactional
 	public void saveQualityTestCaseVo(QualityTestCaseVO testCaseVO) throws BizException {
 		if (testCaseVO.getQualityTestQueryVo().getDataSourceId() == null) {
 			throw new BizException("数据源为空");
@@ -355,10 +373,11 @@ public class QualityTestCaseServiceImpl implements IQualityTestCaseService {
 			throw new BizException("testquery名称为空");
 		}
 		// 处理新增名称不能重复
-		List<QualityTestCase>qtc = caseRepository.findByCaseName(testCaseVO.getName());
-		if (qtc != null&&qtc.size()>0) {
+		List<QualityTestCase> qtc = caseRepository.findByCaseName(testCaseVO.getName());
+		if (qtc != null && qtc.size() > 0) {
 			throw new BizException("案例名称已存在");
 		}
+
 		QualityTestCase qualityTestCase = new QualityTestCase();
 		QualityTestQuery qualityTestQuery = new QualityTestQuery();
 		ArrayList<DataField> list = new ArrayList<DataField>();
@@ -368,6 +387,7 @@ public class QualityTestCaseServiceImpl implements IQualityTestCaseService {
 			for (String name : names) {
 				DataField testField = new DataField();
 				testField.setName(name);
+				testField.setQualityTestQuery(qualityTestQuery);
 				testFieldRepository.save(testField);
 				list.add(testField);
 			}
@@ -390,6 +410,38 @@ public class QualityTestCaseServiceImpl implements IQualityTestCaseService {
 
 		caseRepository.save(qualityTestCase);
 
+	}
+
+	@Override
+	@Transactional
+	public void changeTestCasePosition(Integer caseId, Integer suiteId) {
+		TestSuite testSuite = testSutieRepository.getOne(suiteId);
+		QualityTestCase testCase = caseRepository.getOne(caseId);
+	//	testCase.setTestSuite(testSuite);
+		//修改为多对对关系liu
+		List<TestSuite> testSuites = new ArrayList();
+		testSuites.add(testSuite);
+		testCase.setTestSuites(testSuites);
+
+		caseRepository.saveAndFlush(testCase);
+		testSuiteRepository.saveAndFlush(testSuite);
+
+	}
+
+	@Override
+	@Transactional
+	public void backDisorder(Integer caseId, Integer suiteId) {
+		QualityTestCase testCase = caseRepository.findByCaseIdAndSuiteId(caseId, suiteId);
+		//testCase.setTestSuite(null);
+		//修改为多对对关系liu
+		List<TestSuite> testSuites = new ArrayList();
+		testCase.setTestSuites(testSuites);
+
+		caseRepository.saveAndFlush(testCase);
+	}
+
+	public List<QualityTestCase> findByTestSuitIdAndRoundId(Integer test_suit_id, Integer test_round_id) {
+		return caseRepository.findByTestSuitIdAndRoundId(test_suit_id, test_round_id);
 	}
 
 }

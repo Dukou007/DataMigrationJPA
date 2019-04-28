@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.transaction.Transactional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -137,9 +139,11 @@ public class DataTableServiceImpl implements ITestTableService {
 		DataTable copyDataTable = new DataTable();
 		BeanUtils.copyProperties(dataTable, copyDataTable);
 		copyDataTable.setCreateTime(new Date());
+		copyDataTable.setCreateUser(null);
+		copyDataTable.setEditTime(new Date());
+		copyDataTable.setEditUser(null);
 		copyDataTable.setName(name);
 		copyDataTable.setId(null);
-		// copyDataTable.setVersion(0);
 		copyDataTable = testTableRepository.save(copyDataTable);
 		List<DataField> exitsdataFields = dataTable.getDataFields();
 		if (exitsdataFields.size() != 0) {
@@ -151,7 +155,9 @@ public class DataTableServiceImpl implements ITestTableService {
 				copyDataFiled.setTalbeName(name);
 				copyDataFiled.setId(null);
 				copyDataFiled.setCreateTime(new Date());
-				copyDataFiled.setVersion(0);
+				copyDataFiled.setCreateUser(null);
+				copyDataFiled.setEditTime(new Date());
+				copyDataFiled.setEditUser(null);
 				copydataFields.add(copyDataFiled);
 			}
 			testFieldRepository.saveAll(copydataFields);
@@ -162,6 +168,7 @@ public class DataTableServiceImpl implements ITestTableService {
 	}
 
 	@Override
+	@Transactional
 	public void SetOneDataTable(int id) {
 		// 找到这张表所对应的源
 		DataTable findDataTable = testTableRepository.findById(id).get();
@@ -183,6 +190,13 @@ public class DataTableServiceImpl implements ITestTableService {
 			logger.info("这张表" + findDataTable.getName() + "不存在，不能同步");
 		}
 
+	}
+	
+
+	@Override
+	public List<DataTable> getTablesBySchemaID(int schemaID,String tableName) {
+		List<DataTable> list = testTableRepository.findTablesBySchemaID(schemaID,tableName);
+		return list;
 	}
 
 	

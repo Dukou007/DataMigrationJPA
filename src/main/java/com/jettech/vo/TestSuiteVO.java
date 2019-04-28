@@ -18,6 +18,7 @@ public class TestSuiteVO extends BaseVO {
 	
 	private String productName;
 	
+	private int type;//集合类型，0迁移，1质量
 	public TestSuiteVO() {
 	}
 
@@ -29,6 +30,7 @@ public class TestSuiteVO extends BaseVO {
 			if (testSuite.getProduct() != null)
 				this.productID = testSuite.getProduct().getId();
 				this.productName=testSuite.getProduct().getName();
+				this.type=testSuite.getType();
 		}
 	}
 
@@ -74,6 +76,14 @@ public class TestSuiteVO extends BaseVO {
 	 */
 	public void setProductName(String productName) {
 		this.productName = productName;
+	}
+
+	public int getType() {
+		return type;
+	}
+
+	public void setType(int type) {
+		this.type = type;
 	}
 
 }

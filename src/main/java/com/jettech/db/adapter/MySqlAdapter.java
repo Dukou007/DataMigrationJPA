@@ -8,6 +8,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,6 +155,7 @@ public class MySqlAdapter extends AbstractAdapter {
 	public List<com.jettech.entity.DataField> getAllField(String dbName, Connection conn) {
 		List<com.jettech.entity.DataField> fieldlist =  new ArrayList<com.jettech.entity.DataField>();;
 		Statement stmt;
+		String errorMSG = "";
 		try {
 			stmt = conn.createStatement();
 		StringBuffer sql = new StringBuffer("select * from information_schema.columns");
@@ -172,7 +174,16 @@ public class MySqlAdapter extends AbstractAdapter {
 				} else {
 					fieldobj.setIsNullable(false);
 				}
-				fieldobj.setDataLength(rs.getInt("CHARACTER_MAXIMUM_LENGTH"));
+//				if("mainrecord".equals(rs.getString("TABLE_NAME"))){
+//					errorMSG = "";
+//				}
+				errorMSG = "length=============="+rs.getString("CHARACTER_MAXIMUM_LENGTH")+"=tableName:"+rs.getString("TABLE_NAME")+"=columnNmae:"+rs.getString("COLUMN_NAME");
+//				logger.info("length:"+rs.getInt("CHARACTER_MAXIMUM_LENGTH"));
+				if(StringUtils.isNotBlank(rs.getString("CHARACTER_MAXIMUM_LENGTH"))){
+					fieldobj.setDataLength(Integer.valueOf(rs.getString("CHARACTER_MAXIMUM_LENGTH")));
+				}else{
+					fieldobj.setDataLength(0);
+				}
 				fieldobj.setDataPrecision(rs.getInt("NUMERIC_PRECISION"));
 				if (rs.getString("COLUMN_KEY").equals("PRI")) {
 					fieldobj.setIsPrimaryKey(true);
@@ -185,6 +196,7 @@ public class MySqlAdapter extends AbstractAdapter {
 			rs.close();
 			stmt.close();
 		} catch (SQLException e) {
+			System.out.println(errorMSG);
 			e.printStackTrace();
 		}
 		

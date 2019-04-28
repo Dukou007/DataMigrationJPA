@@ -8,9 +8,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-
+@Repository
 public interface TestSuiteRepository extends JpaRepository<TestSuite, Integer> {
 	List<TestSuite> findByName(String name);
 
@@ -21,6 +23,7 @@ public interface TestSuiteRepository extends JpaRepository<TestSuite, Integer> {
 	List<TestSuite> findByNameLikeName(String SuiteName);
 
 	// 模糊查询加分页 新加 20190123
+	@Transactional(timeout=30000)
 	Page<TestSuite> findByNameLike(String name, Pageable pageable);
 
 	/**
@@ -71,5 +74,8 @@ public interface TestSuiteRepository extends JpaRepository<TestSuite, Integer> {
 
 	@Query(value="SELECT * FROM `test_suite` t WHERE t.`name`=?1 AND t.product_id=?2",nativeQuery=true)
 	List<TestSuite> findByNameAndProductId(String name, Integer productID);
-	 
+	@Query(value = "SELECT *  FROM test_suite  WHERE 1=1 and type=?2 AND name LIKE CONCAT('%',?1,'%') ", countQuery = "select count(*) from test_suite  where type=?2 and  name like CONCAT('%',?1,'%') ",nativeQuery = true)
+	Page<TestSuite> findByNameAndTypeByPage(String name,int type, Pageable pageable);
+
+	List<TestSuite> findByProductIdAndType(Integer productId,Integer type);
 }

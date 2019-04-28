@@ -3,6 +3,7 @@ package com.jettech.service;
 import java.util.List;
 import java.util.Map;
 
+import com.jettech.BizException;
 import com.jettech.entity.ModelTestCase;
 import com.jettech.vo.ModelTestCaseVO;
 import com.jettech.vo.ResultVO;
@@ -14,7 +15,7 @@ public interface ModelTestCaseService extends IService<ModelTestCase, Integer> {
 
 	String doTest(Integer testCaseId);
 
-	ResultVO readSQLCase(Map<String, String> map);
+	ResultVO readSQLCase(Map<String, String> map) throws BizException;
 
 	ModelTestCase findByNameAndSuite(String testCaseName, String testSuiteName);
 
@@ -59,9 +60,9 @@ public interface ModelTestCaseService extends IService<ModelTestCase, Integer> {
 	 */
 	void backDisorder(String testCaseIDS);
 
-	void saveTestCaseVo(ModelTestCaseVO testCaseVO);
+	void saveTestCaseVo(ModelTestCaseVO testCaseVO) throws BizException;
 
-	void updateTestCase(ModelTestCaseVO testCaseVO);
+	void updateTestCase(ModelTestCaseVO testCaseVO) throws BizException;
 
 
 }

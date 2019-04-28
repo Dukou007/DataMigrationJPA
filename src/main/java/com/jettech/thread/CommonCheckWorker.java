@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import com.jettech.domain.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -263,8 +264,8 @@ public class CommonCheckWorker implements Runnable {
 						for (Object targetObj : targetList) {
 							if (sourceObj != null && targetObj != null
 							        && sourceObj.toString().equals(targetObj.toString())) {
-								tri.setSoruceValue(sourceObj.toString());
-								tri.setTragetValue(targetObj.toString());
+								tri.setSourceValue(sourceObj.toString());
+								tri.setTargetValue(targetObj.toString());
 								comFlag = true;
 								break out;
 							}

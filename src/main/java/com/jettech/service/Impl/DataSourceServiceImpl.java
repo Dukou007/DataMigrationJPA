@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.transaction.Transactional;
+
 import com.jettech.EnumDatabaseType;
 import com.jettech.EnumOptType;
 
@@ -125,6 +127,9 @@ public class DataSourceServiceImpl implements IDataSourceService {
 		DataSource copyDataSource = new DataSource();
 		BeanUtils.copyProperties(dataSource, copyDataSource);
 		copyDataSource.setCreateTime(new Date());
+		copyDataSource.setCreateUser(null);
+		copyDataSource.setEditTime(new Date());
+		copyDataSource.setEditUser(null);
 		copyDataSource.setName(name);
 		copyDataSource.setId(null);
 		copyDataSource.setDataSchemas(null);
@@ -174,10 +179,16 @@ public class DataSourceServiceImpl implements IDataSourceService {
 	}
 
 	@Override
+	@Transactional
 	public String GetMetaData(Integer dataSourceId) throws Exception {
 		 String message="";
+		 if(dataSourceId==null){
+				message="源id不能为空，不能进行同步";
+				return message;
+			}
 		AbstractAdapter adapter = null;
-		DataSource ds = repository.getOne(dataSourceId);
+	//	DataSource ds = repository.getOne(dataSourceId);
+		DataSource ds = repository.findById(dataSourceId).get();
 		String schema = ds.getDefaultSchema();
 		String username = ds.getUserName();
 		String pwd = ds.getPassword();
@@ -889,11 +900,6 @@ return message;
 	
 	@Override
 	public void delOneDatasource(int data_source_id) throws SQLException {
-		List<DataSchema> tdblist = testDatabaseRepository
-				.findByForeignKey(data_source_id);
-		for (int i = 0; i < tdblist.size(); i++) {
-			ResultVO result=testDatabaseService.delete(tdblist.get(i).getId());
-		}
 		repository.deleteById(data_source_id);
 	}
 

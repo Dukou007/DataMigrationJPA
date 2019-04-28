@@ -3,6 +3,7 @@ package com.jettech.entity;
 import java.util.List;
 
 import javax.persistence.CascadeType;
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
@@ -15,7 +16,8 @@ import javax.persistence.Version;
 import com.alibaba.fastjson.annotation.JSONField;
 
 @Entity
-@Table(name = "test_field", uniqueConstraints = {@UniqueConstraint(name = "ix_test_field_name", columnNames = {"name","test_table_id"})})
+@Table(name = "test_field", uniqueConstraints = {
+		@UniqueConstraint(name = "ix_test_field_name", columnNames = { "name", "test_table_id" }) })
 public class DataField extends BaseEntity {
 
 	/**
@@ -24,7 +26,7 @@ public class DataField extends BaseEntity {
 	private static final long serialVersionUID = -8715986279017808804L;
 
 	private String talbeName;
-	
+
 	private String name;
 
 	private String des;
@@ -46,22 +48,34 @@ public class DataField extends BaseEntity {
 	private DataTable dataTable;
 
 	private QualityTestQuery qualityTestQuery;
-	
+
 	private Boolean deleted;
 	private Integer version;
-	/*@ManyToOne
-	@JoinColumn(name="quality_test_case_id")
-	public QualityTestCase getQualityTestCase() {
-		return qualityTestCase;
-	}
-
-	public void setQualityTestCase(QualityTestCase qualityTestCase) {
-		this.qualityTestCase = qualityTestCase;
-	}*/
+	/*
+	 * @ManyToOne
+	 * 
+	 * @JoinColumn(name="quality_test_case_id") public QualityTestCase
+	 * getQualityTestCase() { return qualityTestCase; }
+	 * 
+	 * public void setQualityTestCase(QualityTestCase qualityTestCase) {
+	 * this.qualityTestCase = qualityTestCase; }
+	 */
 
 	private List<TestQueryField> testQueryFields;
-	
-    @Version
+	private List<TestFileQueryField> testFileQueryField;
+
+	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	@JoinColumn(name = "test_field_id", referencedColumnName = "id")
+	@JSONField(serialize = false)
+	public List<TestFileQueryField> getTestFileQueryField() {
+		return testFileQueryField;
+	}
+
+	public void setTestFileQueryField(List<TestFileQueryField> testFileQueryField) {
+		this.testFileQueryField = testFileQueryField;
+	}
+
+	@Version
 	public Integer getVersion() {
 		return version;
 	}
@@ -69,13 +83,14 @@ public class DataField extends BaseEntity {
 	public void setVersion(Integer version) {
 		this.version = version;
 	}
+
 	public DataField() {
 	}
 
-	public DataField(String name,String dataType) {
+	public DataField(String name, String dataType) {
 		this();
 		this.name = name;
-		this.dataType=dataType;
+		this.dataType = dataType;
 	}
 
 	public String getName() {
@@ -86,6 +101,7 @@ public class DataField extends BaseEntity {
 		this.name = name == null ? null : name.trim();
 	}
 
+	@Column(columnDefinition="text")
 	public String getDes() {
 		return des;
 	}
@@ -188,8 +204,8 @@ public class DataField extends BaseEntity {
 	}
 
 	@ManyToOne
-	//@JoinColumn(name="test_field_id") Quality
-	@JoinColumn(name="quality_test_query_id")
+	// @JoinColumn(name="test_field_id") Quality
+	@JoinColumn(name = "quality_test_query_id")
 	public QualityTestQuery getQualityTestQuery() {
 		return qualityTestQuery;
 	}
@@ -198,13 +214,11 @@ public class DataField extends BaseEntity {
 		this.qualityTestQuery = qualityTestQuery;
 	}
 
-/*	public QualityTestQuery getQualityTestQuery() {
-		return qualityTestQuery;
-	}
+	/*
+	 * public QualityTestQuery getQualityTestQuery() { return qualityTestQuery; }
+	 * 
+	 * public void setQualityTestQuery(QualityTestQuery qualityTestQuery) {
+	 * this.qualityTestQuery = qualityTestQuery; }
+	 */
 
-	public void setQualityTestQuery(QualityTestQuery qualityTestQuery) {
-		this.qualityTestQuery = qualityTestQuery;
-	}*/
-	
-	
 }

@@ -23,6 +23,10 @@ public interface DataFieldRepository extends JpaRepository<DataField, Integer> {
 
 	@Query(value = "select * from test_field  where test_table_id =?1", nativeQuery = true)
 	List<DataField> findByForeignKey(int test_table_id);
+	
+
+	@Query(value = "select * from test_field  where test_table_id =?1 and if(?2 is null or ?2 = '',1=1,name like concat('%',?2,'%'))", nativeQuery = true)
+	List<DataField> findFieldNameByTableID(int test_table_id,String name);
 
 	@Query(value = "select t.* from test_field t,test_table b,test_database c where t.test_table_id =b.id and c.id=b.test_database_id and b.name=?1 and c.name=?2", nativeQuery = true)
 	List<DataField> findByTBName(String name, String dbname);
@@ -40,6 +44,10 @@ public interface DataFieldRepository extends JpaRepository<DataField, Integer> {
 	@Query(value = "UPDATE DataField t SET t.deleted=?1 WHERE t.id=?2")
 	int deletedByID(boolean deleted, int id);
 
+	@Modifying
+	@Transactional
+	@Query("delete from DataField  where id = ?1")
+	int delById(int id);
 	@Modifying
 	@Transactional
 	@Query(value = "UPDATE DataField " + "t " + "SET t.createTime=?1," + "t.createUser=?2," + "t.editTime=?3,"

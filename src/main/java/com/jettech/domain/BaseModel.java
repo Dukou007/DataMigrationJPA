@@ -105,6 +105,13 @@ public abstract class BaseModel {
 		this.setEditUser(entity.getEditUser());
 		this.setId(entity.getId());
 	}
+	protected void parseFileEntity(BaseEntity entity) {
+		this.setCreateTime(entity.getCreateTime());
+		this.setCreateUser(entity.getCreateUser());
+		this.setEditTime(entity.getEditTime());
+		this.setEditUser(entity.getEditUser());
+		this.setId(entity.getId());
+	}
 
 	private void copyObjectFieldValue(Object source, Object target)
 	        throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {

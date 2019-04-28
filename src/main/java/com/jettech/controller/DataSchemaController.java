@@ -116,6 +116,7 @@ public class DataSchemaController {
 	        try {
 	        	testDatabaseService.SetOneDataSchema(testDataBaseId);
 		    }catch(Exception e) {
+		    	e.printStackTrace();
 		    	log.info("同步失败"+e);
 			    return new ResultVO(false, StatusCode.ERROR, "同步失败");
 
@@ -146,6 +147,31 @@ public class DataSchemaController {
 		     e.getLocalizedMessage();
 		    }
 	        return new ResultVO(true, StatusCode.OK, "查询成功", resultmap);
+		}
+		
+		/**
+		 * 通过dataSourceID获取schema信息
+		 * @param dataSourceID
+		 * @return
+		 */
+		@ResponseBody
+	    @RequestMapping(value="/getSchemasByDataSourceID",produces = { "application/json;charset=UTF-8" },method = RequestMethod.GET)
+	    public  ResultVO getSchemaByDataSourceID(@PathParam(value = "dataSourceID") Integer dataSourceID,@PathParam(value = "schemaName") String schemaName){
+			Map<String,Object> resultmap = new HashMap<String,Object>();
+			List<TestDatabaseVO> arrvolist=new ArrayList<>();
+	        try {
+	        	List<DataSchema> tdlist = testDatabaseService.getSchemasByDataSourceID(dataSourceID,schemaName);
+		        for(DataSchema td : tdlist) {
+		        	TestDatabaseVO testDatabaseVO = new TestDatabaseVO(td);
+		        	arrvolist.add(testDatabaseVO);
+		        }
+		        resultmap.put("list",arrvolist);
+		        return new ResultVO(true, StatusCode.OK, "查询成功", resultmap);
+		    }catch(Exception e) {
+		    	e.printStackTrace();
+		    	e.getLocalizedMessage();
+		    	return new ResultVO(false, StatusCode.ERROR, "查询失败", resultmap);
+		    }
 		}
 		
 }

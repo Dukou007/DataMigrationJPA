@@ -1,10 +1,16 @@
 package com.jettech.entity;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.persistence.Version;
@@ -21,9 +27,21 @@ public class FileDataSource extends BaseEntity implements Serializable {
 	 * 
 	 */
 	private static final long serialVersionUID = 5798082473941182942L;
+	private List<TestQuery> testQueries = new ArrayList<>();
+
+	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	@JoinColumn(name = "file_data_source_id", referencedColumnName = "id")
+	public List<TestQuery> getTestQueries() {
+		return testQueries;
+	}
+	
+	public void setTestQueries(List<TestQuery> testQueries) {
+		this.testQueries = testQueries;
+	}
 
 	private String name; // 名称
 
+	private String fileName;// 文件名称，支持通配符，正则表达式，可能为多个文件
 	private EnumFileType fileType;// 文件类型
 
 	private String characterSet;// 字符集
@@ -53,7 +71,7 @@ public class FileDataSource extends BaseEntity implements Serializable {
 	public String getTextQualifier() {
 		return textQualifier;
 	}
-	
+
 	public void setTextQualifier(String textQualifier) {
 		this.textQualifier = textQualifier;
 	}
@@ -164,11 +182,20 @@ public class FileDataSource extends BaseEntity implements Serializable {
 		this.filePath = filePath;
 	}
 
-	public FileDataSource(String name, EnumFileType fileType, String characterSet, Boolean usePage, Integer pageSize,
-			String host, Integer connectionType, String userName, String password, String filePath, Integer version,
-			String lineSpeater, String columnSpeater) {
+	public String getFileName() {
+		return fileName;
+	}
+
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
+	}
+
+	public FileDataSource(String name, String fileName, EnumFileType fileType, String characterSet, Boolean usePage,
+			Integer pageSize, String host, Integer connectionType, String userName, String password, String filePath,
+			Integer version) {
 		super();
 		this.name = name;
+		this.fileName = fileName;
 		this.fileType = fileType;
 		this.characterSet = characterSet;
 		this.usePage = usePage;
@@ -179,8 +206,6 @@ public class FileDataSource extends BaseEntity implements Serializable {
 		this.password = password;
 		this.filePath = filePath;
 		this.version = version;
-		this.lineSpeater = lineSpeater;
-		this.columnSpeater = columnSpeater;
 	}
 
 	public FileDataSource() {

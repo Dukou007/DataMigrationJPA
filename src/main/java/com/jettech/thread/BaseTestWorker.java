@@ -51,8 +51,8 @@ public class BaseTestWorker {
 		item.setKeyValue(keyValue);
 		item.setResult(result);
 		item.setColumnName(colName);
-		item.setSoruceValue(sourceValue == null ? "null" : sourceValue.toString());
-		item.setTragetValue(targetValue == null ? "null" : targetValue.toString());
+		item.setSourceValue(sourceValue == null ? "null" : sourceValue.toString());
+		item.setTargetValue(targetValue == null ? "null" : targetValue.toString());
 		item.setTestResultId(testResultId);
 		return item;
 	}

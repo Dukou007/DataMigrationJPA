@@ -1,10 +1,12 @@
 package com.jettech.repostory;
 
 import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.jettech.entity.Product;
 
@@ -47,6 +49,19 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 	@Query(value="select * FROM product p WHERE 1=1 AND p.name LIKE CONCAT('%',?1,'%') ",countQuery="select count(*) from product p where 1=1 and p.name like CONCAT('%',?1,'%')",nativeQuery=true)
 	Page<Product> findProductByProductName(String productName, Pageable pageable);
 
-	Page<Product> findByNameLike(String name,Pageable pageable);
+	@Transactional(timeout = 30000)
+	@Query(value = "SELECT * FROM product WHERE parent_id is null", countQuery = "SELECT count(*) FROM product WHERE parent_id is null", nativeQuery = true)
+	Page<Product> findByProductIdIsNull(Pageable pageable);
+
+	@Transactional(timeout = 30000)
+	@Query(value = "SELECT * FROM product  WHERE parent_id=?1", countQuery = "SELECT count(*) FROM product  WHERE parent_id=?1", nativeQuery = true)
+	Page<Product> findProductByParentId(Integer parentId, Pageable pageable);
+
+	
+	@Transactional(timeout = 30000)
+	@Query(value = "SELECT * FROM product  WHERE name=?1",  nativeQuery = true)
+	Product findByProductName(String name);
+
+	List<Product> findByNameLike(String name);
 
 }

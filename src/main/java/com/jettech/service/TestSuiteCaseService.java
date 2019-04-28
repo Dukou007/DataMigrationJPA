@@ -8,4 +8,6 @@ public interface TestSuiteCaseService extends IService<TestSuiteCase, Integer>{
 	
 	Integer CountCase(Integer suiteId);
 
+	TestSuiteCase findByCaseIdAndSuiteId(Integer caseId, Integer suiteId);
+
 }

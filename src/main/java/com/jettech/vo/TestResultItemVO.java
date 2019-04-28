@@ -18,8 +18,8 @@ public class TestResultItemVO extends BaseVO {
 	private String keyValue;
 	private String result;
 	private String columnName;
-	private String soruceValue;
-	private String tragetValue;
+	private String sourceValue;
+	private String targetValue;
 	public Integer getTestResultId() {
 		return testResultId;
 	}
@@ -44,23 +44,24 @@ public class TestResultItemVO extends BaseVO {
 	public void setColumnName(String columnName) {
 		this.columnName = columnName;
 	}
-	public String getSoruceValue() {
-		return soruceValue;
+	public String getSourceValue() {
+		return sourceValue;
 	}
-	public void setSoruceValue(String soruceValue) {
-		this.soruceValue = soruceValue;
+	public void setSourceValue(String sourceValue) {
+		this.sourceValue = sourceValue;
 	}
-	public String getTragetValue() {
-		return tragetValue;
+	public String getTargetValue() {
+		return targetValue;
 	}
-	public void setTragetValue(String tragetValue) {
-		this.tragetValue = tragetValue;
+	public void setTargetValue(String targetValue) {
+		this.targetValue = targetValue;
 	}
 	public TestResultItemVO(BaseEntity entity) {
 		super(entity);
 		if(entity!=null) {
 			@SuppressWarnings("unused")
-			TestResultItem testResultItem=(TestResultItem) entity;
+			TestResultItem e=(TestResultItem) entity;
+			
 		}
 	}
 	public TestResultItemVO() {

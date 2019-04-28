@@ -2,6 +2,7 @@ package com.jettech.domain;
 
 import com.jettech.EnumFieldType;
 import com.jettech.entity.BaseEntity;
+import com.jettech.entity.TestFileQueryField;
 import com.jettech.entity.TestQueryField;
 
 public class FieldModel extends BaseModel {
@@ -43,8 +44,7 @@ public class FieldModel extends BaseModel {
 		// field.setDataPrecision(col);
 	}
 
-	public FieldModel(com.jettech.entity.DataField testFiled)
-	{
+	public FieldModel(com.jettech.entity.DataField testFiled) {
 //		this.setTalbeName(testFiled.g);
 		this.setName(testFiled.getName());
 		this.setDes(testFiled.getDes());
@@ -52,7 +52,7 @@ public class FieldModel extends BaseModel {
 		this.setDataLength(testFiled.getDataLength());
 		this.setDataPrecision(testFiled.getDataPrecision());// 精度?
 	}
-	
+
 	public FieldModel() {
 	}
 
@@ -77,10 +77,37 @@ public class FieldModel extends BaseModel {
 		// System.out.println("fileName:"+name);
 	}
 
+	public FieldModel(TestFileQueryField queryField) throws Exception {
+		this();
+		parseFileEntity(queryField);
+	}
+
 	@Override
 	public void parseEntity(BaseEntity entity) {
 		super.parseEntity(entity);
 		TestQueryField testQueryField = (TestQueryField) entity;
+		this.setName(testQueryField.getName());
+		this.setExpression(testQueryField.getExpression());
+		this.setFieldType(testQueryField.getFieldType());
+		com.jettech.entity.DataField testField = testQueryField.getDataField();
+		if (testField != null) {
+			if (this.name == null || this.getName().trim().isEmpty())
+				this.setName(testField.getName());
+			this.setTalbeName(testField.getTalbeName());
+			this.setDataLength(testField.getDataLength());
+			this.setDataPrecision(testField.getDataPrecision());
+			this.setDataType(testField.getDataType());
+			this.setDes(testField.getDes());
+			this.setIsForeignKey(testField.getIsForeignKey());
+			this.setIsIndex(testField.getIsIndex());
+			this.setIsNullable(testField.getIsNullable());
+			this.setIsPrimaryKey(testField.getIsPrimaryKey());
+		}
+	}
+	@Override
+	public void parseFileEntity(BaseEntity entity) {
+		super.parseEntity(entity);
+		TestFileQueryField testQueryField = (TestFileQueryField) entity;
 		this.setName(testQueryField.getName());
 		this.setExpression(testQueryField.getExpression());
 		this.setFieldType(testQueryField.getFieldType());

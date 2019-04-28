@@ -35,9 +35,9 @@ public class OracleAdapter extends AbstractAdapter {
 		List<DataSchema>  databaselist=new ArrayList<DataSchema>();
 		try {
 		
-			StringBuffer sql=new StringBuffer("select * from user_tablespaces");
+			StringBuffer sql=new StringBuffer("select * from all_users");
 			if(databaseName!=null&&!databaseName.equals("")) {
-				sql.append(" where tablespace_name='").append(databaseName.toUpperCase()).append("' ");
+				sql.append(" where  USERNAME='").append(databaseName.toUpperCase()).append("' ");
 			}
 			
 			PreparedStatement pstmt = conn.prepareStatement(sql.toString());
@@ -46,7 +46,7 @@ public class OracleAdapter extends AbstractAdapter {
 			
 			while (rs.next()) {
 				DataSchema databaseobj=new DataSchema();
-				databaseobj.setName(rs.getString("tablespace_name"));
+				databaseobj.setName(rs.getString("USERNAME"));
 				databaselist.add(databaseobj);
 			}
             rs.close();
@@ -63,17 +63,9 @@ public class OracleAdapter extends AbstractAdapter {
 	{   
 		List<DataTable>  tablelist=new ArrayList<DataTable>();
 		try {
-			//获取当前用户
-			StringBuffer sql1=new StringBuffer("select user from dual");
 			Statement stmt =  conn.createStatement();
-			ResultSet rs1 = stmt.executeQuery(sql1.toString());
-			String owner=null;
-			while (rs1.next()) {
-				 owner=rs1.getString("USER");
-			}
-			StringBuffer sql=new StringBuffer("select DISTINCT table_name from dba_Tables");
-			sql.append(" where Tablespace_Name='").append(databaseName.toUpperCase()).append("' ");
-			sql.append(" and owner='").append(owner.toUpperCase()).append("' ");
+			StringBuffer sql=new StringBuffer("select  table_name from all_tables");
+			sql.append(" where owner='").append(databaseName.toUpperCase()).append("' ");
 			ResultSet rs = stmt.executeQuery(sql.toString());
 			// user 为你表的名称
 			
@@ -98,17 +90,11 @@ public class OracleAdapter extends AbstractAdapter {
 		List<DataField>  fieldlist=new ArrayList<DataField>();
 		try {
 			Statement stmt =  conn.createStatement();
-			StringBuffer sql1=new StringBuffer("select user from dual");
-			ResultSet rs1 = stmt.executeQuery(sql1.toString());
-			String owner=null;
-			while (rs1.next()) {
-				 owner=rs1.getString("USER");
-			}
 			StringBuffer sql=new StringBuffer("select  * "+
 					"from (select a.owner r0,a.table_name r1,a.column_name r2,a.comments r3 " + 
 					"from all_col_comments a),(select t.owner r4,t.table_name r5,t.column_name  r6 ,t.* from all_tab_columns t) " + 
 					"where r4=r0 and r5=r1 and r6=r2 ");
-			sql.append(" and owner='").append(owner.toUpperCase()).append("' and TABLE_NAME='").append(tableName).append("' ");
+			sql.append(" and owner='").append(databaseName.toUpperCase()).append("' and TABLE_NAME='").append(tableName).append("' ");
 			ResultSet rs = stmt.executeQuery(sql.toString());
 			// user 为你表的名称
 			while (rs.next()) {
@@ -146,18 +132,12 @@ public class OracleAdapter extends AbstractAdapter {
 		List<DataField>  fieldlist=new ArrayList<DataField>();
 		try {
 			//获取当前用户
-			StringBuffer sql1=new StringBuffer("select user from dual");
 			Statement stmt =  conn.createStatement();
-			ResultSet rs1 = stmt.executeQuery(sql1.toString());
-			String owner=null;
-			while (rs1.next()) {
-				 owner=rs1.getString("USER");
-			}
 			StringBuffer sql=new StringBuffer("select  * "+
 					"from (select a.owner r0,a.table_name r1,a.column_name r2,a.comments r3 " + 
 					"from all_col_comments a),(select t.owner r4,t.table_name r5,t.column_name  r6 ,t.* from all_tab_columns t) " + 
 					"where r4=r0 and r5=r1 and r6=r2 ");
-			sql.append(" and owner='").append(owner.toUpperCase()).append("' ");
+			sql.append(" and owner='").append(dbName.toUpperCase()).append("' ");
 			ResultSet rs = stmt.executeQuery(sql.toString());
 			// user 为你表的名称
 			while (rs.next()) {
@@ -191,17 +171,10 @@ public class OracleAdapter extends AbstractAdapter {
 		DataTable tableobj=new DataTable();
 
 		try {
-			//获取当前用户
-			StringBuffer sql1=new StringBuffer("select user from dual");
 			Statement stmt =  conn.createStatement();
-			ResultSet rs1 = stmt.executeQuery(sql1.toString());
-			String owner=null;
-			while (rs1.next()) {
-				 owner=rs1.getString("USER");
-			}
-			StringBuffer sql=new StringBuffer("select DISTINCT table_name from dba_Tables");
-			sql.append(" where Tablespace_Name='").append(databaseName.toUpperCase()).append("' ");
-			sql.append(" and owner='").append(owner.toUpperCase()).append("' ");
+			
+			StringBuffer sql=new StringBuffer("select  table_name from all_Tables");
+			sql.append(" where owner='").append(databaseName.toUpperCase()).append("' ");
 			sql.append(" and table_name='").append(tableName).append("' ");
 
 			ResultSet rs = stmt.executeQuery(sql.toString());

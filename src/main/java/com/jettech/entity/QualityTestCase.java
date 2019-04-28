@@ -1,15 +1,11 @@
 package com.jettech.entity;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
+import javax.persistence.*;
+import java.util.List;
 
 @Entity
 @Table(name="quality_test_case")
+@Inheritance(strategy = InheritanceType.JOINED)
 public class QualityTestCase extends BaseEntity {
 
 	private static final long serialVersionUID = -322207843896378526L;
@@ -20,21 +16,22 @@ public class QualityTestCase extends BaseEntity {
 	private Integer maxResultRows;
 	//private Integer pageSize = 0;
 	private Boolean usePage = false;// 默认不分页
-	private TestSuite testSuite;
+//	private TestSuite testSuite;
 	private QualityTestQuery qualityTestQuery;
+	//多对多案例对测试集
+	private List<TestSuite> testSuites;
 
-
-	@ManyToOne
+//	@ManyToOne
 	//@JoinColumn(name="quality_test_suite_id")
-	@JoinColumn(name="test_suite_id")
-	public TestSuite getTestSuite() {
-		return testSuite;
-	}
+//	@JoinColumn(name="test_suite_id")
+//	public TestSuite getTestSuite() {
+//		return testSuite;
+//	}
 
 
-	public void setTestSuite(TestSuite testSuite) {
-		this.testSuite = testSuite;
-	}
+//	public void setTestSuite(TestSuite testSuite) {
+//		this.testSuite = testSuite;
+//	}
 
 
 	public QualityTestCase() {
@@ -93,7 +90,7 @@ public class QualityTestCase extends BaseEntity {
 		this.usePage = usePage;
 	}
 
-	@OneToOne(fetch = FetchType.LAZY,cascade=CascadeType.PERSIST)
+	@OneToOne(fetch = FetchType.EAGER,cascade=CascadeType.PERSIST)
 	@JoinColumn(name = "quality_test_query_id")
 	public QualityTestQuery getQualityTestQuery() {
 		return qualityTestQuery;
@@ -103,8 +100,12 @@ public class QualityTestCase extends BaseEntity {
 		this.qualityTestQuery = qualityTestQuery;
 	}
 
+	@ManyToMany(mappedBy = "qualityTestCases")
+	public List<TestSuite> getTestSuites() {
+		return testSuites;
+	}
 
-
-
-
+	public void setTestSuites(List<TestSuite> testSuites) {
+		this.testSuites = testSuites;
+	}
 }

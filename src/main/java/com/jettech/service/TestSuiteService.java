@@ -1,6 +1,7 @@
 package com.jettech.service;
 
 import com.jettech.BizException;
+import com.jettech.entity.QualityTestCase;
 import com.jettech.entity.TestSuite;
 import com.jettech.vo.TestSuiteVO;
 
@@ -36,11 +37,9 @@ public interface TestSuiteService extends IService<TestSuite, Integer> {
 
 	/**
 	 * @Description: 根据名称查找测试集分页
-	 * @tips:
-	 * 
-	 * @author:zhou_xiaolong in 2019年2月22日下午4:13:14
+	 * 修改加上类型
 	 */
-	Page<TestSuite> getAllTestSuiteByPage(String name, Pageable pageable);
+	Page<TestSuite> findByNameLike(String name, Pageable pageable,int type);
 
 	/**
 	 * @Description: 根据ID查找并分页
@@ -66,5 +65,12 @@ public interface TestSuiteService extends IService<TestSuite, Integer> {
 	String doQualityTestSuite(Integer testSuiteId);
 
 	List<TestSuite> getBySuiteNameAndProductId(String name, Integer productID);
+	//执行测试集中失败的案例
+	public String doFalseQualityTestSuite(List<QualityTestCase> qualityTestCases,TestSuite testSuite);
 
+	void save(TestSuiteVO testSuiteVO);
+
+	public String doTaskQualityTestSuite(Integer testSuiteId,int threadNum);
+
+	List<TestSuiteVO> findByProductIdAndType(Integer productId,Integer type);
 }

@@ -1,6 +1,5 @@
 package com.jettech.entity;
 
-import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
@@ -11,6 +10,10 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
+
+import com.jettech.EnumCompareDirection;
 import com.jettech.EnumPageType;
 import com.jettech.EnumTestCaseType;
 
@@ -33,7 +36,7 @@ public class TestCase extends BaseEntity {
 	// private Integer sourceDataSourceID;// 源查询数据源ID
 	// private Integer targetDataSourceID;//目标查询数据源ID
 	private Integer pageSize = 0;
-	private Boolean usePage ;// 默认不分页
+	private Boolean usePage;// 默认不分页
 	// @ManyToMany(fetch = FetchType.LAZY)
 	// // @Cascade({ org.hibernate.annotations.CascadeType.SAVE_UPDATE })
 	// @JoinTable(name = "test_suite_case", joinColumns = @JoinColumn(name =
@@ -41,13 +44,38 @@ public class TestCase extends BaseEntity {
 	// @JoinColumn(name = "test_case_id", referencedColumnName = "id"))
 	// private List<TestSuite> testSuites = new ArrayList<>();
 	private EnumTestCaseType caseType = EnumTestCaseType.DataCompare;
-/*
-	private TestSuite testSuite;*/
+
+//	private TestSuite testSuite;
 	private TestQuery sourceQuery;// 源查询
 	private TestQuery targetQuery;// 目标查询
+	private TestFileQuery testFileQuery;// 目标文件查询
+
+	@OneToOne(optional = true)
+	@JoinColumn(name = "target_file_query_id")
+	public TestFileQuery getTestFileQuery() {
+		return testFileQuery;
+	}
+
+	public void setTestFileQuery(TestFileQuery testFileQuery) {
+		this.testFileQuery = testFileQuery;
+	}
+
 	private EnumPageType pageType = EnumPageType.None; // 分页类型
 
 	private Integer maxWaitSecond;// 守护线程最大等待时间（如果不填，按照默认值60s）
+	// LeftToRight 即源到目标的对比，循环源数据所有的key,在目标中找对应的Key
+	// RightToLeft 为目标到源的对比，循环目标数据所有的key,在源数据中找对应的Key
+	// TwoWay 为双向比对，双向循环，但已经比较过的不再次比较
+	private EnumCompareDirection enumCompareDirection = EnumCompareDirection.LeftToRight;
+
+	public void setEnumCompareDirection(EnumCompareDirection enumCompareDirection) {
+		this.enumCompareDirection = enumCompareDirection;
+	}
+
+	@Enumerated(EnumType.STRING)
+	public EnumCompareDirection getEnumCompareDirection() {
+		return enumCompareDirection;
+	}
 
 	@Enumerated(EnumType.STRING)
 	public EnumTestCaseType getCaseType() {
@@ -119,7 +147,8 @@ public class TestCase extends BaseEntity {
 		this.pageSize = pageSize;
 	}
 
-/*	@ManyToOne
+/*	@ManyToOne(optional=true)
+	@NotFound(action=NotFoundAction.IGNORE)
 	@JoinColumn(name = "test_suite_id", nullable = true)
 	public TestSuite getTestSuite() {
 		return testSuite;

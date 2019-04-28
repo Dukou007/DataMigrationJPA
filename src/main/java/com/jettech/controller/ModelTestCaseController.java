@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -184,7 +185,7 @@ public class ModelTestCaseController {
 	@ApiOperation(value = "上传SQLCase")
 	@ApiImplicitParams({ @ApiImplicitParam(name = "file", dataType = "String", required = true, value = "上传案例"),
 	        @ApiImplicitParam(name = "request", dataType = "String", required = false, paramType = "query") })
-	public JSONObject uploadSQLCase(@ApiParam(value = "上传案例", required = true) @RequestParam("file") MultipartFile file,
+	public ResultVO uploadSQLCase(@ApiParam(value = "上传案例", required = true) @RequestParam("file") MultipartFile file,
 	        HttpServletRequest request) {
 
 		JSONObject result = new JSONObject();
@@ -229,10 +230,10 @@ public class ModelTestCaseController {
 				result.put("success", false);
 				result.put("data", map);
 			}
-			return result;
-		} catch (IOException e) {
+			return new ResultVO(true, StatusCode.OK, "查询成功", map);
+		} catch (Exception e) {
 			e.printStackTrace();
-			return (JSONObject) result.put("success", false);
+			return new ResultVO(false, StatusCode.ERROR, "新增失败"+e.getLocalizedMessage());
 		}
 
 	}
@@ -287,7 +288,7 @@ public class ModelTestCaseController {
 			return new ResultVO(true, StatusCode.OK, "新增成功");
 		} catch (Exception e) {
 			log.error("新增模型案例:" + JSONObject.toJSONString(testCaseVO).toString() + "异常", e);
-			return new ResultVO(false, StatusCode.ERROR, "新增失败");
+			return new ResultVO(false, StatusCode.ERROR, "新增失败"+e.getLocalizedMessage());
 		}
 	}
     
@@ -309,7 +310,7 @@ public class ModelTestCaseController {
 			return new ResultVO(true, StatusCode.OK, "修改成功");
 		} catch (Exception e) {
 			log.error("修改模型案例:" + JSONObject.toJSONString(testCaseVO).toString() + "异常", e);
-			return new ResultVO(false, StatusCode.ERROR, "修改失败");
+			return new ResultVO(false, StatusCode.ERROR, "修改失败"+e.getLocalizedMessage());
 		}
 
 	}
@@ -330,6 +331,7 @@ public class ModelTestCaseController {
 			ModelTestCaseVO testCase = modelTestCaseService.getTestCaseDetail(testCaseID);
 			testCase.setId(null);
 			testCase.setCreateTime(new Date());
+			testCase.setName(testCase.getName()+"_copy");
 			CaseModelSetVO caseModelSetVO = testCase.getCaseModelSetVO();
 			if(caseModelSetVO!=null) {
 				caseModelSetVO.setId(null);
@@ -345,7 +347,7 @@ public class ModelTestCaseController {
 		} catch (Exception e) {
 			log.error("", e);
 			e.printStackTrace();
-			return new ResultVO(true, StatusCode.OK, "复制失败");
+			return new ResultVO(true, StatusCode.OK, "复制失败"+e.getLocalizedMessage());
 		}
 
 	}

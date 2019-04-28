@@ -21,8 +21,8 @@ public interface CompareTestCaseRepository extends JpaRepository<CompareTestCase
 	@Query(value="SELECT t.* FROM test_case  t WHERE 1=1 AND t.name LIKE %?1% ",nativeQuery=true)
 	List<CompareTestCase> findByName(String name);
 
-//	@Query(value = "select t from TestCase t where t.name=?1 and t.testSuite.name=?2")
-//	List<CompareTestCase> findByNameAndSuite(String testCaseName, String testSuiteName);
+	/*@Query(value = "select t from TestCase t where t.name=?1 and t.testSuite.name=?2")
+	List<CompareTestCase> findByNameAndSuite(String testCaseName, String testSuiteName);*/
 
 	/**
 	 * 根据testCaseID查看TestCase详情
@@ -35,8 +35,8 @@ public interface CompareTestCaseRepository extends JpaRepository<CompareTestCase
 	/**
 	 * 根据testSuiteID查找对应的所有的testcase（集合）
 	 */
-//	@Query(value="select * from test_case t where t.test_suite_id=?1",nativeQuery=true)
-//	public List<CompareTestCase> findAllTestCase(Integer testSuiteID);
+	@Query(value="select * from test_case t where t.test_suite_id=?1",nativeQuery=true)
+	public List<CompareTestCase> findAllTestCase(Integer testSuiteID);
 
 	/**
 	 * 根据测试集id查询所有案例 20190121
@@ -44,19 +44,19 @@ public interface CompareTestCaseRepository extends JpaRepository<CompareTestCase
 	 * @param pageable
 	 * @return
 	 */
-//	@Query(value="SELECT * FROM test_case t WHERE 1=1 AND t.test_suite_id=?1",countQuery="SELECT COUNT(*) FROM test_case t WHERE 1=1 AND t.test_suite_id=?1",nativeQuery=true)
-//	Page<CompareTestCase> findByTestSuiteId(Integer testSuiteId, Pageable pageable);
+	@Query(value="SELECT * FROM test_case t WHERE 1=1 AND t.test_suite_id=?1",countQuery="SELECT COUNT(*) FROM test_case t WHERE 1=1 AND t.test_suite_id=?1",nativeQuery=true)
+	Page<CompareTestCase> findByTestSuiteId(Integer testSuiteId, Pageable pageable);
 
-//	@Query(value = "select s.* from test_case s  where s.test_suite_id in (select t.id from test_suite t where t.name like :suiteName ) ",countQuery = "select count(*) from test_case s  where s.test_suite_id in (select t.id from test_suite t where t.name like :suiteName ) ",nativeQuery=true)
-//	Page<CompareTestCase> findBysuiteName(@Param("suiteName") String suiteName,Pageable pageable);
+	@Query(value = "select s.* from test_case s  where s.test_suite_id in (select t.id from test_suite t where t.name like :suiteName ) ",countQuery = "select count(*) from test_case s  where s.test_suite_id in (select t.id from test_suite t where t.name like :suiteName ) ",nativeQuery=true)
+	Page<CompareTestCase> findBysuiteName(@Param("suiteName") String suiteName,Pageable pageable);
 
 	/**
 	 * @Description: getAllTestCaseByPage 昏页功能
 	 * @tips:
 	 * @author: zhou_xiaolong in 2019年2月22日下午4:57:45
 	 */
-//	@Query(value = "SELECT *  FROM test_case t WHERE 1=1 AND t.name LIKE %?1% ", countQuery = "select count(*) from test_case t where  t.name like CONCAT('%',?1,'%') ",nativeQuery = true)
-//	Page<CompareTestCase> getAllTestCaseByPage(String name, Pageable pageable);
+	@Query(value = "SELECT *  FROM test_case t WHERE 1=1 AND t.name LIKE %?1% ", countQuery = "select count(*) from test_case t where  t.name like CONCAT('%',?1,'%') ",nativeQuery = true)
+	Page<CompareTestCase> getAllTestCaseByPage(String name, Pageable pageable);
 
 	/**
 	 * @Description: 将testSuiteID为null的案例赋值testSuiteID;
@@ -64,10 +64,10 @@ public interface CompareTestCaseRepository extends JpaRepository<CompareTestCase
 	 * @State: being used 
 	 * @author: zhou_xiaolong in 2019年2月24日下午8:03:14
 	 */
-//	@Transactional
-//	@Modifying(clearAutomatically = true)
-//	@Query(value="UPDATE test_case  t SET t.test_suite_id=?1 WHERE t.id=?2",nativeQuery=true)
-//	void changeTestCasePosition(Integer testSuiteID, Integer testCaseID);
+	@Transactional
+	@Modifying(clearAutomatically = true)
+	@Query(value="UPDATE test_case  t SET t.test_suite_id=?1 WHERE t.id=?2",nativeQuery=true)
+	void changeTestCasePosition(Integer testSuiteID, Integer testCaseID);
 
 	/**
 	 * @Description: 将testSuiteID置为null;
@@ -75,15 +75,15 @@ public interface CompareTestCaseRepository extends JpaRepository<CompareTestCase
 	 * @State: being used / drop
 	 * @author: zhou_xiaolong in 2019年2月24日下午8:41:40
 	 */
-//	@Transactional
-//	@Modifying(clearAutomatically = true)
-//	@Query(value="UPDATE test_case t SET  t.test_suite_id=null WHERE t.id=?1",nativeQuery=true)
-//	void backDisorder(Integer testCaseID);
+	@Transactional
+	@Modifying(clearAutomatically = true)
+	@Query(value="UPDATE test_case t SET  t.test_suite_id=null WHERE t.id=?1",nativeQuery=true)
+	void backDisorder(Integer testCaseID);
 
 	
 
-//	@Query(value="SELECT * FROM test_case t WHERE 1=1 AND t.test_suite_id is ?1",countQuery="SELECT COUNT(*) FROM test_case t WHERE 1=1 AND t.test_suite_id is ?1",nativeQuery=true)
-//	Page<CompareTestCase> findByTestSuiteIdIsNull(Integer testSuiteID, Pageable pageable);
+	@Query(value="SELECT * FROM test_case t WHERE 1=1 AND t.test_suite_id is ?1",countQuery="SELECT COUNT(*) FROM test_case t WHERE 1=1 AND t.test_suite_id is ?1",nativeQuery=true)
+	Page<CompareTestCase> findByTestSuiteIdIsNull(Integer testSuiteID, Pageable pageable);
 	/**
 	 * @Description: 根据名称查找
 	 * @tips: null;

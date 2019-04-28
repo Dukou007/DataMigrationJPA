@@ -13,6 +13,7 @@ public class QualityTestResultItemVO extends BaseVO{
 	private Integer testResultId;
 	private String selectValue;
 	private String result;
+	private String columnName;
 	/*public Integer getTestResultId() {
 		return testResultId;
 	}
@@ -77,8 +78,13 @@ public class QualityTestResultItemVO extends BaseVO{
 	public QualityTestResultItemVO() {
 		super();
 	}
-	
-	
-	
-	
+
+
+	public String getColumnName() {
+		return columnName;
+	}
+
+	public void setColumnName(String columnName) {
+		this.columnName = columnName;
+	}
 }

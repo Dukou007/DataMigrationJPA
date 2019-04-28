@@ -54,7 +54,7 @@ public class QualityTestResultWorker implements Runnable {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			if (!isRunning || waitCount > 1000 * 60) {
+			if (!isRunning || waitCount > 100) {//1000 * 60
 				logger.info("last items:"+_itemQueue.size());
 				// 收到中断信号，将队列中的所有数据写数据库，并中断
 				while (true) {

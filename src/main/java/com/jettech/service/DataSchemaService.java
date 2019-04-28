@@ -13,7 +13,7 @@ import com.jettech.vo.ResultVO;
 import com.jettech.vo.TestDatabaseVO;
 
 
-public interface DataSchemaService {
+public interface DataSchemaService{
 	public ResultVO add(TestDatabaseVO testDatabaseVO);
 	public ResultVO update(TestDatabaseVO testDatabaseVO);
 	public ResultVO delete(Integer id);
@@ -26,4 +26,8 @@ public interface DataSchemaService {
     public ResultVO copyDataSchema(int id,String name);
     public void SetOneDataSchema(int id);
     public List<DataSchema> getAllDataSchema();
+    
+    public List<DataSchema> getSchemasByDataSourceID(int dataSourceID,String schemaName);
+    
+    public DataSchema findSchemaByID(int id);
 }

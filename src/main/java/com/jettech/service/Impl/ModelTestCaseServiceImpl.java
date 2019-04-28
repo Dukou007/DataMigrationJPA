@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.jettech.BizException;
 import com.jettech.domain.CaseModel;
 import com.jettech.domain.ModelCaseModel;
 import com.jettech.entity.CaseModelSet;
@@ -27,6 +28,7 @@ import com.jettech.entity.DataTable;
 import com.jettech.entity.DataSource;
 import com.jettech.entity.ModelTestCase;
 import com.jettech.entity.Product;
+import com.jettech.entity.TestCase;
 import com.jettech.entity.DataSchema;
 import com.jettech.entity.TestQuery;
 import com.jettech.entity.TestSuite;
@@ -40,7 +42,6 @@ import com.jettech.repostory.ModelTestCaseRepository;
 import com.jettech.repostory.ProductRepository;
 import com.jettech.repostory.TestQueryRepository;
 import com.jettech.repostory.TestRuleRepository;
-import com.jettech.repostory.TestSuiteCaseRepository;
 import com.jettech.repostory.TestSuiteRepository;
 import com.jettech.service.ModelTestCaseService;
 import com.jettech.thread.JobWorker;
@@ -90,8 +91,7 @@ public class ModelTestCaseServiceImpl implements ModelTestCaseService {
 	CaseModelSetDetailsRepository caseModelSetDetailsRepository;
 	@Autowired
 	DataSchemaRepository testDatabaseRepository;
-	@Autowired
-	TestSuiteCaseRepository testSuiteCaseRepository;
+
 	@Override
 	public List<ModelTestCase> findAll() {
 		return caseRepository.findAll();
@@ -153,7 +153,7 @@ public class ModelTestCaseServiceImpl implements ModelTestCaseService {
 	}
 
 	@Override
-	public ResultVO readSQLCase(Map<String, String> map) {
+	public ResultVO readSQLCase(Map<String, String> map) throws BizException {
 		ResultVO result = new ResultVO();
 		result.setFlag(true);
 
@@ -287,7 +287,6 @@ public class ModelTestCaseServiceImpl implements ModelTestCaseService {
 			}
 
 			ModelTestCase testCase = null;
-			
 			List<ModelTestCase> caseList = caseRepository.findByNameAndSuite(testCaseName, testSuite.getName());
 			if (caseList != null && caseList.size() > 0) {
 				testCase = caseList.get(0);
@@ -643,13 +642,7 @@ public class ModelTestCaseServiceImpl implements ModelTestCaseService {
 
 	@Override
 	public List<ModelTestCase> findAllTestCase(Integer testSuiteID) {
-		List<ModelTestCase>list=null;
-		Integer[] caseIds = testSuiteCaseRepository.findCaseIdsBysuiteId(testSuiteID);
-		for (Integer caseId : caseIds) {
-			ModelTestCase testCase = caseRepository.findById(caseId).get();
-			list.add(testCase);
-		}
-		return list;
+		return caseRepository.findAllTestCase(testSuiteID);
 	}
 
 	@Override
@@ -688,10 +681,19 @@ public class ModelTestCaseServiceImpl implements ModelTestCaseService {
 	}
 
 	@Override
-	public void saveTestCaseVo(ModelTestCaseVO testCaseVO) {
+	public void saveTestCaseVo(ModelTestCaseVO testCaseVO) throws BizException {
 		// 保存案例
 		ModelTestCase testCase = new ModelTestCase();
 		BeanUtils.copyProperties(testCaseVO, testCase);
+		String testCaseName=testCaseVO.getName();
+		if (testCaseName == null || testCaseName.trim().length() == 0) {
+			throw new BizException("案例的名称不能为空或空串:" + testCaseName);
+		}
+		// 处理新增名称不能重复
+		List<ModelTestCase> qtc = caseRepository.findAllByNameLike(testCaseVO.getName());
+		if (qtc != null && qtc.size() > 0) {
+			throw new BizException("案例名称已存在");
+		}
 		caseRepository.save(testCase);
 		// 保存模型集
 		CaseModelSet caseModelSet = new CaseModelSet();
@@ -724,10 +726,24 @@ public class ModelTestCaseServiceImpl implements ModelTestCaseService {
 	}
 
 	@Override
-	public void updateTestCase(ModelTestCaseVO testCaseVO) {
+	public void updateTestCase(ModelTestCaseVO testCaseVO) throws BizException {
 		// 保存案例
 		ModelTestCase testCase = new ModelTestCase();
 		BeanUtils.copyProperties(testCaseVO, testCase);
+		String testCaseName=testCaseVO.getName();
+		if (testCaseName == null || testCaseName.trim().length() == 0) {
+			throw new BizException("案例的名称不能为空或空串:" + testCaseName);
+		}
+		// 处理新增名称不能重复
+		
+		List<ModelTestCase> qtc = caseRepository.findAllByNameLike(testCaseVO.getName());
+		for (ModelTestCase modelTestCase : qtc) {
+			if(modelTestCase.getId().equals(testCaseVO.getId()) && modelTestCase.getName().equals(testCaseName)) {
+				break;
+			}else {
+				throw new BizException("案例名称已存在");
+			}
+		}
 		caseRepository.save(testCase);
 		// 保存模型集
 		CaseModelSet caseModelSet = new CaseModelSet();

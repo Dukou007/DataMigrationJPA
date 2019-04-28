@@ -1,33 +1,45 @@
 package com.jettech.vo;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.jettech.entity.BaseEntity;
 import com.jettech.entity.QualityRule;
 import com.jettech.entity.QualitySuite;
 
-import java.util.List;
-
 public class QualitySuiteVO extends BaseVO {
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 7613554165882689491L;
+	
 	private Integer leftValue;
+	
 	private Integer rightValue;
+	
 	private String AndOr;
+	
 	private String name;
-	private List<Integer> qualityRuleIds;
+	
+	private String qualityRuleIds ;
+	
 	public QualitySuiteVO(BaseEntity entity) {
 		super(entity);
 		QualitySuite e = (QualitySuite) entity;
-		for(int i=0;i<e.getQualityRules().size();i++){
+		StringBuilder s=new StringBuilder();
+		for (int i = 0; i < e.getQualityRules().size(); i++) {
+			// 当循环到最后一个的时候 就不添加逗号,
 			QualityRule rule=e.getQualityRules().get(i);
-			qualityRuleIds.add(rule.getId());
+			s.append(rule.getId());
+			if (i != e.getQualityRules().size() - 1) {
+				s.append(",");
+			} 
 		}
+		qualityRuleIds=s.toString();
 	}
+	
 	public Integer getLeftValue() {
 		return leftValue;
 	}
+	
 	public void setLeftValue(Integer leftValue) {
 		this.leftValue = leftValue;
 	}
@@ -49,14 +61,17 @@ public class QualitySuiteVO extends BaseVO {
 	public void setName(String name) {
 		this.name = name;
 	}
-	public List<Integer> getQualityRuleIds() {
+	
+	public String getQualityRuleIds() {
 		return qualityRuleIds;
 	}
-	public void setQualityRuleIds(List<Integer> qualityRuleIds) {
+
+	public void setQualityRuleIds(String qualityRuleIds) {
 		this.qualityRuleIds = qualityRuleIds;
 	}
+
 	public QualitySuiteVO(Integer leftValue, Integer rightValue, String andOr,
-                          String name, List<Integer> qualityRuleIds) {
+                          String name, String qualityRuleIds) {
 		super();
 		this.leftValue = leftValue;
 		this.rightValue = rightValue;

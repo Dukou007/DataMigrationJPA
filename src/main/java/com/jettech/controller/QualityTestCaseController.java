@@ -45,6 +45,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.alibaba.fastjson.JSONObject;
 import com.jettech.BizException;
 import com.jettech.entity.DataField;
+import com.jettech.entity.DataSource;
 import com.jettech.entity.QualityTestCase;
 import com.jettech.entity.QualityTestQuery;
 import com.jettech.entity.QualityTestResult;
@@ -299,6 +300,9 @@ public class QualityTestCaseController {
 			List<QualityTestCaseVO> testCaseVOList = new ArrayList<QualityTestCaseVO>();
 			for (QualityTestCase testCase : testCaseList) {
 				QualityTestCaseVO testCaseVO = new QualityTestCaseVO(testCase);
+				Integer dataSourceId = testCaseVO.getQualityTestQueryVo().getDataSourceId();
+				DataSource ds = dataSourceService.findById(dataSourceId);
+				testCaseVO.getQualityTestQueryVo().setDataSourceName(ds.getName());
 				testCaseVOList.add(testCaseVO);
 			}
 			resultmap.put("totalElements", testCaseList.getTotalElements());
@@ -315,12 +319,47 @@ public class QualityTestCaseController {
 	}
 
 	/**
-	 * @Description:根据testSuiteID查询testCase集合
-	 * @tips:null
+	 * @Description:根据testSuiteID查询qualitytestCase集合
 	 * 
-	 * @author:zhou_xiaolong in 2019年1月30日下午9:11:42
 	 */
+	@ResponseBody
+	@RequestMapping(value = "/findCaseBySuiteIdNamePage", method = RequestMethod.GET)
+	@ApiOperation(value = "根据测试案例名称案例集查找并分页", notes = "需要输入测试案例名称,不输入默认查询所有本测试集的案例")
+	@ApiImplicitParams({
+			@ApiImplicitParam(paramType = "query", name = "testSuiteID", value = "测试集id", required = false, dataType = "Integer"),
+			@ApiImplicitParam(paramType = "query", name = "name", value = "案例名称", required = false, dataType = "String"),
+			@ApiImplicitParam(paramType = "query", name = "pageNum", value = "页码值", required = false, dataType = "Long"),
+			@ApiImplicitParam(paramType = "query", name = "pageSize", value = "每页条数", required = false, dataType = "Long") })
+	public ResultVO findCaseBySuiteIdAndPage(
+			@RequestParam(value = "name", defaultValue = "", required = false) String name,
+			@RequestParam(value = "testSuiteID",  required = true) Integer testSuiteID,
+			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
+			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
 
+		Map<String, Object> resultmap = new HashMap<String, Object>();
+		Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
+		long beginTime = (new Date()).getTime();
+		try {
+			Page<QualityTestCase> testCaseList = qualityTestCaseRepository.findCaseBySuiteIdNamePage(name, testSuiteID,pageable);
+			List<QualityTestCaseVO> testCaseVOList = new ArrayList<QualityTestCaseVO>();
+			for (QualityTestCase testCase : testCaseList) {
+				QualityTestCaseVO testCaseVO = new QualityTestCaseVO();
+				BeanUtils.copyProperties(testCase, testCaseVO);
+				testCaseVO.setTestSuiteId(testSuiteID);
+				testCaseVOList.add(testCaseVO);
+			}
+			resultmap.put("totalElements", testCaseList.getTotalElements());
+			resultmap.put("totalPages", testCaseList.getTotalPages());
+			resultmap.put("list", testCaseVOList);
+			return new ResultVO(true, StatusCode.OK, "查询成功", resultmap);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new ResultVO(false, StatusCode.ERROR, "查询失败");
+		} finally {
+			log.info("findAllQualityTestCaseByPage use:" + DateUtil.getEclapsedTimesStr(beginTime) + " name:" + name
+					+ " pageNum:" + pageNum + " pageSize:" + pageSize);
+		}
+	}
 	/**
 	 * 新增TestCase
 	 * 
@@ -336,9 +375,9 @@ public class QualityTestCaseController {
 			qualityTestCaseService.saveQualityTestCaseVo(testCaseVO);
 			return new ResultVO(true, StatusCode.OK, "新增成功");
 		} catch (Exception e) {
-			log.error("新增异常："+testCaseVO, e);
+			log.error("新增异常：" + testCaseVO, e);
 			e.printStackTrace();
-			return new ResultVO(false, StatusCode.ERROR, "新增失败"+e.getLocalizedMessage() );
+			return new ResultVO(false, StatusCode.ERROR, "新增失败" + e.getLocalizedMessage());
 		}
 
 	}
@@ -355,7 +394,7 @@ public class QualityTestCaseController {
 	public ResultVO updateTestCase(@RequestBody QualityTestCaseVO testCaseVO) {
 		try {
 			QualityTestCase qualityTestCase = qualityTestCaseService.findById(testCaseVO.getId());
-			if(qualityTestCase==null) {
+			if (qualityTestCase == null) {
 				return new ResultVO(false, StatusCode.ERROR, "要修改的案例不存在");
 			}
 			qualityTestCaseService.updateTestQualityCase(testCaseVO);
@@ -363,7 +402,7 @@ public class QualityTestCaseController {
 		} catch (Exception e) {
 			log.error("", e);
 			e.printStackTrace();
-			return new ResultVO(false, StatusCode.ERROR, "修改失败");
+			return new ResultVO(false, StatusCode.ERROR, "修改失败" + e.getLocalizedMessage());
 		}
 
 	}
@@ -412,7 +451,7 @@ public class QualityTestCaseController {
 			map.put("name", testCaseVO.getName());
 			map.put("isSQLCase", testCaseVO.getIsSQLCase());
 			map.put("version", testCaseVO.getVersion());
-			map.put("usePage",testCaseVO.getUsePage());
+			map.put("usePage", testCaseVO.getUsePage());
 			map.put("maxResultRows", testCaseVO.getMaxResultRows());
 			map.put("createUser", testCaseVO.getCreateUser());
 			map.put("createTime", testCaseVO.getCreateTime());
@@ -543,12 +582,12 @@ public class QualityTestCaseController {
 			@ApiImplicitParam(paramType = "query", name = "pageSize", value = "每页条数", required = false, dataType = "Long") })
 	public ResultVO findQualityTestResultItemByQualityTestResultID(@RequestParam Integer testResultID,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
-			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize,
-		    @RequestParam(value = "result", defaultValue = "", required = false) String result) {
+			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize/*,
+			@RequestParam(value = "result", defaultValue = "", required = false) String result*/) {
 		Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
 		try {
 			Page<QualityTestResultItem> testResultItemList = qualityTestResultItemService
-					.findTestResultItemByTestResultID(testResultID,result, pageable);
+					.findTestResultItemByTestResultID(testResultID, /*result,*/ pageable);
 			ArrayList<QualityTestResultItemVO> testResultItemVOList = new ArrayList<QualityTestResultItemVO>();
 			for (QualityTestResultItem testResultItem : testResultItemList) {
 				QualityTestResultItemVO testResultItemVO = new QualityTestResultItemVO(testResultItem);
@@ -578,18 +617,19 @@ public class QualityTestCaseController {
 			if (StringUtils.isNotBlank(testCaseIds)) {
 				String[] idS = testCaseIds.split(",");
 				for (String testCaseId : idS) {
-					QualityTestCase qualityTestCase = qualityTestCaseRepository.findById(Integer.parseInt(testCaseId)).get();
+					QualityTestCase qualityTestCase = qualityTestCaseRepository.findById(Integer.parseInt(testCaseId))
+							.get();
 					QualityTestCaseVO qualityTestCaseVO = new QualityTestCaseVO();
 					BeanUtils.copyProperties(qualityTestCase, qualityTestCaseVO);
 					QualityTestQuery qualityTestQuery = qualityTestQueryRepository
 							.findById(qualityTestCase.getQualityTestQuery().getId()).get();
 					QualityTestQueryVO qualityTestQueryVO = new QualityTestQueryVO(qualityTestQuery);
 					qualityTestQueryVO.setId(null);
-					qualityTestQueryVO.setName(qualityTestCase.getName()+"_copy");
+					qualityTestQueryVO.setName(qualityTestCase.getName() + "_copy");
 					qualityTestQueryVO.setCreateTime(new Date());
 					qualityTestCaseVO.setQualityTestQueryVo(qualityTestQueryVO);
 					qualityTestCaseVO.setId(null);
-					qualityTestCaseVO.setName(qualityTestCase.getName()+"_copy");
+					qualityTestCaseVO.setName(qualityTestCase.getName() + "_copy");
 					qualityTestCaseVO.setCreateTime(new Date());
 					qualityTestCaseService.saveQualityTestCaseVo(qualityTestCaseVO);
 				}
@@ -601,5 +641,43 @@ public class QualityTestCaseController {
 			return new ResultVO(false, StatusCode.ERROR, "复制失败");
 		}
 	}
+
+	/**
+	 * 将案例装移到特定的案例集中
+	 * 
+	 * @param caseId
+	 * @param suiteId
+	 * @return
+	 */
+	@RequestMapping(value = "changeTestCasePosition", method = RequestMethod.PUT)
+	public ResultVO changeTestCasePosition(@RequestParam Integer caseId, @RequestParam Integer suiteId) {
+		try {
+			qualityTestCaseService.changeTestCasePosition(caseId, suiteId);
+			return new ResultVO(true, StatusCode.OK, "转移成功");
+		} catch (Exception e) {
+			log.error("转移到指定的案例集中报错", e);
+			e.printStackTrace();
+			return new ResultVO(false, StatusCode.ERROR, "转移失败");
+		}
+	}
+	/**返回无序状态
+	 * @param caseId
+	 * @param suiteId
+	 * @return
+	 */
+	@RequestMapping(value = "backDisorder", method = RequestMethod.PUT)
+	public ResultVO backDisorder(@RequestParam Integer caseId, @RequestParam Integer suiteId) {
+		try {
+			qualityTestCaseService.backDisorder(caseId, suiteId);
+			return new ResultVO(true, StatusCode.OK, "转移成功");
+		} catch (Exception e) {
+			log.error("转移到指定的案例集中报错", e);
+			e.printStackTrace();
+			return new ResultVO(false, StatusCode.ERROR, "转移失败");
+		}
+	}
+	
+	
+	
 
 }

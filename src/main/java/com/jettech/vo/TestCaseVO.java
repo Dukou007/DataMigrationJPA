@@ -1,7 +1,13 @@
 package com.jettech.vo;
 
 
+import java.util.Date;
+
+import org.springframework.format.annotation.DateTimeFormat;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.jettech.EnumCompareDirection;
 import com.jettech.EnumTestCaseType;
 import com.jettech.entity.BaseEntity;
 import com.jettech.entity.TestCase;
@@ -29,12 +35,28 @@ public class TestCaseVO extends BaseVO {
 	private Integer sourceQueryID;// 原查询ID
 	private Integer targetQueryID;// 目标查询ID
 	private EnumTestCaseType caseType;
+	@DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+	private Date endTime; //案例最后执行时间
 
-	
+    private EnumCompareDirection enumCompareDirection; //LeftToRight 即源到目标的对比，循环源数据所有的key,在目标中找对应的Key
+	                                                   //RightToLeft 为目标到源的对比，循环目标数据所有的key,在源数据中找对应的Key
+	                                                   //TwoWay 为双向比对，双向循环，但已经比较过的不再次比较
+    
 
 	private TestQueryVO sourceQuery; //源查询
     private TestQueryVO targetQuery; //目标查询
+    
+    private String caseStatus;//案例状态
 
+    public void setEnumCompareDirection(EnumCompareDirection enumCompareDirection) {
+		this.enumCompareDirection = enumCompareDirection;
+	}
+    
+    public EnumCompareDirection getEnumCompareDirection() {
+		return enumCompareDirection;
+	}
+    
     public EnumTestCaseType getCaseType() {
     	return caseType;
     }
@@ -68,15 +90,16 @@ public class TestCaseVO extends BaseVO {
 					this.targetDataSourceName = "null";
 					this.targetDataSourceID=null;
 				}
-//				if(e.getTestSuite()!=null) {
-//					this.testSuiteID=e.getTestSuite().getId();
-//				}else {
-//					this.testSuiteID=null;
-//				}
+				/*if(e.getTestSuite()!=null) {
+					this.testSuiteID=e.getTestSuite().getId();
+				}else {
+					this.testSuiteID=null;
+				}*/
 			}
 		}
 	}
-
+    
+	
 	public Boolean getSQLCase() {
 		return isSQLCase;
 	}
@@ -220,5 +243,19 @@ public class TestCaseVO extends BaseVO {
 	public void setTargetDataSourceName(String targetDataSourceName) {
 		this.targetDataSourceName = targetDataSourceName;
 	}
+    public void setEndTime(Date endTime) {
+		this.endTime = endTime;
+	}
+    public Date getEndTime() {
+		return endTime;
+	}
 
+	public String getCaseStatus() {
+		return caseStatus;
+	}
+
+	public void setCaseStatus(String caseStatus) {
+		this.caseStatus = caseStatus;
+	}
+    
 }

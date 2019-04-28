@@ -2,6 +2,7 @@ package com.jettech.vo;
 
 import java.util.Date;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -49,7 +50,7 @@ public class TestResultVO extends BaseVO {
 	private String targetData;
 	// source数据源
 	private String sourceData;
-	// 案例ID
+	// 案例名称
 	private String caseName;
 
 
@@ -227,7 +228,29 @@ public class TestResultVO extends BaseVO {
 			if (testResult.getSecordaryTable() != null) {
 				this.secordaryTable = testResult.getSecordaryTable();
 			}
-			
+			if(testResult.getSourceCount()!=null&&testResult.getSourceCount()>0) {
+				this.notSameRow=testResult.getSourceCount()-testResult.getSameRow();
+			}else {
+				this.notSameRow=0;
+				this.sourceCount=0;
+				this.sameRow=0;
+				this.targetCount=0;
+			}
+			if(testResult.getNotSameData()!=null&&!testResult.getNotSameData().equals("")) {
+				this.notSameData=testResult.getNotSameData();
+			}else {
+				this.notSameData=0;
+			}
+			if(testResult.getEditTime()!=null&&!testResult.getEditTime().equals("")) {
+				this.endTime=testResult.getEditTime();
+			}else {
+				this.endTime=null;
+			}
+			if(testResult.getResult()!=null&&!testResult.getResult().equals("")) {
+				this.result=testResult.getResult();
+			}else {
+				this.result="false";
+			}
 
 		}
 	}

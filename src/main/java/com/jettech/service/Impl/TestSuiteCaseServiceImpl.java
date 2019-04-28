@@ -74,4 +74,13 @@ public class TestSuiteCaseServiceImpl implements TestSuiteCaseService {
 		return testSuiteCaseRepository.CountCase(suiteId);
 	}
 
+
+
+	@Override
+	public TestSuiteCase findByCaseIdAndSuiteId(Integer caseId, Integer suiteId) {
+		TestSuiteCase tsc=	testSuiteCaseRepository.findByCaseIdAndSuiteId(caseId, suiteId);
+		return tsc;
+		
+	}
+
 }

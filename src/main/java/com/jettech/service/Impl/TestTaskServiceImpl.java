@@ -52,5 +52,9 @@ public class TestTaskServiceImpl implements ITestTaskService {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
+	@Override
+	public List<TestTask> selectByActivedAndStatus(Boolean actived, Boolean status) {
+		return repository.findByActivedAndStatus(actived,status);
+	}
 }

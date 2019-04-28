@@ -12,31 +12,32 @@ import javax.transaction.Transactional;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.aop.ThrowsAdvice;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.w3c.dom.css.ElementCSSInlineStyle;
 
 import com.jettech.BizException;
+import com.jettech.EnumCompareDirection;
 import com.jettech.EnumPageType;
 import com.jettech.EnumTestCaseType;
 import com.jettech.domain.CaseModel;
 import com.jettech.domain.CompareCaseModel;
+import com.jettech.domain.CompareaToFileCaseModel;
 import com.jettech.entity.CodeMap;
+import com.jettech.entity.DataField;
 import com.jettech.entity.DataSource;
 import com.jettech.entity.Product;
 import com.jettech.entity.QualityTestCase;
-import com.jettech.entity.QualityTestPoint;
 import com.jettech.entity.QualityTestQuery;
 import com.jettech.entity.TestCase;
-import com.jettech.entity.DataField;
 import com.jettech.entity.TestQuery;
 import com.jettech.entity.TestRule;
 import com.jettech.entity.TestSuite;
+import com.jettech.entity.TestSuiteCase;
 import com.jettech.repostory.CodeMapRepository;
 import com.jettech.repostory.CompareTestCaseRepository;
 import com.jettech.repostory.DataFieldRepository;
@@ -155,8 +156,14 @@ public class TestCaseServiceImpl implements ITestCaseService {
 		logger.info("ready doTestCase:" + testCase.getId() + "_" + testCase.getName());
 		CaseModel caseModel = null;
 		try {
-			testCase.setCaseType(EnumTestCaseType.DataCompare);
-			caseModel = new CompareCaseModel(testCase);
+			if (testCase.getTargetQuery() != null) {
+				testCase.setCaseType(EnumTestCaseType.DataCompare);
+				caseModel = new CompareCaseModel(testCase);
+			} else {
+				testCase.setCaseType(EnumTestCaseType.DataCompareToFile);
+				caseModel = new CompareaToFileCaseModel(testCase);
+			}
+
 		} catch (Exception e) {
 			String info = "cast testCase to model error." + testCase.getId() + "_" + testCase.getName();
 			logger.error(info, e);
@@ -231,6 +238,14 @@ public class TestCaseServiceImpl implements ITestCaseService {
 
 			if (containTag(line, TEST_CASE_NAME)) {
 				testCaseName = getTagValue(line, TEST_CASE_NAME);
+				List<TestCase> findAllByNameLike = caseRepository.findAllByNameLike(testCaseName);
+				if (findAllByNameLike.size() > 0) {
+					info = testCaseName + "案例名称重复 ";
+					logger.info(info);
+					result.setFlag(false);
+					result.setMessage(info);
+					break;
+				}
 				logger.info("######## 开始导入案例:" + testCaseName);
 			}
 			if (testCaseName == null || testCaseName.trim().isEmpty())
@@ -628,52 +643,23 @@ public class TestCaseServiceImpl implements ITestCaseService {
 
 	}
 
-	/**
-	 * 左侧的案例
+	/*
+	 * @Override public Page<TestCase> findBySuiteId(Integer testSuiteID, String
+	 * name, Pageable pageable) { Page<TestCase> list =
+	 * caseRepository.findByTestSuiteIdAndNameContaining(testSuiteID, "%" + name +
+	 * "%", pageable); if (list.getSize() > 0) { return list; } else { return new
+	 * PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0); }
+	 * 
+	 * }
 	 */
-	@Override
-	public Page<TestCase> findALLBySuiteId(Integer testSuiteID, String name, Pageable pageable) {
-		Page<TestCase> list;
-		if (StringUtils.isBlank(name)) {
-			// 名称为空，根据案例ID查询所有
-			list = caseRepository.findByTestSuiteNotContain(testSuiteID, pageable);
-		} else {
-			// 名称不为空，根据三个条件查询所有
-		list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, "%"+name+"%", pageable);
-//			list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, name, pageable);
-		}
 
-		if (list != null && list.getSize() > 0) {
-			return list;
-		} else {
-			return new PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0);
-		}
-	}
-
-	@Override
-	public Page<TestCase> findBySuiteId(Integer testSuiteID, String name, Pageable pageable) {
-		Page<TestCase> list;
-		if (name==null||name.equals("")) {
-			// 名称为空时右侧的所有案例
-			list = caseRepository.findByTestSuiteId(testSuiteID, pageable);
-		} else {
-			// 右侧根据id，名称查询所有
-			list = caseRepository.findByTestSuiteIdAndNameContaining(testSuiteID, name, pageable);
-		}
-		if (list != null && list.getSize() > 0) {
-			return list;
-		} else {
-			return new PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0);
-		}
-	}
-
-	@Override
+	/*@Override
 	public Page<TestCase> findBySuiteId(Integer testSuiteID, Pageable pageable) {
 		Page<TestCase> list;
 		if (testSuiteID != null && testSuiteID > 0) {
-			list = null/* caseRepository.findByTestSuiteId(testSuiteID, pageable) */;
+			list = caseRepository.findByTestSuiteId(testSuiteID, pageable);
 		} else {
-			list = null/* caseRepository.findByTestSuiteIsNull(pageable) */;
+			list = caseRepository.findByTestSuiteIsNull(pageable);
 		}
 		if (list.getSize() > 0) {
 			return list;
@@ -681,7 +667,7 @@ public class TestCaseServiceImpl implements ITestCaseService {
 			return new PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0);
 		}
 
-	}
+	}*/
 
 	/**
 	 * 根据测试集名称查询所有案例 20190121
@@ -746,31 +732,29 @@ public class TestCaseServiceImpl implements ITestCaseService {
 	}
 
 	@Override
-	public List<TestCase> findAllTestCase(Integer testSuiteID) throws BizException {
-		List<TestCase> list = null;
-		if (testSuiteID == null) {
-			throw new BizException("测试集ID为空");
-		}
-		Integer[] caseIds = testSuiteCaseRepository.findCaseIdsBysuiteId(testSuiteID);
-		for (Integer caseId : caseIds) {
-			TestCase testCase = caseRepository.findById(caseId).get();
-			list.add(testCase);
-		}
-		if (list != null && list.size() > 0) {
-			return list;
-		} else {
-			return null;
-		}
-
+	public List<TestCase> findAllTestCase(Integer testSuiteID) {
+		return caseRepository.findAllTestCase(testSuiteID);
 	}
 
 	@Override
-	public Page<TestCase> getAllTestCaseByPage(String name, Pageable pageable) {
+	public Page<TestCase> getAllTestCaseByPage(String name, EnumCompareDirection enumCompareDirection,
+			Pageable pageable) {
 		Page<TestCase> pageList = null;
 		if (name == null || name.trim().length() == 0) {
-			pageList = caseRepository.findAllOrderByIdDesc(pageable);
+			if (enumCompareDirection != null && !"".equals(enumCompareDirection)) {
+				pageList = caseRepository.findAllByEnumCompareDirectionOrderByIdDesc(enumCompareDirection, pageable);
+			} else {
+				pageList = caseRepository.findAllOrderByIdDesc(pageable);
+			}
+
 		} else {
-			pageList = caseRepository.findByNameLikeOrderByIdDesc("%" + name + "%", pageable);
+			if (enumCompareDirection != null && !"".equals(enumCompareDirection)) {
+				pageList = caseRepository.findByNameLikeAndEnumCompareDirectionLikeOrderByIdDesc("%" + name + "%",
+						enumCompareDirection, pageable);
+			} else {
+				pageList = caseRepository.findByNameLikeOrderByIdDesc("%" + name + "%", pageable);
+			}
+
 		}
 		if (pageList.getSize() > 0) {
 			return pageList;
@@ -780,6 +764,7 @@ public class TestCaseServiceImpl implements ITestCaseService {
 	}
 
 	@Override
+	@Transactional
 	public void changeTestCasePosition(Integer testSuiteID, String testCaseIDS) {
 		if (testCaseIDS != null) {
 			String[] ids = testCaseIDS.split(",");
@@ -791,13 +776,17 @@ public class TestCaseServiceImpl implements ITestCaseService {
 		}
 	}
 
+	
+	
 	@Override
 	@Transactional
-	public void backDisorder(String testCaseIDS) {
+	public void backDisorder(String testCaseIDS,Integer suiteId) {
 		if (testCaseIDS != null) {
 			String[] ids = testCaseIDS.split(",");
 			for (String testCaseID : ids) {
-				testSuiteCaseRepository.backDisorder(Integer.valueOf(testCaseID));
+				Integer caseId = Integer.valueOf(testCaseID);
+				TestSuiteCase tsc=	testSuiteCaseRepository.findByCaseIdAndSuiteId(caseId,suiteId);
+				testSuiteCaseRepository.delete(tsc);
 			}
 		} else {
 			System.out.println("输入合法参数");
@@ -825,6 +814,11 @@ public class TestCaseServiceImpl implements ITestCaseService {
 		String testCaseName = testCaseVO.getName();
 		if (testCaseName == null || testCaseName.trim().length() == 0) {
 			throw new BizException("案例的名称不能为空或空串:" + testCaseName);
+		}
+		// 处理新增名称不能重复
+		List<TestCase> qtc = caseRepository.findAllByNameLike(testCaseVO.getName());
+		if (qtc != null && qtc.size() > 0) {
+			throw new BizException("案例名称已存在");
 		}
 		// 当查询没有命名时，使用默认的规则进行命名(SrcQry_案例名称/DstQry_案例名称)
 		if (testCaseVO.getSourceQuery().getName() == null
@@ -924,6 +918,15 @@ public class TestCaseServiceImpl implements ITestCaseService {
 		String testCaseName = testCaseVO.getName();
 		if (testCaseName == null || testCaseName.trim().length() == 0) {
 			throw new BizException("案例的名称不能为空或空串:" + testCaseName);
+		}
+		// 处理新增名称不能重复
+		List<TestCase> qtc = caseRepository.findAllByNameLike(testCaseVO.getName());
+		for (TestCase testCase : qtc) {
+			if (testCase.getId().equals(testCaseVO.getId()) && testCase.getName().equals(testCaseName)) {
+				break;
+			} else {
+				throw new BizException("案例名称已存在");
+			}
 		}
 		// 当查询没有命名时，使用默认的规则进行命名(SrcQry_案例名称/DstQry_案例名称)
 		if (testCaseVO.getSourceQuery().getName() == null
@@ -1109,15 +1112,10 @@ public class TestCaseServiceImpl implements ITestCaseService {
 
 	@Override
 	public List<TestCase> findAllById(Integer id) throws BizException {
-		List<TestCase> list = null;
 		if (id == null) {
 			throw new BizException("测试集ID为空");
 		}
-		Integer[] caseIds = testSuiteCaseRepository.findCaseIdsBysuiteId(id);
-		for (Integer caseId : caseIds) {
-			TestCase testCase = caseRepository.findById(caseId).get();
-			list.add(testCase);
-		}
+		List<TestCase> list = caseRepository.findAllById(id);
 		if (list != null && list.size() > 0) {
 			return list;
 		} else {
@@ -1126,18 +1124,158 @@ public class TestCaseServiceImpl implements ITestCaseService {
 	}
 
 	@Override
-	public List<TestCase> findTestCaseBysuiteId(Integer suiteId) {
-		List<TestCase> list = new ArrayList<TestCase>();
-		if (suiteId == null) {
-			list = caseRepository.findAll();
-		}
-		Integer[] caseIds = testSuiteCaseRepository.findCaseIdsBysuiteId(suiteId);
-		for (Integer caseId : caseIds) {
-			TestCase testCase = caseRepository.findById(caseId).get();
-			list.add(testCase);
-		}
-
-		return list;
+	public Integer countBySuiteId(Integer suiteId) {
+		Integer count = caseRepository.countBySuiteId(suiteId);
+		return count;
 	}
 
+	/*
+	 * @Override public Page<TestCase>
+	 * findByTestSuiteIdNotInAndNameContaining(Integer testSuiteID, String name,
+	 * Pageable pageable) { return
+	 * caseRepository.findByTestSuiteIdNotInAndNameLike(testSuiteID, "%" + name +
+	 * "%", pageable); }
+	 */
+
+	@Override
+	public List<TestCase> findByTestSuiteId(Integer testSuiteID) {
+		// TODO Auto-generated method stub
+		return caseRepository.findByTestSuiteId(testSuiteID);
+	}
+
+	/*@Override
+	public Page<TestCase> findByTestSuiteIdNotInAndNameContaining(Integer testSuiteID, String name, Pageable pageable) {
+		Page<TestCase> list;
+		list = caseRepository.findByTestSuiteIdNotInAndNameContaining(testSuiteID, "%" + name + "%", pageable);
+		System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^");
+		return list;
+	}*/
+
+	/*@Override
+	public Page<TestCase> findBySuiteId(Integer testSuiteID, String name, Pageable pageable) {
+		Page<TestCase> list;
+		if (testSuiteID != null && testSuiteID > 0) {
+			if ("".equals(name)) {
+				list = caseRepository.findByTestSuiteId(testSuiteID, pageable);
+			} else {
+				list = caseRepository.findByTestSuiteIdAndNameContaining(testSuiteID, name, pageable);
+			}
+
+		} else {
+			if ("".equals(name)) {
+				list = caseRepository.findByTestSuiteIsNull(pageable);
+			} else {
+				list = caseRepository.findByTestSuiteIsNullAndNameContaining(name, pageable);
+			}
+
+		}
+		if (list.getSize() > 0) {
+			return list;
+		} else {
+			return new PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0);
+		}
+
+	}*/
+
+	/* 右侧案例
+	 * @see com.jettech.service.ITestCaseService#findBySuiteId(java.lang.Integer, java.lang.String, org.springframework.data.domain.Pageable)
+	 */
+	/*@Override
+	public Page<TestCase> findBySuiteId(Integer testSuiteID, String name, Pageable pageable) {
+		Page<TestCase> list;
+		if (name==null||name.equals("")) {
+			// 名称为空时右侧的所有案例
+			list = caseRepository.findByTestSuiteId(testSuiteID, pageable);
+		} else {
+			// 右侧根据id，名称查询所有
+			list = caseRepository.findByTestSuiteIdAndNameContaining(testSuiteID, name, pageable);
+		}
+		if (list != null && list.getSize() > 0) {
+			return list;
+		} else {
+			return new PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0);
+		}
+	}*/
+
+	/**
+	 * 左侧的案例
+	 *//*
+	@Override
+	public Page<TestCase> findALLBySuiteId(Integer testSuiteID, String name, Pageable pageable) {
+		Page<TestCase> list;
+		if (StringUtils.isBlank(name)) {
+			// 名称为空，根据案例ID查询所有
+			list = caseRepository.findByTestSuiteNotContain(testSuiteID, pageable);
+		} else {
+			// 名称不为空，根据三个条件查询所有
+		list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, "%"+name+"%", pageable);
+//			list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, name, pageable);
+		}
+
+		if (list != null && list.getSize() > 0) {
+			return list;
+		} else {
+			return new PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0);
+		}
+	}*/
+	/**
+	 * 左侧的案例
+	 */
+	@Override
+	public Page<TestCase> findALLBySuiteId(Integer testSuiteID, String name, Pageable pageable) {
+		Page<TestCase> list;
+		if (StringUtils.isBlank(name)) {
+			// 名称为空，根据案例ID查询所有
+			list = caseRepository.findByTestSuiteNotContain(testSuiteID, pageable);
+		} else {
+			// 名称不为空，根据三个条件查询所有
+		list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, "%"+name+"%", pageable);
+//			list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, name, pageable);
+		}
+
+		if (list != null && list.getSize() > 0) {
+			return list;
+		} else {
+			return new PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0);
+		}
+	}
+
+	
+	/* 右侧案例
+	 * @see com.jettech.service.ITestCaseService#findBySuiteId(java.lang.Integer, java.lang.String, org.springframework.data.domain.Pageable)
+	 */
+	@Override
+	public Page<TestCase> findBySuiteId(Integer testSuiteID, String name, Pageable pageable) {
+		Page<TestCase> list;
+		if (StringUtils.isBlank(name)) {
+			// 名称为空时右侧的所有案例
+			list = caseRepository.findByTestSuiteId(testSuiteID, pageable);
+		} else {
+			// 右侧根据id，名称查询所有
+			list = caseRepository.findByTestSuiteIdAndNameContaining(testSuiteID, "%"+name+"%", pageable);
+		}
+		if (list != null && list.getSize() > 0) {
+			return list;
+		} else {
+			return new PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0);
+		}
+	}
+
+	@Override
+	public Page<TestCase> findBySuiteId(Integer testSuiteID, Pageable pageable) {
+		Page<TestCase> list;
+		if (testSuiteID != null && testSuiteID > 0) {
+			list = null/* caseRepository.findByTestSuiteId(testSuiteID, pageable) */;
+		} else {
+			list = null/* caseRepository.findByTestSuiteIsNull(pageable) */;
+		}
+		if (list.getSize() > 0) {
+			return list;
+		} else {
+			return new PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0);
+		}
+
+	}
+	
+	
 }

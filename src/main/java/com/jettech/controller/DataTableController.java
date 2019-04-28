@@ -4,6 +4,7 @@
 package com.jettech.controller;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -115,5 +116,30 @@ public class DataTableController {
 
 	    }
 	      return new ResultVO(true, StatusCode.OK, "同步成功");
+	}
+	
+	/**
+	 * 通过schemaID获取表信息
+	 * @param schemaID
+	 * @return
+	 */
+	@ResponseBody
+    @RequestMapping(value="/getTablesBySchemaID",produces = { "application/json;charset=UTF-8" },method = RequestMethod.GET)
+    public  ResultVO getTablesBySchemaID(@PathParam(value = "schemaID") Integer schemaID,@PathParam(value = "tableName") String tableName){
+		Map<String,Object> resultmap = new HashMap<String,Object>();
+		List<TestTableVO> arrvolist=new ArrayList<>();
+        try {
+        	List<DataTable> dtlist= testTableService.getTablesBySchemaID(schemaID,tableName);
+	        for(DataTable td : dtlist) {
+	        	TestTableVO testTableVO = new TestTableVO(td);
+	        	arrvolist.add(testTableVO);
+	        }
+	        resultmap.put("list",arrvolist);
+	        return new ResultVO(true, StatusCode.OK, "查询成功", resultmap);
+	    }catch(Exception e) {
+	    	e.printStackTrace();
+	    	e.getLocalizedMessage();
+	    	return new ResultVO(false, StatusCode.ERROR, "查询失败", resultmap);
+	    }
 	}
 }

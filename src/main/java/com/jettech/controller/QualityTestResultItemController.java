@@ -34,18 +34,24 @@ public class QualityTestResultItemController {
 	@Autowired
 	QualityTestResultItemService qualityTestResultItemService;
 
+	/**根据执行结果的id，result来查询结果明细并分页
+	 * @param testResultID
+	 * @param result
+	 * @param pageNum
+	 * @param pageSize
+	 * @return
+	 */
 	@RequestMapping(value = "/findQualityTestResultItemByQualityTestResultID", method = RequestMethod.GET)
-	@ApiImplicitParams({
-			@ApiImplicitParam(paramType = "query", name = "testResultID", value = "测试结果ID", required = true, dataType = "Long"),
-			@ApiImplicitParam(paramType = "query", name = "pageNum", value = "页码值", required = false, dataType = "Long"),
-			@ApiImplicitParam(paramType = "query", name = "pageSize", value = "每页条数", required = false, dataType = "Long") })
 	public ResultVO findQualityTestResultItemByQualityTestResultID(@RequestParam Integer testResultID,
+		/*	@RequestParam(value = "selectValue",  required = false) String selectValue,*/
+			@RequestParam(value = "result",  required = false) String result,
+		/*	@RequestParam(value = "columnName",  required = false) String columnName,*/
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
 		Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
 		try {
 			Page<QualityTestResultItem> testResultItemList = qualityTestResultItemService
-					.findTestResultItemByTestResultID(testResultID,"", pageable);
+					.findTestResultItemByTestResultIDAndResultAndSelectValueAndColumnName(testResultID,/*selectValue,*/result,/*columnName,*/ pageable);
 			ArrayList<QualityTestResultItemVO> testResultItemVOList = new ArrayList<QualityTestResultItemVO>();
 			for (QualityTestResultItem testResultItem : testResultItemList) {
 				QualityTestResultItemVO testResultItemVO = new QualityTestResultItemVO(testResultItem);

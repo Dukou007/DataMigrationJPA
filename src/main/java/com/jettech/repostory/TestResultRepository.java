@@ -1,19 +1,20 @@
 package com.jettech.repostory;
 
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
 
-import com.jettech.entity.TestCase;
 import com.jettech.entity.TestResult;
 import com.jettech.entity.TestResultItem;
-
-import org.springframework.data.jpa.repository.Query;
-
-
+@Repository
 public interface TestResultRepository extends JpaRepository<TestResult, Integer> ,JpaSpecificationExecutor<TestResult>{
 
     @Query(value ="select * from test_result t where t.case_id =?1",nativeQuery = true)
@@ -50,8 +51,31 @@ public interface TestResultRepository extends JpaRepository<TestResult, Integer>
     @Query(value="SELECT * FROM test_result t WHERE 1=1 AND t.case_id= ?1 order by id desc",countQuery="SELECT count(*) FROM test_result t WHERE 1=1 AND t.case_id=?1",nativeQuery=true)
 	Page<TestResult> findTestResultByTestCaseID(Integer caseID, Pageable pageable);
 
-/*    @Query(value="SELECT * FROM `test_result` tr WHERE  tr.exec_state=?1",countQuery="SELECT count(*) FROM `test_result` tr WHERE  tr.exec_state=?1",nativeQuery=true)
-	Page<TestResult> findAllByExecState(String state);*/
+    @Query(value="SELECT * FROM `test_result` tr WHERE  tr.exec_state=?1",countQuery="SELECT count(*) FROM `test_result` tr WHERE  tr.exec_state=?1",nativeQuery=true)
+	Page<TestResult> findAllByExecState(String state,Pageable pageable);
+
+  /*  @Query(value="",countQuery="",nativeQuery=true)
+	Page<TestResult> findByDateSource(String dataSource, Pageable pageable);*/
+
+    @Transactional(timeout=30000)
+    @Query(value="SELECT * FROM test_result tr WHERE tr.target_data LIKE CONCAT('%',?1,'%')",countQuery="SELECT count(*) FROM test_result tr WHERE tr.target_data LIKE CONCAT('%',?1,'%')",nativeQuery=true)
+	Page<TestResult> findByTargetDateSourceLike(String dataSource, Pageable pageable);
+    @Transactional(timeout=30000)
+    @Query(value="SELECT * FROM test_result tr WHERE tr.source_data LIKE CONCAT('%',?1,'%')",countQuery="SELECT count(*) FROM test_result tr WHERE tr.source_data LIKE CONCAT('%',?1,'%')",nativeQuery=true)
+	Page<TestResult> findbySourceDataSourceLike(String dataSource, Pageable pageable);
+    
+    
+    @Query(value="select * from test_result where case_id=?1 order by start_time desc,end_time desc limit 1",nativeQuery=true)
+	TestResult findEndTimeByCaseId(Integer caseId);
+
+    @Query(value="select exec_state,count(*) as num from test_result where case_id=?1 group by exec_state",nativeQuery=true)
+    List<Map<String,Object>>findTestCaseStatus(Integer caseId);
+
+	List<TestResult> findByTestRoundId(Integer testRoundId);
+
+	
+
+
 
 
 	

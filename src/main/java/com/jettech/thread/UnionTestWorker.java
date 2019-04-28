@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.jettech.EnumCompareDirection;
 import com.jettech.domain.CaseModel;
 import com.jettech.domain.CompareResult;
 import com.jettech.domain.FieldModel;
@@ -27,6 +28,8 @@ public class UnionTestWorker extends BaseTestCompareWorker implements Runnable {
 //	private String caseName = null;
 
 	private static Integer maxItemRows = null;// 最大结果明细行数
+	
+	private  EnumCompareDirection enumCompareDirection;
 
 	public UnionTestWorker(BlockingQueue<BaseData> sourceQueue, BlockingQueue<TestResultItem> itemQueue,
 	        CaseModel testCase) {
@@ -37,7 +40,7 @@ public class UnionTestWorker extends BaseTestCompareWorker implements Runnable {
 		this.caseName = testCase.getName();
 		this.testResultId = testCase.getTestResult().getId();
 		logger.info(caseName + "testResultId:[" + testResultId + "]");
-
+        this.enumCompareDirection=testCase.getEnumCompareDirection()==null?EnumCompareDirection.LeftToRight:testCase.getEnumCompareDirection();
 		// 如果当前case配置了超时时间，则使用该时间
 		Integer maxWaitSecond = testCase.getMaxWaitSecond();
 		if (maxWaitSecond != null && maxWaitSecond > 0) {
@@ -102,8 +105,18 @@ public class UnionTestWorker extends BaseTestCompareWorker implements Runnable {
 	private CompareResult doCompare(UnionPageData unionData, BlockingQueue<TestResultItem> itemQueue) {
 		logger.info("key:" + unionData.getMinKey() + "-" + unionData.getMaxKey() + "");
 		logger.info("pageIndex:" + unionData.getPageIndex());
-		CompareResult cpResult = doCompare(unionData.getMap(), unionData.getTestQuery(), unionData.getMapTarget(),
-		        unionData.getQueryTarget(), itemQueue);
+		
+		CompareResult cpResult = null;
+		if (this.enumCompareDirection == EnumCompareDirection.LeftToRight) {
+			cpResult = doCompare(unionData.getMap(), unionData.getTestQuery(), unionData.getMapTarget(),
+			        unionData.getQueryTarget(), itemQueue);
+		} else if (this.enumCompareDirection == EnumCompareDirection.RightToLeft) {
+			cpResult = doRightCompare(unionData.getMap(), unionData.getTestQuery(), unionData.getMapTarget(),
+			        unionData.getQueryTarget(), itemQueue);
+		} else if (this.enumCompareDirection == EnumCompareDirection.TwoWay) {
+			cpResult = doTwoWayCompare(unionData.getMap(), unionData.getTestQuery(), unionData.getMapTarget(),
+			        unionData.getQueryTarget(), itemQueue);
+		}
 		return cpResult;
 	}
 
@@ -287,8 +300,8 @@ public class UnionTestWorker extends BaseTestCompareWorker implements Runnable {
 						for (Object targetObj : targetList) {
 							if (sourceObj != null && targetObj != null
 							        && sourceObj.toString().equals(targetObj.toString())) {
-								tri.setSoruceValue(sourceObj.toString());
-								tri.setTragetValue(targetObj.toString());
+								tri.setSourceValue(sourceObj.toString());
+								tri.setTargetValue(targetObj.toString());
 								comFlag = true;
 								break out;
 							}

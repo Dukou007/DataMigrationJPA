@@ -1,10 +1,9 @@
 package com.jettech.vo;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.jettech.entity.BaseEntity;
 import com.jettech.entity.QualityTestCase;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
+//@JsonInclude(JsonInclude.Include.NON_NULL)
 public class QualityTestCaseVO extends BaseVO {
 
 	/**
@@ -19,7 +18,7 @@ public class QualityTestCaseVO extends BaseVO {
 //	private Integer pageSize = 0;
 	private Boolean usePage = false;// 默认不分页
 	private QualityTestQueryVO qualityTestQueryVo;
-
+    private Integer testSuiteId;
 	public QualityTestQueryVO getQualityTestQueryVo() {
 		return qualityTestQueryVo;
 	}
@@ -101,6 +100,14 @@ public class QualityTestCaseVO extends BaseVO {
 
 	public void setUsePage(Boolean usePage) {
 		this.usePage = usePage;
+	}
+
+	public Integer getTestSuiteId() {
+		return testSuiteId;
+	}
+
+	public void setTestSuiteId(Integer testSuiteId) {
+		this.testSuiteId = testSuiteId;
 	}
 
 }

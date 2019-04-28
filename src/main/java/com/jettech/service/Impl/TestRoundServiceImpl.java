@@ -1,10 +1,14 @@
 package com.jettech.service.Impl;
 
-import com.jettech.entity.TestRound;
-import com.jettech.entity.TestSuite;
-import com.jettech.repostory.TestRoundRepository;
-import com.jettech.repostory.TestSuiteRepository;
-import com.jettech.service.TestRoundService;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,14 +19,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import com.jettech.entity.TestRound;
+import com.jettech.repostory.TestRoundRepository;
+import com.jettech.repostory.TestSuiteRepository;
+import com.jettech.service.TestRoundService;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
+import ca.krasnay.sqlbuilder.Predicates;
 
 @Service
 public  class TestRoundServiceImpl implements TestRoundService {
@@ -110,6 +112,11 @@ public  class TestRoundServiceImpl implements TestRoundService {
 		}else {
 			Specification<TestRound> specification = new Specification<TestRound>() {
 
+				/**
+				 * 
+				 */
+				private static final long serialVersionUID = 1L;
+
 				@Override
 				public Predicate toPredicate(Root<TestRound> root, CriteriaQuery<?> query,
 						CriteriaBuilder cb) {
@@ -125,11 +132,74 @@ public  class TestRoundServiceImpl implements TestRoundService {
 		if(list.getSize()>0) {
 			return list;
 		}else {
-			return new PageImpl<TestRound>(new ArrayList<>(), pageable, 0);
+			return new PageImpl<TestRound>(new ArrayList<TestRound>(), pageable, 0);
 		}
 	}
 
+	@Override
+	public int updateWithVersion(int id, int successCount, Date endTime, int version) {
+		return repository.updateWithVersion(id,successCount,endTime,version);
+	}
 
+	@Override
+	public Page<TestRound> findBySuiteIdAndStartTimeAndEndTime(String testSuiteID, String startTime, String endTime,
+			Pageable pageable) {
+		Page<TestRound> testRoundList = null;
+		Specification<TestRound> querySpecifi = new Specification<TestRound>() {
+			/**
+			 * 
+			 */
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public Predicate toPredicate(Root<TestRound> root, CriteriaQuery<?> query,
+					CriteriaBuilder criteriaBuilder) {
+				ArrayList<Predicate> predicateList = new ArrayList<Predicate>();
+				if (StringUtils.isNotBlank(testSuiteID)) {
+					predicateList.add(criteriaBuilder.equal(root.get("testSuite").get("id"), testSuiteID));
+				}
+				if (StringUtils.isNotBlank(startTime)) {
+					predicateList.add(criteriaBuilder.greaterThanOrEqualTo(root.get("startTime").as(String.class),
+							startTime));
+				}
+				if (StringUtils.isNotBlank(endTime)) {
+					predicateList
+							.add(criteriaBuilder.lessThanOrEqualTo(root.get("endTime").as(String.class), endTime));
+				}
+				return criteriaBuilder.and(predicateList.toArray(new Predicate[predicateList.size()]));
+			}
+		};
+		testRoundList = this.repository.findAll(querySpecifi, pageable);
+		return testRoundList;
+	}
+
+	@Override
+	public Page<TestRound> findBySuiteIdAndStartTimeAndEndTime(String testSuiteID, String startTime,
+			Pageable pageable) {
+		 Page<TestRound> list=null;
+		 Specification<TestRound> specification = new Specification<TestRound>() {
+
+			/**
+			 * 
+			 */
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public Predicate toPredicate(Root<TestRound> root, CriteriaQuery<?> query,
+					CriteriaBuilder cb) {
+				ArrayList<Predicate> predicateList = new ArrayList<Predicate>();
+				if(StringUtils.isNotBlank(testSuiteID)) {
+					predicateList.add(cb.equal(root.get("testSuite").get("id"),testSuiteID ));
+				}
+				if(StringUtils.isNotBlank(startTime)) {
+					predicateList.add(cb.equal(root.get(startTime).as(String.class), startTime));
+				}
+				return cb.and(predicateList.toArray(new Predicate[predicateList.size()]));
+			}
+		};
+		list=this.repository.findAll(specification, pageable);
+		return list;
+	}
 
 
 

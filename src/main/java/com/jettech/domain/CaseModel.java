@@ -1,5 +1,6 @@
 package com.jettech.domain;
 
+import com.jettech.EnumCompareDirection;
 import com.jettech.EnumPageType;
 import com.jettech.EnumTestCaseType;
 import com.jettech.entity.BaseEntity;
@@ -19,7 +20,12 @@ public class CaseModel extends BaseModel {
 	protected Integer testSuiteId;
 
 	private ResultModel testResult;
+	
+	private EnumCompareDirection enumCompareDirection = EnumCompareDirection.LeftToRight;
 
+	//添加轮次id 20190416
+	private Integer testRoundId;
+	
 	private Integer maxWaitSecond;// 守护线程最大等待时间（如果不填，按照默认值60s）
 	private static final Integer _DEFAULT_PAGE_SZIE = 10000;
 
@@ -44,6 +50,7 @@ public class CaseModel extends BaseModel {
 //		this.expertValue = testCase.getExpertValue();
 		this.maxResultRows = testCase.getMaxResultRows();
 		this.usePage = testCase.getUsePage();
+		this.setEnumCompareDirection(testCase.getEnumCompareDirection()==null?EnumCompareDirection.LeftToRight:testCase.getEnumCompareDirection());
 		// 当分页时判断是否有设置分页大小，如果无，则使用默认带下分页,分页类型默认使用key
 		if (testCase.getUsePage() != null && testCase.getUsePage()) {
 			if (testCase.getPageSize() == null || testCase.getPageSize() == 0) {
@@ -163,5 +170,18 @@ public class CaseModel extends BaseModel {
 	public void setMaxWaitSecond(Integer maxWaitSecond) {
 		this.maxWaitSecond = maxWaitSecond;
 	}
+    public void setEnumCompareDirection(EnumCompareDirection enumCompareDirection) {
+		this.enumCompareDirection = enumCompareDirection;
+	}
+    public EnumCompareDirection getEnumCompareDirection() {
+		return enumCompareDirection;
+	}
 
+	public Integer getTestRoundId() {
+		return testRoundId;
+	}
+
+	public void setTestRoundId(Integer testRoundId) {
+		this.testRoundId = testRoundId;
+	}
 }

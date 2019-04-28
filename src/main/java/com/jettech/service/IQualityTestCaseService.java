@@ -40,8 +40,15 @@ public interface IQualityTestCaseService extends IService<QualityTestCase, Integ
 
 	List<QualityTestCase> findByQualityCaseIDs(String ids);
 
-	void updateTestQualityCase(QualityTestCaseVO testCaseVO);
+	void updateTestQualityCase(QualityTestCaseVO testCaseVO) throws BizException;
 
 	void saveQualityTestCaseVo(QualityTestCaseVO testCaseVO) throws BizException;
+
+	void changeTestCasePosition(Integer caseId, Integer suiteId);
+
+	void backDisorder(Integer caseId, Integer suiteId);
+
+	List<QualityTestCase> findByTestSuitIdAndRoundId(Integer test_suite_id, Integer test_round_id);
+
 }
 

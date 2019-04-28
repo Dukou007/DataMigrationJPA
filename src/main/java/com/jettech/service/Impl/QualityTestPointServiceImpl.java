@@ -1,11 +1,15 @@
 package com.jettech.service.Impl;
 
+import com.jettech.controller.QualityTestPointController;
 import com.jettech.entity.*;
 import com.jettech.repostory.QualitySuiteRepository;
 import com.jettech.repostory.QualityTestPointRepository;
 import com.jettech.service.*;
 import com.jettech.vo.ResultVO;
 import com.jettech.vo.StatusCode;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -13,24 +17,33 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javax.transaction.Transactional;
+
 @Service
 public class QualityTestPointServiceImpl implements IQualityTestPointService {
+	
+	private static Logger log = LoggerFactory.getLogger(QualityTestPointServiceImpl.class);
+	
 	@Autowired
-    QualityTestPointRepository qualityTestPointRepository;
+	QualityTestPointRepository qualityTestPointRepository;
+	
 	@Autowired
 	private IQualityTestQueryService qualityTestQueryService;
-	/*@Autowired
-	private IQualitySuiteService qualitySuiteService;*/
-//	@Autowired
-//	private IQualityTestPointService testPointService;
+
 	@Autowired
 	private ITestFieldService testFieldService;
+	
 	@Autowired
 	private IQualityTestCaseService IQualityTestCaseService;
+	
 	@Autowired
 	private TestSuiteService testSuiteService;
+	
 	@Autowired
-    QualitySuiteRepository qualitySuiteRepository;
+	QualitySuiteRepository qualitySuiteRepository;
+	
+	@Autowired
+	private DataSchemaService testDatabaseService;
 
 	private final static String CHECK_NULL = "CHECK_NULL";// 检查空值
 	private final static String CHECK_RANGE = "CHECK_RANGE";// 检查范围
@@ -41,34 +54,38 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 	private final static String CHECK_NON_AMOUNT_RANGE = "CHECK_NON_AMOUNT_RANGE";// 检查非金额范围
 	private final static String CHECK_POINT_TIME_AND_DATE = "CHECK_POINT_TIME_AND_DATE";// 检查日期或者时间格式
 	private final static String CHECK_SUM = "CHECK_SUM";// 检查字段是否为两个字段的和
-	private final static String CHECK_FOREIGN_KEY="CHECK_FOREIGN_KEY";//检查外键是否是另一张表的主键
+	private final static String CHECK_FOREIGN_KEY = "CHECK_FOREIGN_KEY";// 检查外键是否是另一张表的主键
+
 	@Override
-	public void createCase(Object obj, QualityTestQuery qualityTestQuery, String dbName,
-                           String talbeName, String fieldName, QualitySuite qualitySuite) {
-		Integer testSuiteId = Integer.parseInt(obj + "");
-		/*TestSuite testSuite = testSuiteService.getOneById(testSuiteId);*/
-		TestSuite testSuite = testSuiteService.findById(testSuiteId);
+	public void createCase(Object obj, QualityTestQuery qualityTestQuery,
+			String dbName, String talbeName, String fieldName,
+			QualitySuite qualitySuite) {
+//		Integer testSuiteId = Integer.parseInt(obj + "");
+		/* TestSuite testSuite = testSuiteService.getOneById(testSuiteId); */
+//		TestSuite testSuite = testSuiteService.findById(testSuiteId);
 		QualityTestCase qualityTestCase = new QualityTestCase();
 		qualityTestCase.setQualityTestQuery(qualityTestQuery);
+		// qualityTestCase.setTestSuite(testSuite);
+		qualityTestCase.setName(dbName + "数据库" + talbeName + "表" + fieldName
+				+ "字段" + qualitySuite.getName() + "的测试案例");
+		// 添加保存测试集 20190411
 //		qualityTestCase.setTestSuite(testSuite);
-		qualityTestCase.setName(dbName + "数据库" + talbeName + "表" + fieldName + "字段"
-				+ qualitySuite.getName() + "的测试案例");
 		IQualityTestCaseService.save(qualityTestCase);
 	}
 
 	/**
-	 * 此检查点为空值检测检查点，起名checkNull
+	 * 此检查点为空值检测检查点，起名checkNull 作用：检测一个字段是否为空值包含is null,''
 	 * 
 	 * @return
 	 */
 
 	public String checkNull(List<QualityRule> qualityRules,
-                            QualitySuite qualitySuite, String dbName, String talbeName,
-                            String fieldName, List<String> selectFields) {
+			QualitySuite qualitySuite, String dbName, String talbeName,
+			String fieldName, List<String> selectFields) {
 		StringBuilder sb = new StringBuilder();
-		String rule1 = qualityRules.get(0).getName();
-		String rule2 = qualityRules.get(1).getName();
-		String andOr = qualitySuite.getAndOr();
+		String rule1 = qualityRules.get(0).getName();// is null
+		String rule2 = qualityRules.get(1).getName();// ''
+		String andOr = qualitySuite.getAndOr();// or
 		sb.append("select ");
 		// 选中的要查询的字段名称的集合
 
@@ -82,10 +99,14 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 				sb.append(",");
 			}
 		}
-		sb.append(" from " + dbName).append(".").append(talbeName + " ")
-				.append("where").append(" " + fieldName).append(" " + rule1)
+		// 组织被测表
+		sb.append(" from " + dbName).append(".").append(talbeName + " ");
+		// 组织过滤条件
+		sb.append("where").append(" " + fieldName).append(" " + rule1)
 				.append(" " + andOr).append(" " + fieldName)
 				.append(" " + rule2);
+		// 参考sql:select * from bdm.tablename where check_field is null or
+		// chek_field = ''
 
 		return sb.toString();
 	}
@@ -96,12 +117,12 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 	 *
 	 */
 	public String checkRange(List<QualityRule> qualityRules,
-                             QualitySuite qualitySuite, String dbName, String talbeName,
-                             String fieldName, List<String> selectFields, String dataType) {
+			QualitySuite qualitySuite, String dbName, String talbeName,
+			String fieldName, List<String> selectFields, String dataType) {
 		StringBuilder sb = new StringBuilder();
-		String rule1 = qualityRules.get(0).getName();
-		String rule2 = qualityRules.get(1).getName();
-		String rule3 = qualityRules.get(2).getName();
+		String rule1 = qualityRules.get(0).getName();//is null
+		String rule2 = qualityRules.get(1).getName();//>,此为可能的一种看选择的规则不同得到的结果不同
+		String rule3 = qualityRules.get(2).getName();//<=，,此为可能的一种看选择的规则不同得到的结果不同
 		String andOr = qualitySuite.getAndOr();
 		Integer leftValue = qualitySuite.getLeftValue();
 		Integer rightValue = qualitySuite.getRightValue();
@@ -139,12 +160,12 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 	}
 
 	public String checkLength(List<QualityRule> qualityRules,
-                              QualitySuite qualitySuite, String dbName, String talbeName,
-                              String fieldName, List<String> selectFields) {
+			QualitySuite qualitySuite, String dbName, String talbeName,
+			String fieldName, List<String> selectFields) {
 		StringBuilder sb = new StringBuilder();
-		String rule1 = qualityRules.get(0).getName();
-		String rule2 = qualityRules.get(1).getName();
-		String rule3 = qualityRules.get(2).getName();
+		String rule1 = qualityRules.get(0).getName();//is null
+		String rule2 = qualityRules.get(1).getName();//>
+		String rule3 = qualityRules.get(2).getName();//<
 
 		String andOr = qualitySuite.getAndOr();
 		Integer leftValue = qualitySuite.getLeftValue();
@@ -167,14 +188,16 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 				.append(" " + rule2).append(" " + rightValue)
 				.append(" " + andOr).append(" length(" + fieldName + ")")
 				.append(" " + rule3).append(" " + leftValue);
+		// sql实例：select * from bdm.tablename where check_field is null or
+		// (length(chek_field) > 8 and length(chek_field) < 12)
 		return sb.toString();
 	}
 
 	public String checkUnique(List<QualityRule> qualityRules,
-                              QualitySuite qualitySuite, String dbName, String talbeName,
-                              String fieldName, List<String> selectFields) {
+			QualitySuite qualitySuite, String dbName, String talbeName,
+			String fieldName, List<String> selectFields) {
 		StringBuilder sb = new StringBuilder();
-		String rule = qualityRules.get(0).getName();
+		String rule = qualityRules.get(0).getName();//having count(*) > 1
 		sb.append("select ");
 		for (int i = 0; i < selectFields.size(); i++) {
 
@@ -190,20 +213,23 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 		sb.append(" from " + dbName).append(".").append(talbeName + " ")
 				.append("group by").append(" concat(" + fieldName + ")")
 				.append(" " + rule);
-
+//select check_field1,check_field2 from bdm.tablenam group by concat(check_field1,check_field2) having count(*) > 1
 		return sb.toString();
 	}
 
 	public String checkNotIn(List<QualityRule> qualityRules,
-                             QualitySuite qualitySuite, String dbName, String talbeName,
-                             String fieldName, List<String> selectFields) {
+			QualitySuite qualitySuite, String dbName, String talbeName,
+			String fieldName, List<String> selectFields) {
 		StringBuilder sb = new StringBuilder();
-		String rule1 = qualityRules.get(0).getName();
-		String rule2 = qualityRules.get(1).getName();
+		String rule1 = qualityRules.get(0).getName();// is null
+		String rule2 = qualityRules.get(1).getName();// not in
 		// 不在码值范围内 not in暂时写死
-		String andOr = qualitySuite.getAndOr();
+		String andOr = qualitySuite.getAndOr();// or
 		sb.append("select ");
+		// 选中的要查询的字段名称的集合
+
 		for (int i = 0; i < selectFields.size(); i++) {
+
 			// 当循环到最后一个的时候 就不添加逗号,
 			if (i == selectFields.size() - 1) {
 				sb.append(selectFields.get(i));
@@ -212,22 +238,28 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 				sb.append(",");
 			}
 		}
-		sb.append(" from " + dbName).append(".").append(talbeName + " ")
-				.append("where").append(" " + fieldName).append(" " + rule1)
+		// 组织被测表
+		sb.append(" from " + dbName).append(".").append(talbeName + " ");
+		// 组织过滤条件
+		sb.append("where").append(" " + fieldName).append(" " + rule1)
 				.append(" " + andOr).append(" " + fieldName)
 				.append(" " + rule2).append(" (")
 				.append(32 + "," + "fdsh" + "," + 56).append(")");
+		// select * from bdm.tablename where check_field is null or check_field
+		// not in (12,3)
 		return sb.toString();
 	}
 
 	public String checkNotFloat(List<QualityRule> qualityRules,
-                                QualitySuite qualitySuite, String dbName, String talbeName,
-                                String fieldName, List<String> selectFields) {
+			QualitySuite qualitySuite, String dbName, String talbeName,
+			String fieldName, List<String> selectFields) {
 		StringBuilder sb = new StringBuilder();
-		String rule1 = qualityRules.get(0).getName();
-		String rule2 = qualityRules.get(1).getName();
-		String andOr = qualitySuite.getAndOr();
+		String rule1 = qualityRules.get(0).getName();// is null
+		String rule2 = qualityRules.get(1).getName();// as decimal
+		String andOr = qualitySuite.getAndOr();// or
 		sb.append("select ");
+		// 选中的要查询的字段名称的集合
+
 		for (int i = 0; i < selectFields.size(); i++) {
 
 			// 当循环到最后一个的时候 就不添加逗号,
@@ -238,17 +270,20 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 				sb.append(",");
 			}
 		}
-		sb.append(" from " + dbName).append(".").append(talbeName + " ")
-				.append("where").append(" " + fieldName).append(" " + rule1)
+		// 组织被测表
+		sb.append(" from " + dbName).append(".").append(talbeName + " ");
+		// 组织过滤条件
+		sb.append("where").append(" " + fieldName).append(" " + rule1)
 				.append(" " + andOr).append(" CAST(" + fieldName)
 				.append(" " + rule2 + ")").append(" " + rule1);
-
+		// 参考sql:select * from bdm.tablename where check_field is null or
+		// cast(check_field as float) is null
 		return sb.toString();
 	}
 
 	public String checkNonAmountRange(List<QualityRule> qualityRules,
-                                      QualitySuite qualitySuite, String dbName, String talbeName,
-                                      String fieldName, List<String> selectFields) {
+			QualitySuite qualitySuite, String dbName, String talbeName,
+			String fieldName, List<String> selectFields) {
 		StringBuilder sb = new StringBuilder();
 		List<String> rules = new ArrayList<String>();
 		for (int i = 0; i < qualityRules.size(); i++) {
@@ -267,35 +302,35 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 				sb.append(selectFields.get(i));
 				sb.append(",");
 			}
-		}
+		}//rules规则顺序：is null ,>=,<=,as decimal,is not null
 		sb.append(" from " + dbName)
 				.append(".")
 				.append(talbeName + " ")
 				.append("where")
 				.append(" " + fieldName)
-				.append(" " + rules.get(0))
-				.append(" " + andOr + "(")
+				.append(" " + rules.get(0))//is null
+				.append(" " + andOr + "(")//or
 				.append(" CAST(" + fieldName)
 				.append(" " + rules.get(3) + ")" + rules.get(4))
 				.append(" and CAST(" + fieldName + " " + rules.get(3) + ")"
-						+ rules.get(2) + leftValue).append(" " + andOr)
-				.append(" CAST(" + fieldName + " " + rules.get(3) + ")")
+						+ rules.get(2) + leftValue).append(" " )
+				.append("and CAST(" + fieldName + " " + rules.get(3) + ")")
 				.append(" " + rules.get(1)).append(" " + rightValue + ")");
-
+//sql:select * from bdm.tablename where check_field is null or (cast(check_field as float) is not null and cast(check_field as float) > 8.0 and cast(check_field as float) < 12.0)
 		return sb.toString();
 	}
 
 	public String checkPointTimeAndDate(List<QualityRule> qualityRules,
-                                        QualitySuite qualitySuite, String dbName, String talbeName,
-                                        String fieldName, List<String> selectFields) {
+			QualitySuite qualitySuite, String dbName, String talbeName,
+			String fieldName, List<String> selectFields) {
 		StringBuilder sb = new StringBuilder();
-		String rule1 = qualityRules.get(0).getName();
-		String rule2 = qualityRules.get(1).getName();
-		String rule3 = qualityRules.get(2).getName();
-		String rule4 = qualityRules.get(3).getName();
-		String rule5 = qualityRules.get(4).getName();
-		String rule6 = qualityRules.get(5).getName();
-		String rule7 = qualityRules.get(6).getName();
+		String rule1 = qualityRules.get(0).getName();//is null
+		String rule2 = qualityRules.get(1).getName();//=''
+		String rule3 = qualityRules.get(2).getName();//<>
+		String rule4 = qualityRules.get(3).getName();//时间格式%Y-%m-%d %H:%i:%S,日期格式%Y-%m-%d
+		String rule5 = qualityRules.get(4).getName();//%Y %m %d %H:%i:%S，%Y %m %d
+		String rule6 = qualityRules.get(5).getName();//%Y/%m/%d %H:%i:%S，%Y/%m/%d
+		String rule7 = qualityRules.get(6).getName();//%m/%d/%Y %H:%i:%S，%m/%d/%Y
 		String andOr = qualitySuite.getAndOr();
 		Integer leftValue = qualitySuite.getLeftValue();
 		sb.append("select ");
@@ -381,16 +416,16 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 					.append(" " + rule1).append(" " + andOr)
 					.append(" " + fieldName).append(" " + rule2);
 			qualityTestQuery.setSqlText(sb.toString());
-//			qualityTestQuery.setQualityTestPoint(qualityTestPoint);
+			// qualityTestQuery.setQualityTestPoint(qualityTestPoint);
 			qualityTestQuery.setDataSource(dataSource);
-			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表" + fieldName
-					+ "字段" + qualitySuite.getName());
+			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表"
+					+ fieldName + "字段" + qualitySuite.getName());
 			// 自动生成脚本
 			qualityTestQueryService.save(qualityTestQuery);
 			// 自动生成案例
 			Object testSuiteIdobj = map.get("testSuiteId");
-			this.createCase(testSuiteIdobj, qualityTestQuery, dbName, talbeName,
-					fieldName, qualitySuite);
+			this.createCase(testSuiteIdobj, qualityTestQuery, dbName,
+					talbeName, fieldName, qualitySuite);
 		}
 		return new ResultVO(true, StatusCode.OK, "设置检查点，新增脚本成功");
 	}
@@ -465,21 +500,21 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 						.append(" " + rule3).append(" " + leftValue);
 			}
 			qualityTestQuery.setSqlText(sb.toString());
-//			qualityTestQuery.setQualityTestPoint(qualityTestPoint);
+			// qualityTestQuery.setQualityTestPoint(qualityTestPoint);
 			qualityTestQuery.setDataSource(dataSource);
-			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表" + fieldName
-					+ "字段" + qualitySuite.getName());
+			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表"
+					+ fieldName + "字段" + qualitySuite.getName());
 			// 自动生成脚本
 			qualityTestQueryService.save(qualityTestQuery);
 			// 自动生成案例
 			Integer testSuiteId = Integer.parseInt(map.get("testSuiteId") + "");
-			/*TestSuite testSuite = testSuiteService.getOneById(testSuiteId);*/
+			/* TestSuite testSuite = testSuiteService.getOneById(testSuiteId); */
 			TestSuite testSuite = testSuiteService.findById(testSuiteId);
 			QualityTestCase qualityTestCase = new QualityTestCase();
 			qualityTestCase.setQualityTestQuery(qualityTestQuery);
-//			qualityTestCase.setTestSuite(testSuite);
-			qualityTestCase.setName(dbName + "数据库" + talbeName + "表" + fieldName
-					+ "字段" + qualitySuite.getName() + "的测试案例");
+			// qualityTestCase.setTestSuite(testSuite);
+			qualityTestCase.setName(dbName + "数据库" + talbeName + "表"
+					+ fieldName + "字段" + qualitySuite.getName() + "的测试案例");
 			IQualityTestCaseService.save(qualityTestCase);
 		}
 		return new ResultVO(true, StatusCode.OK, "设置检查点，新增脚本成功");
@@ -542,17 +577,17 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 					.append(" length(" + fieldName + ")").append(" " + rule3)
 					.append(" " + leftValue);
 			qualityTestQuery.setSqlText(sb.toString());
-//			qualityTestQuery.setQualityTestPoint(qualityTestPoint);
+			// qualityTestQuery.setQualityTestPoint(qualityTestPoint);
 			qualityTestQuery.setDataSource(dataSource);
-//			qualityTestQuery.setQualityTestPoint(qualityTestPoint);
-			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表" + fieldName
-					+ "字段" + qualitySuite.getName());
+			// qualityTestQuery.setQualityTestPoint(qualityTestPoint);
+			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表"
+					+ fieldName + "字段" + qualitySuite.getName());
 			// 自动生成脚本
 			qualityTestQueryService.save(qualityTestQuery);
 			// 自动生成案例
 			Object testSuiteIdobj = map.get("testSuiteId");
-			this.createCase(testSuiteIdobj, qualityTestQuery, dbName, talbeName,
-					fieldName, qualitySuite);
+			this.createCase(testSuiteIdobj, qualityTestQuery, dbName,
+					talbeName, fieldName, qualitySuite);
 		}
 		return new ResultVO(true, StatusCode.OK, "设置检查点，新增脚本成功");
 	}
@@ -605,17 +640,17 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 					.append("group by").append(" concat(" + fieldName + ")")
 					.append(" " + rule);
 			qualityTestQuery.setSqlText(sb.toString());
-//			qualityTestQuery.setQualityTestPoint(qualityTestPoint);
+			// qualityTestQuery.setQualityTestPoint(qualityTestPoint);
 			qualityTestQuery.setDataSource(dataSource);
-//			qualityTestQuery.setQualityTestPoint(qualityTestPoint);
-			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表" + fieldName
-					+ "字段" + qualitySuite.getName());
+			// qualityTestQuery.setQualityTestPoint(qualityTestPoint);
+			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表"
+					+ fieldName + "字段" + qualitySuite.getName());
 			// 自动生成脚本
 			qualityTestQueryService.save(qualityTestQuery);
 			// 自动生成案例
 			Object testSuiteIdobj = map.get("testSuiteId");
-			this.createCase(testSuiteIdobj, qualityTestQuery, dbName, talbeName,
-					fieldName, qualitySuite);
+			this.createCase(testSuiteIdobj, qualityTestQuery, dbName,
+					talbeName, fieldName, qualitySuite);
 		}
 		return new ResultVO(true, StatusCode.OK, "设置检查点，新增脚本成功");
 	}
@@ -675,16 +710,16 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 					.append(32 + "," + "fdsh" + "," + 56 + "," + "")
 					.append(")");
 			qualityTestQuery.setSqlText(sb.toString());
-//			qualityTestQuery.setQualityTestPoint(qualityTestPoint);
+			// qualityTestQuery.setQualityTestPoint(qualityTestPoint);
 			qualityTestQuery.setDataSource(dataSource);
-			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表" + fieldName
-					+ "字段" + qualitySuite.getName());
+			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表"
+					+ fieldName + "字段" + qualitySuite.getName());
 			// 自动生成脚本
 			qualityTestQueryService.save(qualityTestQuery);
 			// 自动生成案例
 			Object testSuiteIdobj = map.get("testSuiteId");
-			this.createCase(testSuiteIdobj, qualityTestQuery, dbName, talbeName,
-					fieldName, qualitySuite);
+			this.createCase(testSuiteIdobj, qualityTestQuery, dbName,
+					talbeName, fieldName, qualitySuite);
 		}
 		return new ResultVO(true, StatusCode.OK, "设置检查点，新增脚本成功");
 	}
@@ -741,17 +776,17 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 					.append(" CAST(" + fieldName).append(" " + rule2 + ")")
 					.append(" " + rule1);
 			qualityTestQuery.setSqlText(sb.toString());
-//			qualityTestQuery.setQualityTestPoint(qualityTestPoint);
+			// qualityTestQuery.setQualityTestPoint(qualityTestPoint);
 			qualityTestQuery.setDataSource(dataSource);
-//			qualityTestQuery.setQualityTestPoint(qualityTestPoint);
-			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表" + fieldName
-					+ "字段" + qualitySuite.getName());
+			// qualityTestQuery.setQualityTestPoint(qualityTestPoint);
+			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表"
+					+ fieldName + "字段" + qualitySuite.getName());
 			// 自动生成脚本
 			qualityTestQueryService.save(qualityTestQuery);
 			// 自动生成案例
 			Object testSuiteIdobj = map.get("testSuiteId");
-			this.createCase(testSuiteIdobj, qualityTestQuery, dbName, talbeName,
-					fieldName, qualitySuite);
+			this.createCase(testSuiteIdobj, qualityTestQuery, dbName,
+					talbeName, fieldName, qualitySuite);
 		}
 		return new ResultVO(true, StatusCode.OK, "设置检查点，新增脚本成功");
 	}
@@ -822,32 +857,29 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 					.append(" " + rules.get(1)).append(" " + rightValue + ")");
 
 			qualityTestQuery.setSqlText(sb.toString());
-//			qualityTestQuery.setQualityTestPoint(qualityTestPoint);
+			// qualityTestQuery.setQualityTestPoint(qualityTestPoint);
 			qualityTestQuery.setDataSource(dataSource);
-//			qualityTestQuery.setQualityTestPoint(qualityTestPoint);
-			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表" + fieldName
-					+ "字段" + qualitySuite.getName());
+			// qualityTestQuery.setQualityTestPoint(qualityTestPoint);
+			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表"
+					+ fieldName + "字段" + qualitySuite.getName());
 			// 自动生成脚本
 			qualityTestQueryService.save(qualityTestQuery);
 			// 自动生成案例
 			Object testSuiteIdobj = map.get("testSuiteId");
-			this.createCase(testSuiteIdobj, qualityTestQuery, dbName, talbeName,
-					fieldName, qualitySuite);
+			this.createCase(testSuiteIdobj, qualityTestQuery, dbName,
+					talbeName, fieldName, qualitySuite);
 		}
 
 		return new ResultVO(true, StatusCode.OK, "设置检查点，新增脚本成功");
 
 	}
 
-
-
-
 	/*
 	 * 判断a+b！=c c为入参，ab为规则集里的leftvalue,rightvalue
 	 */
 	public String checkSum(List<QualityRule> qualityRules,
-                           QualitySuite qualitySuite, String dbName, String talbeName,
-                           String fieldName, List<String> selectFields) {
+			QualitySuite qualitySuite, String dbName, String talbeName,
+			String fieldName, List<String> selectFields) {
 		StringBuilder sb = new StringBuilder();
 		List<String> rules = new ArrayList<String>();
 		for (int i = 0; i < qualityRules.size(); i++) {
@@ -873,12 +905,12 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 		return sb.toString();
 	}
 
-	/* 表间关系检查点配置
-	 * 判断表1的外键字段和表2的主键字段不包含。
+	/*
+	 * 表间关系检查点配置 判断表1的外键字段和表2的主键字段不包含。
 	 */
 	public String checkForeignkey(List<QualityRule> qualityRules,
-                                  QualitySuite qualitySuite, String dbName, String talbeName,
-                                  String fieldName, List<String> selectFields) {
+			QualitySuite qualitySuite, String dbName, String talbeName,
+			String fieldName, List<String> selectFields) {
 		StringBuilder sb = new StringBuilder();
 		List<String> rules = new ArrayList<String>();
 		for (int i = 0; i < qualityRules.size(); i++) {
@@ -895,13 +927,20 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 				sb.append(",");
 			}
 		}
-		sb.append(" from " + dbName).append(".").append(talbeName + " ")
+		sb.append(" from " + dbName)
+				.append(".")
+				.append(talbeName + " ")
 				.append("where ")
-				.append(rules.get(0)).append("( select * from "+dbName+"."+fieldName.split("_id")[0]+" where ")
-				.append(dbName+"."+talbeName+"."+fieldName+"="+dbName+"."+fieldName.split("_id")[0]+"."+"id)");
+				.append(rules.get(0))
+				.append("( select * from " + dbName + "."
+						+ fieldName.split("_id")[0] + " where ")
+				.append(dbName + "." + talbeName + "." + fieldName + "="
+						+ dbName + "." + fieldName.split("_id")[0] + "."
+						+ "id)");
 
 		return sb.toString();
 	}
+
 	/**
 	 * 新增/配置检查点(根据多个或一个字段，一个规则集，产生多个或一个检查点) 并自动生成sql脚本， 自动生成测试案例，测试任务，
 	 * 
@@ -924,7 +963,7 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 			QualityTestPoint qualityTestPoint = new QualityTestPoint();
 			QualityTestQuery qualityTestQuery = new QualityTestQuery();
 
-			/*TestField testField = testFieldService.getOneById(fieldId);*/
+			/* TestField testField = testFieldService.getOneById(fieldId); */
 			DataField testField = testFieldService.findById(fieldId);
 			qualityTestPoint.setDataField(testField);
 			qualityTestPoint.setQualitySuite(qualitySuite);
@@ -934,8 +973,7 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 			String talbeName = testField.getTalbeName();
 			DataSource dataSource = testField.getDataTable().getDataSchema()
 					.getDataSource();
-			String dbName = testField.getDataTable().getDataSchema()
-					.getName();
+			String dbName = testField.getDataTable().getDataSchema().getName();
 			List<QualityRule> qualityRules = qualitySuite.getQualityRules();
 			List<String> selectFields = (List<String>) map
 					.get("selectFieldNames");
@@ -980,23 +1018,103 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 						fieldName, selectFields);
 				break;
 			case CHECK_FOREIGN_KEY:
-				sb=checkForeignkey(qualityRules, qualitySuite, dbName, talbeName,
-						fieldName, selectFields);
+				sb = checkForeignkey(qualityRules, qualitySuite, dbName,
+						talbeName, fieldName, selectFields);
 				break;
 			}
 
 			qualityTestQuery.setSqlText(sb);
-//			qualityTestQuery.setQualityTestPoint(qualityTestPoint);
+			// qualityTestQuery.setQualityTestPoint(qualityTestPoint);
 			qualityTestQuery.setDataSource(dataSource);
-			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表" + fieldName
-					+ "字段" + qualitySuite.getName());
+			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表"
+					+ fieldName + "字段" + qualitySuite.getName());
 			// 自动生成脚本
 			qualityTestQueryService.save(qualityTestQuery);
 			// 自动生成案例
 			Object testSuiteIdobj = map.get("testSuiteId");
-			this.createCase(testSuiteIdobj, qualityTestQuery, dbName, talbeName,
-					fieldName, qualitySuite);
+			this.createCase(testSuiteIdobj, qualityTestQuery, dbName,
+					talbeName, fieldName, qualitySuite);
 		}
 		return new ResultVO(true, StatusCode.OK, "设置检查点，新增脚本成功");
 	}
+
+	@Override
+	@Transactional
+	public ResultVO batchCreateQualityCase(Map<Object, Object> map) throws Exception{
+		Integer dataSourceID = Integer.parseInt(map.get("dataSourceID") + "");//数据源ID
+		Integer schemaID = Integer.parseInt(map.get("schemaID") + "");//schemaID
+		DataSchema dataSchema = testDatabaseService.findSchemaByID(schemaID);//schema
+		Integer tableId = Integer.parseInt(map.get("tableId")+"");//数据库表ID
+		List<String> selectFields = (List<String>) map.get("selectFields");
+		for(String fiedlStr:selectFields){
+			String field = fiedlStr.split("___")[0];//字段名
+			Integer qualitySuiteId = Integer.parseInt(fiedlStr.split("___")[1]);//规则集
+			QualitySuite qualitySuite = qualitySuiteRepository.findById(qualitySuiteId).get();
+			List<QualityRule> qualityRules = qualitySuite.getQualityRules();
+			for(QualityRule qr:qualityRules){
+				
+			}
+		}
+		//DataSource dataSource = testFields.get(0).getDataTable().getDataSchema().getDataSource();
+		return new ResultVO(true, StatusCode.OK, "设置检查点，新增脚本成功");
+	}
+	
+//	@Override
+//	public ResultVO tableCheckNull(Map<Object, Object> map) {
+//		Integer tableId = Integer.parseInt(map.get("tableId") + "");
+//		Integer qualitySuiteId = Integer.parseInt(map.get("qualitySuiteId")
+//				+ "");
+//		List<DataField> testFields = testFieldService.findAllByTableId(tableId);
+//		QualitySuite qualitySuite = qualitySuiteRepository.findById(
+//				qualitySuiteId).get();
+//		List<QualityRule> qualityRules = qualitySuite.getQualityRules();
+//		String rule1 = qualityRules.get(0).getName();
+//		String rule2 = qualityRules.get(1).getName();
+//		String andOr = qualitySuite.getAndOr();
+//		List<String> selectFields = (List<String>) map.get("selectFields");
+//		// DataSource dataSource =
+//		// testField.getTestTable().getTestDatabase().getDataSource();
+//		// String dbName = testField.getTestTable().getTestDatabase().getName();
+//		DataSource dataSource = testFields.get(0).getDataTable()
+//				.getDataSchema().getDataSource();
+//		String dbName = testFields.get(0).getDataTable().getDataSchema()
+//				.getName();
+//		for (DataField testField : testFields) {
+//			QualityTestPoint qualityTestPoint = new QualityTestPoint();
+//			QualityTestQuery qualityTestQuery = new QualityTestQuery();
+//			StringBuilder sb = new StringBuilder();
+//			qualityTestPoint.setDataField(testField);
+//			qualityTestPoint.setQualitySuite(qualitySuite);
+//			qualityTestPointRepository.save(qualityTestPoint);
+//			String fieldName = testField.getName();
+//			String talbeName = testField.getTalbeName();
+//			sb.append("select ");
+//			// 选中的要查询的字段名称的集合
+//			for (int i = 0; i < selectFields.size(); i++) {
+//				// 当循环到最后一个的时候 就不添加逗号,
+//				if (i == selectFields.size() - 1) {
+//					sb.append(selectFields.get(i));
+//				} else {
+//					sb.append(selectFields.get(i));
+//					sb.append(",");
+//				}
+//			}
+//			sb.append(" from " + dbName).append(".").append(talbeName + " ")
+//					.append("where").append(" " + fieldName)
+//					.append(" " + rule1).append(" " + andOr)
+//					.append(" " + fieldName).append(" " + rule2);
+//			qualityTestQuery.setSqlText(sb.toString());
+//			// qualityTestQuery.setQualityTestPoint(qualityTestPoint);
+//			qualityTestQuery.setDataSource(dataSource);
+//			qualityTestQuery.setName(dbName + "数据库" + talbeName + "表"
+//					+ fieldName + "字段" + qualitySuite.getName());
+//			// 自动生成脚本
+//			qualityTestQueryService.save(qualityTestQuery);
+//			// 自动生成案例
+//			Object testSuiteIdobj = map.get("testSuiteId");
+//			this.createCase(testSuiteIdobj, qualityTestQuery, dbName,
+//					talbeName, fieldName, qualitySuite);
+//		}
+//		return new ResultVO(true, StatusCode.OK, "设置检查点，新增脚本成功");
+//	}
 }

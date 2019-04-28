@@ -28,6 +28,7 @@ import com.jettech.db.adapter.DB2Adapter;
 import com.jettech.db.adapter.InformixAdapter;
 import com.jettech.db.adapter.MySqlAdapter;
 import com.jettech.db.adapter.OracleAdapter;
+import com.jettech.db.adapter.SyBaseAdapter;
 import com.jettech.domain.DbModel;
 import com.jettech.entity.DataSchema;
 import com.jettech.entity.DataSource;
@@ -1046,7 +1047,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 						TestResult tr = testResultRepository.save(tresult);
 						TestResultItem tri = new TestResultItem();
 						tri.setTestResultId(tr.getId());
-						tri.setSoruceValue(name1);
+						tri.setSourceValue(name1);
 						testResultItemRepository.save(tri);
 					}
 					if (flag3 == 2) {
@@ -1062,7 +1063,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 						TestResult tr = testResultRepository.save(tresult);
 						TestResultItem tri = new TestResultItem();
 						tri.setTestResultId(tr.getId());
-						tri.setSoruceValue(name1);
+						tri.setSourceValue(name1);
 						if (flag0 == 1) {
 							tri.setResult("data_len not same");
 						}
@@ -1132,7 +1133,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 						TestResult tr = testResultRepository.save(tresult);
 						TestResultItem tri = new TestResultItem();
 						tri.setTestResultId(tr.getId());
-						tri.setSoruceValue(name1);
+						tri.setSourceValue(name1);
 						testResultItemRepository.save(tri);
 					}
 					// if(flag4==2) {
@@ -1254,7 +1255,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 
 				adapter = new OracleAdapter();
 				conn = ((OracleAdapter) adapter).getConnection(db);
-				explain="explain plan ";
+				explain="explain plan for ";
 			} else if (dbType.equals(EnumDatabaseType.DB2)) {
 				if (driver != null && !driver.equals("")) {
 					db.setDriver(driver);
@@ -1277,7 +1278,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 
 				adapter = new DB2Adapter();
 				conn = ((DB2Adapter) adapter).getConnection(db);
-				explain="explain ";
+				explain="";
 			} else if (dbType.equals(EnumDatabaseType.Informix)) {
 				if (driver != null && !driver.equals("")) {
 					db.setDriver(driver);
@@ -1301,6 +1302,29 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 
 				adapter = new InformixAdapter();
 				conn = ((InformixAdapter) adapter).getConnection(db);
+			}else if (dbType.equals(EnumDatabaseType.SyBase)) {
+				if (driver != null && !driver.equals("")) {
+					db.setDriver(driver);
+				} else {
+					db.setDriver("com.sybase.jdbc3.jdbc.SybDriver");
+				}
+				if (port == null || port.equals("")) {
+					port = "5000";
+				}
+				if (url != null && !url.equals("")) {
+					db.setUrl(url);
+				} else {
+
+					db.setUrl("jdbc:sybase:Tds:" + host + ":" + port
+							+ "?charset=cp936");
+				}
+				db.setUsername(username);
+				db.setPassword(pwd);
+				db.setName("sybase");
+				db.setDbtype(EnumDatabaseType.SyBase);
+
+				adapter = new SyBaseAdapter();
+				conn = ((SyBaseAdapter) adapter).getConnection(db);
 			}
 			if (conn != null) {
 				Statement statement = conn.createStatement();
@@ -1311,6 +1335,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 			}
 
 		} catch (Exception e) {
+			e.printStackTrace();
 			return new ResultVO(false, StatusCode.ERROR, "测试失败"+ e.getLocalizedMessage());
 		}
 	}

@@ -29,11 +29,15 @@ public class QualityTestCaseModel extends CaseModel {
 		super.setUsePage(testCase.getUsePage());
 		super.setPageSize(0);
 		super.setTestCaseType(EnumTestCaseType.QualityCheck);
-		if(testCase!=null && testCase.getTestSuite()!=null){
+		/*if(testCase!=null && testCase.getTestSuite()!=null){
 			super.setTestSuiteId(testCase.getTestSuite().getId());
+		}*/
+		//修改为多对对关系
+		if(testCase!=null && testCase.getTestSuites().size() > 0 ){
+			super.setTestSuiteId(testCase.getTestSuites().get(0).getId());
 		}
-	//	this.targetQuery = new QueryModel(testCase.getQualityTestQuery()); 还没移全
-		this.targetQuery.setTestCaseType(EnumTestCaseType.QualityCheck);
+		this.targetQuery = new QualityQueryModel(testCase.getQualityTestQuery());
+
 	}
 
 	public QualityQueryModel getTargetQuery() {

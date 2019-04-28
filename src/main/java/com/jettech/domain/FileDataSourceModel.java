@@ -16,9 +16,9 @@ public class FileDataSourceModel extends BaseModel {
 		this.userName = entity.getUserName();
 		this.password = entity.getPassword();
 		this.filePath = entity.getFilePath();
-		this.lineSpeater=entity.getLineSpeater();
-		this.columnSpeater=entity.getColumnSpeater();
-		this.textQualifier=entity.getTextQualifier();
+		this.lineSpeater = entity.getLineSpeater();
+		this.columnSpeater = entity.getColumnSpeater();
+		this.textQualifier = entity.getTextQualifier();
 	}
 
 	private String name; // 名称
@@ -40,11 +40,17 @@ public class FileDataSourceModel extends BaseModel {
 	private String password;// 连接密码
 
 	private String filePath;// 文件路径(相对路径)
-	
+
 	private String lineSpeater;// 换行符
-	
+
 	private String textQualifier;// 文本限定符
-	
+	// 其他方法
+
+	public String getPrintInfo() {
+		return String.format("fileType:%s,host:%s,connectionType:%s,username:%s,password:%s", this.fileType, this.host,
+				this.connectionType, this.userName, this.password);
+	}
+
 	public String getTextQualifier() {
 		return textQualifier;
 	}

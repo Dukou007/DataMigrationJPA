@@ -35,4 +35,12 @@ public interface TestResultItemRepository extends JpaRepository<TestResultItem, 
 	List<TestResultItem> findAllTestResultItem();
 
     Page<TestResultItem> findBytestResultId(Integer testResultId, Pageable pageable);
+    @Transactional(timeout=300000)
+	@Query(value="SELECT * FROM `test_result_item` t WHERE t.column_name =?1",countQuery="SELECT count(*) FROM `test_result_item` t WHERE t.column_name =?1",nativeQuery=true)
+	Page<TestResultItem> findByColumnName(String columnName, Pageable pageable);
+    
+  
+    
+    
+    
 }

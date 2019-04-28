@@ -26,7 +26,7 @@ public class TestResult extends BaseEntity {
 	// source数据量
 	private Integer sourceCount;
 	// target执行状态
-	private EnumExecuteStatus ExecState;
+	private EnumExecuteStatus execState;
 	private Date startTime;
 	private Date endTime;
 	private String result;
@@ -163,14 +163,14 @@ public class TestResult extends BaseEntity {
 		this.targetKey = targetKey;
 	}
 
-	@Enumerated(EnumType.STRING)
+/*	@Enumerated(EnumType.STRING)
 	public EnumExecuteStatus getExecState() {
-		return ExecState;
+		return execState;
 	}
 
 	public void setExecState(EnumExecuteStatus execState) {
-		ExecState = execState;
-	}
+		execState = execState;
+	}*/
 
 	public Date getStartTime() {
 		return startTime;
@@ -218,5 +218,13 @@ public class TestResult extends BaseEntity {
 
 	public void setNotSameData(Integer notSameData) {
 		this.notSameData = notSameData;
+	}
+	@Enumerated(EnumType.STRING)
+	public EnumExecuteStatus getExecState() {
+		return execState;
+	}
+
+	public void setExecState(EnumExecuteStatus execState) {
+		this.execState = execState;
 	}
 }

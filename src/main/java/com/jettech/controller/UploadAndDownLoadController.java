@@ -3,6 +3,8 @@ package com.jettech.controller;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -25,12 +27,17 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.jettech.EnumExecuteStatus;
 import com.jettech.entity.TestCase;
+import com.jettech.entity.TestResult;
 import com.jettech.entity.TestResultItem;
-import com.jettech.service.ITestResultItemService;
 import com.jettech.service.ITestCaseService;
+import com.jettech.service.ITestResultItemService;
+import com.jettech.service.ITestReusltService;
+import com.jettech.service.Impl.TestResultServiceImpl;
 import com.jettech.vo.ResultVO;
 import com.jettech.vo.StatusCode;
+import com.jettech.vo.TestResultVO;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
@@ -48,6 +55,8 @@ public class UploadAndDownLoadController {
 
 	@Autowired
 	private ITestCaseService testCaseService;
+	@Autowired
+	private ITestReusltService testResultService;
 
 	/**
 	 * @Description: 上传文件，格式为文本文件
@@ -145,8 +154,8 @@ public class UploadAndDownLoadController {
 			map.put("columnName", testResultItem.getColumnName());
 			map.put("keyValue", testResultItem.getKeyValue());
 			map.put("result", testResultItem.getResult());
-			map.put("soruceValue", testResultItem.getSoruceValue());
-			map.put("tragetValue", testResultItem.getTragetValue());
+			map.put("soruceValue", testResultItem.getSourceValue());
+			map.put("tragetValue", testResultItem.getTargetValue());
 			map.put("createUser", testResultItem.getCreateUser());
 			map.put("editUser", testResultItem.getEditUser());
 			map.put("createTime", testResultItem.getCreateTime());
@@ -179,8 +188,8 @@ public class UploadAndDownLoadController {
 			rowItem.createCell(1).setCellValue(testResultItem.getColumnName());
 			rowItem.createCell(2).setCellValue(testResultItem.getKeyValue());
 			rowItem.createCell(3).setCellValue(testResultItem.getResult());
-			rowItem.createCell(4).setCellValue(testResultItem.getSoruceValue());
-			rowItem.createCell(5).setCellValue(testResultItem.getTragetValue());
+			rowItem.createCell(4).setCellValue(testResultItem.getSourceValue());
+			rowItem.createCell(5).setCellValue(testResultItem.getTargetValue());
 			rowItem.createCell(6).setCellValue(testResultItem.getCreateUser());
 			rowItem.createCell(7).setCellValue(testResultItem.getEditUser());
 			rowItem.createCell(8).setCellValue(testResultItem.getCreateTime().toString());
@@ -190,7 +199,7 @@ public class UploadAndDownLoadController {
 		String filename = sheetName;
 		res.reset(); // 非常重要
 		res.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-
+		res.setHeader("Access-Control-Allow-Origin", "*");// 允许跨域请求
 		try {
 			OutputStream out = res.getOutputStream();
 			res.addHeader("Content-Disposition",
@@ -198,7 +207,7 @@ public class UploadAndDownLoadController {
 			workbook.write(out);
 			out.flush();
 			out.close();
-			return new ResultVO(true, StatusCode.OK, "下载成功");
+			return null;
 		} catch (Exception e) {
 			e.printStackTrace();
 			log.error("导出当前页 resultItem数据到Excel失败：", e);
@@ -232,8 +241,8 @@ public class UploadAndDownLoadController {
 				map.put("columnName", testResultItem.getColumnName());
 				map.put("keyValue", testResultItem.getKeyValue());
 				map.put("result", testResultItem.getResult());
-				map.put("soruceValue", testResultItem.getSoruceValue());
-				map.put("tragetValue", testResultItem.getTragetValue());
+				map.put("soruceValue", testResultItem.getSourceValue());
+				map.put("tragetValue", testResultItem.getTargetValue());
 				map.put("createUser", testResultItem.getCreateUser());
 				map.put("editUser", testResultItem.getEditUser());
 				map.put("createTime", testResultItem.getCreateTime());
@@ -266,8 +275,8 @@ public class UploadAndDownLoadController {
 				rowItem.createCell(1).setCellValue(testResultItem.getColumnName());
 				rowItem.createCell(2).setCellValue(testResultItem.getKeyValue());
 				rowItem.createCell(3).setCellValue(testResultItem.getResult());
-				rowItem.createCell(4).setCellValue(testResultItem.getSoruceValue());
-				rowItem.createCell(5).setCellValue(testResultItem.getTragetValue());
+				rowItem.createCell(4).setCellValue(testResultItem.getSourceValue());
+				rowItem.createCell(5).setCellValue(testResultItem.getTargetValue());
 				rowItem.createCell(6).setCellValue(testResultItem.getCreateUser());
 				rowItem.createCell(7).setCellValue(testResultItem.getEditUser());
 				rowItem.createCell(8).setCellValue(testResultItem.getCreateTime().toString());
@@ -277,7 +286,7 @@ public class UploadAndDownLoadController {
 			String filename = sheetName;
 			res.reset(); // 非常重要
 			res.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-
+			res.setHeader("Access-Control-Allow-Origin", "*");// 允许跨域请求
 			try {
 				OutputStream out = res.getOutputStream();
 				res.addHeader("Content-Disposition",
@@ -289,7 +298,7 @@ public class UploadAndDownLoadController {
 				e.printStackTrace();
 			}
 			System.out.println("……………………………………………………");
-			return new ResultVO(true, StatusCode.OK, "下载成功", fileName);
+			return null;
 		} catch (Exception e) {
 			log.error("下载失败:", e);
 			e.printStackTrace();
@@ -343,8 +352,8 @@ public class UploadAndDownLoadController {
 			header.createCell(1).setCellValue("名称");
 			header.createCell(2).setCellValue("类型");
 			header.createCell(3).setCellValue("最大结果数");
-			header.createCell(4).setCellValue("源数据模型");
-			header.createCell(5).setCellValue("目标数据模型");
+			header.createCell(4).setCellValue("源查询数据源");
+			header.createCell(5).setCellValue("目标查询数据源");
 			header.createCell(6).setCellValue("版本");
 			header.createCell(7).setCellValue("创建人");
 			header.createCell(8).setCellValue("修改人");
@@ -371,13 +380,13 @@ public class UploadAndDownLoadController {
 
 				}
 				if (testCase.getSourceQuery() != null) {
-					rowItem.createCell(4).setCellValue(testCase.getSourceQuery().toString());
+					rowItem.createCell(4).setCellValue(testCase.getSourceQuery().getDataSource().getName());
 				} else {
 					rowItem.createCell(4).setCellValue("null");
 
 				}
 				if (testCase.getTargetQuery() != null) {
-					rowItem.createCell(5).setCellValue(testCase.getTargetQuery().toString());
+					rowItem.createCell(5).setCellValue(testCase.getTargetQuery().getDataSource().getName());
 				} else {
 					rowItem.createCell(5).setCellValue("null");
 
@@ -415,6 +424,7 @@ public class UploadAndDownLoadController {
 			String filename = sheetName;
 			res.reset(); // 非常重要
 			res.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+			res.setHeader("Access-Control-Allow-Origin", "*");// 允许跨域请求
 
 			try {
 				OutputStream out = res.getOutputStream();
@@ -428,11 +438,45 @@ public class UploadAndDownLoadController {
 			}
 
 			System.out.println("……………………………………………………");
-			return new ResultVO(true, StatusCode.OK, "下载成功");
+//			return new ResultVO(true, StatusCode.OK, "下载成功");
+			return null;
 		} catch (Exception e) {
 			log.error("根据caseid导出当前下载失败原因：", e);
 			e.printStackTrace();
 			return new ResultVO(false, StatusCode.ERROR, "下载失败");
+		}
+
+	}
+
+	/**
+	 * 导出执行结果
+	 * 
+	 * @param testRoundId
+	 * @param res
+	 * @return
+	 */
+	@RequestMapping(value = "exportMigrationResult", method = RequestMethod.GET)
+	public ResultVO exportMigrationResult(@RequestParam String testResultIds, HttpServletResponse res) {
+		try {
+			if(StringUtils.isNotBlank(testResultIds)) {
+				String[] ids = testResultIds.split(",");
+				for (String testResultId : ids) {
+					int id = Integer.parseInt(testResultId);
+					List<TestResult> tr = testResultService.findByTestRoundId(id);
+					if(tr==null||tr.size()==0) {
+						return new ResultVO(false, StatusCode.ERROR, "没有这个执行结果："+id);
+					}else {
+						testResultService.exportMigrationResult(id, res);
+					}
+				}
+				return  null;
+			}else {
+				return new ResultVO(false, StatusCode.ERROR, "无对应的轮次id"+testResultIds);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error("导出报错：", e);
+			return new ResultVO(false, StatusCode.ERROR, "导出失败" + e.getLocalizedMessage());
 		}
 
 	}

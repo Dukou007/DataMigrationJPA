@@ -233,8 +233,8 @@ public class PageTestWorker extends BaseTestWorker implements Runnable {
 						for (Object targetObj : targetList) {
 							if (sourceObj != null && targetObj != null
 							        && sourceObj.toString().equals(targetObj.toString())) {
-								tri.setSoruceValue(sourceObj.toString());
-								tri.setTragetValue(targetObj.toString());
+								tri.setSourceValue(sourceObj.toString());
+								tri.setTargetValue(targetObj.toString());
 								comFlag = true;
 								break out;
 							}

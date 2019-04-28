@@ -20,4 +20,7 @@ public interface ITestFieldService extends IService<DataField, Integer> {
 	//添加质量方法 20190318
 	List<DataField> findAllByTableId(Integer id);
 	ResultVO copyDataField(Integer id,String name);
+	
+	List<DataField> findFieldNameByTableID(Integer id,String name);
+	
 }

@@ -23,17 +23,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.alibaba.fastjson.JSONObject;
 import com.github.pagehelper.PageHelper;
-import com.jettech.entity.Product;
 import com.jettech.entity.TestSuite;
 import com.jettech.entity.TestTask;
 import com.jettech.service.ITestTaskService;
 import com.jettech.service.TestSuiteCaseService;
 import com.jettech.service.TestSuiteService;
-import com.jettech.util.DateUtil;
-import com.jettech.vo.ProductVO;
-import com.jettech.vo.TaskResultVO;
-import com.jettech.vo.TestSuiteVO;
 import com.jettech.vo.TestTaskVO;
+
+import javax.annotation.PostConstruct;
 
 @RestController
 @Component
@@ -47,12 +44,11 @@ public class TestTaskController {
 
 	@Autowired
 	private ITestTaskService testTaskService;
-
+	@Autowired
+	private TestSuiteCaseService testSuiteCaseService;
 	@Autowired
 	private TestSuiteService testSuiteService;
-	@Autowired
-	private	TestSuiteCaseService testSuiteCaseService;
-	
+
 	private ScheduledFuture<?> future;
 
 	private final int maxNo = 5;// 最大线程数
@@ -64,6 +60,23 @@ public class TestTaskController {
 		ThreadPoolTaskScheduler tps = new ThreadPoolTaskScheduler();
 		tps.setPoolSize(maxNo);
 		return tps;
+	}
+
+	//初始化定时任务
+	@PostConstruct
+	private void init() {
+		List<TestTask> testTask = testTaskService.selectByActivedAndStatus(true,true);
+		for(TestTask s : testTask){
+			if( s.isActived() && s.isStatus() ){
+				try {
+					//初始化启动所有开启的定时任务
+					future = threadPoolTaskScheduler.schedule(new Task(s), new CronTrigger(s.getCron()));// 启动定时任务
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+
+		}
 	}
 
 	/**
@@ -186,7 +199,13 @@ public class TestTaskController {
 			String threadName = Thread.currentThread().getName();
 			System.out.println(threadName + "," + new Date());
 			// System.out.println(id);
-			testSuiteService.doTestSuite(task.getTestSuite().getId());
+			if(task.getType() == 0){
+				testSuiteService.doTestSuite(task.getTestSuite().getId());
+			}else if (task.getType() == 1) {
+				// 质量定时任务
+				testSuiteService.doTaskQualityTestSuite(task.getTestSuite().getId(),task.getThreadNum());
+			}
+
 		}
 	}
 
@@ -212,20 +231,21 @@ public class TestTaskController {
 		} catch (Exception e) {
 			result.put("state", "0");
 			e.printStackTrace();
-			log.error("",e);
+			log.error("", e);
 		}
 		return result.toString();
 	}
 
 	/**
-   * 查询任务（未分页）
-   * @param pageNumber
-   * @param pageSize
-   * @return
-   */
-  @ResponseBody
-  @RequestMapping(value="getTestTask",produces = { "application/json;charset=UTF-8" })
-  public  String getTestTaskList(){
+	 * 查询任务（未分页）
+	 * 
+	 * @param pageNumber
+	 * @param pageSize
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping(value = "getTestTask", produces = { "application/json;charset=UTF-8" })
+	public String getTestTaskList() {
 		JSONObject result = new JSONObject();
 		try {
 			List<TestTaskVO> list = new ArrayList<>();
@@ -233,40 +253,41 @@ public class TestTaskController {
 			for (TestTask testTask : pageInfo) {
 				Integer suiteId = testTask.getTestSuite().getId();
 				Integer[] caseIds = testSuiteCaseService.findCaseIdsBysuiteId(suiteId);
-				TestTaskVO testTaskVO = new TestTaskVO(testTask,caseIds.length); 
+				TestTaskVO testTaskVO = new TestTaskVO(testTask, caseIds.length);
 				list.add(testTaskVO);
 			}
-			result.put("rows",list);
-			result.put("total",list.size());
+			result.put("rows", list);
+			result.put("total", list.size());
 			result.put("state", "1");
 		} catch (Exception e) {
 			result.put("state", "0");
 			e.printStackTrace();
-			log.error("",e);
+			log.error("", e);
 		}
 		return result.toString();
 	}
-  
-  /**
-   * 查询任务相关数据
-   * @param pageNumber
-   * @param pageSize
-   * @return
-   */
-  @ResponseBody
-  @RequestMapping(value="getTestTaskById/{testTaskId}",produces = { "application/json;charset=UTF-8" })
-  public  String getTestTaskById(@PathVariable("testTaskId") int testTaskId){
+
+	/**
+	 * 查询任务相关数据
+	 * 
+	 * @param pageNumber
+	 * @param pageSize
+	 * @return
+	 */
+	@ResponseBody
+	@RequestMapping(value = "getTestTaskById/{testTaskId}", produces = { "application/json;charset=UTF-8" })
+	public String getTestTaskById(@PathVariable("testTaskId") int testTaskId) {
 		JSONObject result = new JSONObject();
 		try {
 			TestTask testTask = testTaskService.findById(testTaskId);
 			TestTaskVO testTaskVO = new TestTaskVO(testTask);
-			result.put("rows",testTaskVO);
-			result.put("total",1);
+			result.put("rows", testTaskVO);
+			result.put("total", 1);
 			result.put("state", "1");
 		} catch (Exception e) {
 			result.put("state", "0");
 			e.printStackTrace();
-			log.error("",e);
+			log.error("", e);
 		}
 		return result.toString();
 	}
@@ -292,7 +313,7 @@ public class TestTaskController {
 			result.put("state", "1");
 		} catch (Exception e) {
 			result.put("state", "0");
-			log.error("",e);
+			log.error("", e);
 			e.printStackTrace();
 		}
 		return result.toString();
@@ -323,7 +344,7 @@ public class TestTaskController {
 			}
 		} catch (Exception e) {
 			result.put("state", "0");
-			log.error("",e);
+			log.error("", e);
 			e.printStackTrace();
 		}
 		return result.toString();
@@ -348,7 +369,7 @@ public class TestTaskController {
 			result.put("state", "1");
 		} catch (Exception e) {
 			result.put("state", "0");
-			log.error("",e);
+			log.error("", e);
 			e.printStackTrace();
 		}
 		return result.toString();

@@ -21,7 +21,8 @@ public class QualityQueryModel extends BaseModel {
 		return testCaseType;
 	}
 
-
+	//添加结果集主表的id 20190412
+	private Integer QualityTestResultId;
 	public void setTestCaseType(EnumTestCaseType testCaseType) {
 		this.testCaseType = testCaseType;
 	}
@@ -41,6 +42,16 @@ public class QualityQueryModel extends BaseModel {
 		}
 		parseEntity(qualityTestQuery);
 		this.dbModel = new DbModel(qualityTestQuery.getDataSource());
+		//质量代码添加 20190408  qualityTestQuery.getDataFields(); =============
+		List<FieldModel> fieldModels = new ArrayList<>();
+		for(com.jettech.entity.DataField s : qualityTestQuery.getDataFields()){
+			FieldModel fm = new FieldModel(s);
+			fieldModels.add(fm);
+		}
+		this.testFields = fieldModels;
+		// =====================================================
+
+
 //		StringBuilder keyBuilder = new StringBuilder();
 //		for (TestQueryField field : qualityTestQuery.getKeyFields()) {
 //			FieldModel fieldModel = new FieldModel(field);
@@ -193,5 +204,13 @@ public class QualityQueryModel extends BaseModel {
 
 	public void setPageFields(List<FieldModel> pageFields) {
 		this.pageFields = pageFields;
+	}
+
+	public Integer getQualityTestResultId() {
+		return QualityTestResultId;
+	}
+
+	public void setQualityTestResultId(Integer qualityTestResultId) {
+		QualityTestResultId = qualityTestResultId;
 	}
 }

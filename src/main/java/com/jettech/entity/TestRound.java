@@ -3,11 +3,15 @@ package com.jettech.entity;
 import java.util.Date;
 
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+import javax.persistence.Version;
 
 @Entity
+@Table(name = "test_round")
 public class TestRound extends BaseEntity {
 
 	/**
@@ -20,7 +24,10 @@ public class TestRound extends BaseEntity {
 	private Date endTime;
 	private Integer successCount;
 	private Integer caseCount;
-	@ManyToOne(fetch = FetchType.EAGER)
+	@Version
+	private int version;
+
+	@ManyToOne(optional = true)
 	@JoinColumn(name = "test_suite_id")
 	public TestSuite getTestSuite() {
 		return testSuite;
@@ -30,6 +37,7 @@ public class TestRound extends BaseEntity {
 		this.testSuite = testSuite;
 	}
 
+	@Temporal(TemporalType.TIMESTAMP)
 	public Date getStartTime() {
 		return startTime;
 	}
@@ -38,6 +46,7 @@ public class TestRound extends BaseEntity {
 		this.startTime = startTime;
 	}
 
+	@Temporal(TemporalType.TIMESTAMP)
 	public Date getEndTime() {
 		return endTime;
 	}
@@ -62,6 +71,11 @@ public class TestRound extends BaseEntity {
 		this.caseCount = caseCount;
 	}
 
+	public int getVersion() {
+		return version;
+	}
 
-
+	public void setVersion(int version) {
+		this.version = version;
+	}
 }

@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import com.jettech.entity.DataSchema;
+import com.jettech.entity.DataTable;
 import com.jettech.vo.TestDatabaseVO;
 
 public interface DataSchemaRepository extends JpaRepository<DataSchema, Integer> {
@@ -37,5 +38,8 @@ public interface DataSchemaRepository extends JpaRepository<DataSchema, Integer>
 	  @Transactional
 	  @Query(value="UPDATE test_database t SET t.version=?1, t.is_dict=?3, t.name=?4 ,t.data_source_id=?5 WHERE t.id=?2",nativeQuery = true)
 	  int  update(int version,int id,Boolean is_dict,String name ,int data_source_id);	
+	  
+	  @Query(value = "select * from test_database  where data_source_id=?1 and name=?2",nativeQuery = true)
+	  List<DataSchema> findSchemasByDataSourceID(int dataSourceID,String schemaName);
 	  
 }

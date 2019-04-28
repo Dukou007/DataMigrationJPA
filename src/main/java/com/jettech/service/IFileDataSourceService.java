@@ -1,9 +1,12 @@
 package com.jettech.service;
 
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+import java.util.Map;
 
-import com.jettech.entity.FileDataSource;
+import javax.servlet.http.HttpServletRequest;
+
+import org.springframework.data.domain.Pageable;
+
 import com.jettech.vo.FileDataSourceVO;
 import com.jettech.vo.ResultVO;
 
@@ -12,7 +15,8 @@ public interface IFileDataSourceService{
 	public ResultVO add(FileDataSourceVO fileDataSourceVO);
 	public ResultVO delete(Integer id);
 	public  ResultVO getAllByPage(String name,Pageable pageable);
-	public String preview(String filePath,String characterSet,int row);
+	public Map preview(String filePath,String fileName,String fileType,String characterSet,int row,Integer pageNum,Integer pageSize);
+	public Map preview(FileDataSourceVO fileDataSourceVO,HttpServletRequest request);
 
 	/**
 	 * 创建连接 20190312

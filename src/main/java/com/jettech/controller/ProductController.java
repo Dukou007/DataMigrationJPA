@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -33,7 +34,7 @@ import io.swagger.annotations.ApiOperation;
 
 @RestController
 @RequestMapping(value = "/product")
-@Api(value="ProductController|用于产品模块的服务")
+@Api(value = "ProductController|用于产品模块的服务")
 public class ProductController {
 
 	private static Logger log = LoggerFactory.getLogger(ProductController.class);
@@ -50,7 +51,7 @@ public class ProductController {
 	@ResponseBody
 	@RequestMapping(value = "/getAllProductListByPage", produces = {
 			"application/json;charset=UTF-8" }, method = RequestMethod.POST)
-	@ApiOperation(value="根据所有产品查询并分页",notes="返回的结果集封装在resultmap中")
+	@ApiOperation(value = "根据所有产品查询并分页", notes = "返回的结果集封装在resultmap中")
 	public ResultVO getAllProductListByPage(
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
@@ -61,7 +62,7 @@ public class ProductController {
 		try {
 			productList = productService.findAllByPage(pageable);
 			productVOList = new ArrayList<ProductVO>();
-			if (productList.getSize()>0) {
+			if (productList.getSize() > 0) {
 				for (Product product : productList) {
 					if (product.getParent() != null) {
 						ProductVO productVO = new ProductVO();
@@ -80,47 +81,43 @@ public class ProductController {
 					resultMap.put("totalPages", productList.getTotalPages());
 					resultMap.put("list", productVOList);
 
-				} 
+				}
 			}
-			
+
 			return new ResultVO(true, StatusCode.OK, "查询成功", resultMap);
 		} catch (BeansException e) {
-		
+
 			e.printStackTrace();
 			return new ResultVO(true, StatusCode.OK, "查询失败");
 		}
 
-		
 	}
 
-     /**
+	/**
 	 * @Description: 查询所有产品
 	 * 
 	 */
 	@ResponseBody
 	@RequestMapping(value = "/findAllProduct", method = RequestMethod.POST)
-	@ApiOperation(value="查询所有产品",notes="返回的结果集封装在resultmap中")
+	@ApiOperation(value = "查询所有产品", notes = "返回的结果集封装在resultmap中")
 	public ResultVO findAllProduct() {
 		List<Product> productList;
-		List<ProductVO> productVOList=new ArrayList<ProductVO>();
+		List<ProductVO> productVOList = new ArrayList<ProductVO>();
 		try {
 			productList = productService.findAll();
 			for (Product product : productList) {
-				ProductVO vo=new ProductVO();
+				ProductVO vo = new ProductVO();
 				BeanUtils.copyProperties(product, vo);
 				productVOList.add(vo);
 			}
 			return new ResultVO(true, StatusCode.OK, "查询成功", productVOList);
 		} catch (BeansException e) {
-		
+
 			e.printStackTrace();
 			return new ResultVO(true, StatusCode.OK, "查询失败");
 		}
 
-		
 	}
-
-	
 
 	/**
 	 * @Description: 新增子产品
@@ -129,10 +126,10 @@ public class ProductController {
 	 * @author:zhou_xiaolong in 2019年2月20日下午3:19:56
 	 */
 	@ResponseBody
-	@RequestMapping(value="/addSubProduct",produces = {
-	"application/json;charset=UTF-8" }, method = RequestMethod.POST)
-	@ApiOperation(value="新增子产品",notes="需要判断productID")
-	@ApiImplicitParam(name="productVO",value="productVO实体",required=true,paramType="ProductVO")
+	@RequestMapping(value = "/addSubProduct", produces = {
+			"application/json;charset=UTF-8" }, method = RequestMethod.POST)
+	@ApiOperation(value = "新增子产品", notes = "需要判断productID")
+	@ApiImplicitParam(name = "productVO", value = "productVO实体", required = true, paramType = "ProductVO")
 	public ResultVO addSubProduct(@RequestBody ProductVO productVO) {
 		Product product = new Product();
 		BeanUtils.copyProperties(productVO, product);
@@ -152,24 +149,16 @@ public class ProductController {
 	 * @author: zhou_xiaolong in 2019年3月21日上午10:07:58
 	 * @return
 	 *//*
-	@RequestMapping(value="findAllProduct",method=RequestMethod.GET)
-	public ResultVO findAllProduct() {
-		try {
-			HashMap<String, Object> map = new HashMap<String,Object>();
-			List<Product> list = productService.findAll();
-			ArrayList<ProductVO> productVOList = new ArrayList<ProductVO>();
-			for (Product product : list) {
-				ProductVO productVO = new ProductVO(product);
-				productVOList.add(productVO);
-			}
-			map.put("list", productVOList);
-			return new ResultVO(true,StatusCode.OK,"查询成功",map);
-		} catch (Exception e) {
-			log.error("查询所有产品失败信息为：",e);
-			return new ResultVO(false,StatusCode.ERROR,"查询失败");
-		}
-	}*/
-	
+		 * @RequestMapping(value="findAllProduct",method=RequestMethod.GET) public
+		 * ResultVO findAllProduct() { try { HashMap<String, Object> map = new
+		 * HashMap<String,Object>(); List<Product> list = productService.findAll();
+		 * ArrayList<ProductVO> productVOList = new ArrayList<ProductVO>(); for (Product
+		 * product : list) { ProductVO productVO = new ProductVO(product);
+		 * productVOList.add(productVO); } map.put("list", productVOList); return new
+		 * ResultVO(true,StatusCode.OK,"查询成功",map); } catch (Exception e) {
+		 * log.error("查询所有产品失败信息为：",e); return new
+		 * ResultVO(false,StatusCode.ERROR,"查询失败"); } }
+		 */
 
 	/**
 	 * @Description: 根据名称查找产品
@@ -180,13 +169,15 @@ public class ProductController {
 	@ResponseBody
 	@RequestMapping(value = "/findProductByProductName", produces = {
 			"application/json;character=UTF-8" }, method = RequestMethod.GET)
-	@ApiOperation(value="根据产品名称查找产品",notes="输入产品名称")
-	@ApiImplicitParam(paramType="String",name="productName",value="产品名称",required=true,dataType="String")
-	public ResultVO findProductByProductName(@RequestParam(value="productName",defaultValue="",required=true) String productName,@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
+	@ApiOperation(value = "根据产品名称查找产品", notes = "输入产品名称")
+	@ApiImplicitParam(paramType = "String", name = "productName", value = "产品名称", required = true, dataType = "String")
+	public ResultVO findProductByProductName(
+			@RequestParam(value = "productName", defaultValue = "", required = true) String productName,
+			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
-		HashMap<String, Object> resultMap = new HashMap<String,Object>();
-		PageRequest pageable=	PageRequest.of(pageNum-1, pageSize);
-		Page<Product> products = productService.findProductByProductName(productName,pageable);
+		HashMap<String, Object> resultMap = new HashMap<String, Object>();
+		PageRequest pageable = PageRequest.of(pageNum - 1, pageSize);
+		Page<Product> products = productService.findProductByProductName(productName, pageable);
 		List<ProductVO> productVOs = new ArrayList<ProductVO>();
 		if (products.getSize() > 0) {
 			for (Product product : products) {
@@ -201,13 +192,12 @@ public class ProductController {
 				resultMap.put("totalElements", products.getTotalElements());
 				resultMap.put("list", productVOs);
 			}
-			
-			return new ResultVO(true, StatusCode.OK, "查询成功", resultMap);	
+
+			return new ResultVO(true, StatusCode.OK, "查询成功", resultMap);
 		} else {
 			return new ResultVO(true, StatusCode.OK, "查询失败");
 		}
 
-		
 	}
 
 	/**
@@ -258,33 +248,28 @@ public class ProductController {
 	@ResponseBody
 	@RequestMapping(value = "/updateProduct/{id}", produces = {
 			"application/json;character/UTF-8" }, method = RequestMethod.PUT)
-	@ApiOperation(value="修改产品",notes="修改名称即可")
+	@ApiOperation(value = "修改产品", notes = "修改名称即可")
 	@ApiImplicitParams({
-		@ApiImplicitParam(paramType="Integer",name="id",value="产品ID",required=true,dataType="Integer"),
-		@ApiImplicitParam(paramType="ProductVO",name="productVO",value="productVO实体",required=true,dataType="ProductVO")
-		
+			@ApiImplicitParam(paramType = "Integer", name = "id", value = "产品ID", required = true, dataType = "Integer"),
+			@ApiImplicitParam(paramType = "ProductVO", name = "productVO", value = "productVO实体", required = true, dataType = "ProductVO")
+
 	})
-	public ResultVO updateProduct(@PathVariable Integer id , @RequestBody ProductVO productVO) {
+	public ResultVO updateProduct(@PathVariable Integer id, @RequestBody ProductVO productVO) {
 		try {
-			if (productVO.getId() > 0) {
-				Product product =productService.findById(productVO.getId());
-				if(product==null) {
-					return new ResultVO(false,StatusCode.ERROR,"要修改的产品不存在");
-				}
-				BeanUtils.copyProperties(productVO, product);
-				if (productVO.getParentID() != null && productVO.getParentID() > 0) {
-					Product parentProduct = productService.findById(productVO.getParentID());
-					product.setParent(parentProduct);
-				}
-				productService.save(product);
-				return new ResultVO(true, StatusCode.OK, "更新成功");
-			} else {
-				return new ResultVO(false, StatusCode.ERROR, "更新失败");
+			if (id != productVO.getId()) {
+				return new ResultVO(false, StatusCode.ERROR, "请保持id和被测系统的id一致");
 			}
-			
-		} catch (BeansException e) {
+			Product p = productService.findById(id);
+			if (p == null || p.equals("")) {
+				return new ResultVO(false, StatusCode.ERROR, "要跟新的被测系统不存在，ID值：" + id);
+			} else {
+				productService.updateProduct(productVO);
+				return new ResultVO(true, StatusCode.OK, "更新成功");
+			}
+		} catch (Exception e) {
+			log.error("更新出错，被测系统的ID：" + id, e);
 			e.printStackTrace();
-			return new ResultVO(false, StatusCode.ERROR, "更新失败");
+			return new ResultVO(false, StatusCode.ERROR, "更新失败" + e.getLocalizedMessage());
 		}
 	}
 
@@ -295,22 +280,27 @@ public class ProductController {
 	 * @author:zhou_xiaolong in 2019年2月18日下午12:41:44
 	 */
 	@ResponseBody
-	@RequestMapping(value = "/deleteProduct",method=RequestMethod.POST)
-	@ApiOperation(value="删除产品",notes="根据id删除产品，可批量删除")
-	@ApiImplicitParam(paramType="Integer",name="ids",value="产品的ID",required=true,dataType="Integer")
-	public ResultVO deleteProduct(String ids) {
+	@RequestMapping(value = "/deleteProduct/{ids}", method = RequestMethod.DELETE)
+	@ApiOperation(value = "删除产品", notes = "根据id删除产品，可批量删除")
+	@ApiImplicitParam(paramType = "Integer", name = "ids", value = "产品的ID", required = true, dataType = "Integer")
+	public ResultVO deleteProduct(@PathVariable String ids) {
 		try {
-			String[] list = ids.split(",");
-			for (int i = 0; i < list.length; i++) {
-				int id = Integer.parseInt(list[i]);
-				productService.delete(id);
+			if (StringUtils.isNotBlank(ids)) {
+				String[] productIds = ids.split(",");
+				for (String productId : productIds) {
+					int id = Integer.parseInt(productId);
+					Product p = productService.findById(id);
+					if (p == null || p.equals("")) {
+						return new ResultVO(false, StatusCode.ERROR, "案例的id为" + id + "的案例不存在");
+					}
+				}
 			}
+			productService.deleteProduct(ids);
+			return new ResultVO(true, StatusCode.OK, "删除成功");
 		} catch (Exception e) {
-			log.error("deleteProduct error.", e);
 			e.printStackTrace();
-			return new ResultVO(true, StatusCode.OK, "删除失败");
+			return new ResultVO(false, StatusCode.ERROR, "删除失败");
 		}
-		return new ResultVO(true, StatusCode.OK, "删除成功");
 	}
 
 	/**
@@ -322,50 +312,82 @@ public class ProductController {
 	@ResponseBody
 	@RequestMapping(value = "/addProduct", produces = {
 			"application/json;character=utf-8" }, method = RequestMethod.POST)
-	@ApiOperation(value="新增产品",notes="处理父产品需谨慎")
-	@ApiImplicitParam(name="productVO",value="productVO实体",required=true,paramType="ProductVO")
+	@ApiOperation(value = "新增产品", notes = "处理父产品需谨慎")
+	@ApiImplicitParam(name = "productVO", value = "productVO实体", required = true, paramType = "ProductVO")
 	public ResultVO addProduct(@RequestBody ProductVO productVO) {
 		try {
-			Product product = new Product();
-			BeanUtils.copyProperties(productVO, product);
-			if (productVO.getParentID() != null && productVO.getParentID() > 0) {
-				Product parentProduct = productService.findById(productVO.getParentID());
-				product.setParent(parentProduct);
-				productService.save(product);
-				return new ResultVO(true, StatusCode.OK, "新增产品成功");
-			} else {
-				productService.save(product);
-				return new ResultVO(true, StatusCode.OK, "新增产品成功");
+			Product product = productService.findByName(productVO.getName());
+			if (product != null) {
+				return new ResultVO(false, StatusCode.ERROR, "新增失败，已存在相同名称的被测系统");
 			}
-			
+			productService.addProduct(productVO);
+			return new ResultVO(true, StatusCode.OK, "新增成功");
 		} catch (Exception e) {
-			log.error("", e);
-			log.error("addProduct error.", e);
+			log.error("新增报错：" + productVO, e);
 			e.printStackTrace();
-			return new ResultVO(false, StatusCode.ERROR, "新增产品失败");
+			return new ResultVO(false, StatusCode.ERROR, "新增失败" + e.getLocalizedMessage());
 		}
-		
+
 	}
 
-	/**根据名称模糊查询
+	/**
+	 * 查询所有的父产品
+	 * 
 	 * @return
 	 */
-	@RequestMapping(value="findByNameLike",method=RequestMethod.GET)
-	public ResultVO findByNameLike(@RequestParam String name,@RequestParam Integer pageNum,@RequestParam Integer pageSize) {
-	Pageable pageable=PageRequest.of(pageNum-1, pageSize);
-		Page<Product>list=	productService.findByNameLike(name,pageable);
-		ArrayList<ProductVO> volist = new ArrayList<ProductVO>();
-		for (Product product : list) {
-			ProductVO vo = new ProductVO(product);
-			volist.add(vo);
+	@RequestMapping(value = "findAllParentProduct", method = RequestMethod.GET)
+	public ResultVO findAllParentProduct(
+			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
+			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
+		HashMap<String, Object> resultMap = new HashMap<String, Object>();
+		Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
+		try {
+			Page<Product> productList = productService.findByProductIdIsNull(pageable);
+			ArrayList<ProductVO> voList = new ArrayList<ProductVO>();
+			for (Product product : productList) {
+				ProductVO vo = new ProductVO(product);
+				voList.add(vo);
+			}
+			resultMap.put("totalPages", productList.getTotalPages());
+			resultMap.put("totalElements", productList.getTotalElements());
+			resultMap.put("list", voList);
+			return new ResultVO(true, StatusCode.OK, "查询成功", resultMap);
+		} catch (Exception e) {
+			log.error("查询所有的父产品报错：", e);
+			e.printStackTrace();
+			return new ResultVO(false, StatusCode.ERROR, "查询失败");
 		}
-		HashMap<String, Object> resultMap = new HashMap<String,Object>();
-		resultMap.put("totalPages", list.getTotalPages());
-		resultMap.put("totalElements", list.getTotalElements());
-		resultMap.put("list", volist);
-		return new ResultVO(true, StatusCode.OK, "查找成功",resultMap );
 	}
-	
-	
-	
+
+	/**
+	 * 根据副产品的id查询所有的子产品
+	 * 
+	 * @param pageNum
+	 * @param pageSize
+	 * @return
+	 */
+	@RequestMapping(value = "findProductByParentId", method = RequestMethod.GET)
+	public ResultVO findProductByParentId(@RequestParam Integer parentId,
+			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
+			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
+		HashMap<String, Object> resultMap = new HashMap<String, Object>();
+		Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
+		try {
+			Page<Product> productList = productService.findProductByParentId(parentId, pageable);
+			ArrayList<ProductVO> voList = new ArrayList<ProductVO>();
+			for (Product product : productList) {
+				ProductVO vo = new ProductVO(product);
+				voList.add(vo);
+			}
+			resultMap.put("totalPages", productList.getTotalPages());
+			resultMap.put("totalElements", productList.getTotalElements());
+			resultMap.put("list", voList);
+			return new ResultVO(true, StatusCode.OK, "查询成功", resultMap);
+		} catch (Exception e) {
+			log.error("查询所有的父产品报错：", e);
+			e.printStackTrace();
+			return new ResultVO(false, StatusCode.ERROR, "查询失败" + e.getLocalizedMessage());
+		}
+	}
+
 }

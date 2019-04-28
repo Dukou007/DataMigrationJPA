@@ -24,8 +24,8 @@ public class TestResultItem extends BaseEntity {
 	private String keyValue;
 	private String result;
 	private String columnName;
-	private String soruceValue;
-	private String tragetValue;
+	private String sourceValue;
+	private String targetValue;
 
 	// @ManyToOne(fetch = FetchType.EAGER)
 	// @JoinColumn(name = "test_result_id")
@@ -62,21 +62,21 @@ public class TestResultItem extends BaseEntity {
 	}
 
 	@Column(columnDefinition="text")
-	public String getSoruceValue() {
-		return soruceValue;
+	public String getSourceValue() {
+		return sourceValue;
 	}
 
-	public void setSoruceValue(String soruceValue) {
-		this.soruceValue = soruceValue;
+	public void setSourceValue(String sourceValue) {
+		this.sourceValue = sourceValue;
 	}
 
 	@Column(columnDefinition="text")
-	public String getTragetValue() {
-		return tragetValue;
+	public String getTargetValue() {
+		return targetValue;
 	}
 
-	public void setTragetValue(String tragetValue) {
-		this.tragetValue = tragetValue;
+	public void setTargetValue(String targetValue) {
+		this.targetValue = targetValue;
 	}
 
 	/**

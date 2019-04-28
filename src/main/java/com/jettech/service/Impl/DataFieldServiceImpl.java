@@ -106,6 +106,12 @@ public class DataFieldServiceImpl implements ITestFieldService{
 	}
 
 	@Override
+	public List<DataField> findFieldNameByTableID(Integer id,String name) {
+		List<DataField> testFields = testFieldRepository.findFieldNameByTableID(id,name);
+		return testFields;
+	}
+	
+	@Override
 	public ResultVO copyDataField(Integer id, String name) {
 		DataField dataField=testFieldRepository.findById(id).get();
 		DataField existdataField=testFieldRepository.findByName(name);
@@ -115,6 +121,9 @@ public class DataFieldServiceImpl implements ITestFieldService{
 		DataField copyDataField=new DataField();
 		BeanUtils.copyProperties(dataField, copyDataField);
 		copyDataField.setCreateTime(new Date());
+		copyDataField.setCreateUser(null);
+		copyDataField.setEditUser(null);
+		copyDataField.setEditTime(new Date());
 		copyDataField.setId(null);
 		copyDataField.setName(name);
 		testFieldRepository.save(copyDataField);

@@ -6,9 +6,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import javax.transaction.Transactional;
+import java.util.Date;
 import java.util.List;
 @Repository
 public interface TestRoundRepository extends JpaRepository<TestRound, Integer>,JpaSpecificationExecutor<TestRound> {
@@ -34,4 +37,10 @@ public interface TestRoundRepository extends JpaRepository<TestRound, Integer>,J
 
     //添加质量方法   20190318
     List<TestRound> findByTestSuiteId(Integer testSuiteId);
+
+    @Modifying
+    @Transactional
+    @Query(value = "update test_round u set u.success_count = ?2, u.version = u.version + 1,u.end_time = ?3 where u.id = ?1 and u.version = ?4", nativeQuery = true)
+    int updateWithVersion(int id, int successCount, Date endTime , int version);
+
 }

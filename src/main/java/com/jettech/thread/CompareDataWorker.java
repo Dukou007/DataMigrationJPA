@@ -217,7 +217,7 @@ public class CompareDataWorker implements Runnable {
 		testReusltService.save(tresult);
 		TestResultItem tri = new TestResultItem();
 		tri.setTestResultId(tresult.getId());
-		tri.setSoruceValue(keyValue);
+		tri.setSourceValue(keyValue);
 		testResultItemService = (ITestResultItemService) SpringUtils.getBean(TestResultItemImpl.class);
 		testResultItemService.save(tri);
 	}
@@ -236,7 +236,7 @@ public class CompareDataWorker implements Runnable {
 		testReusltService.save(tresult);
 		TestResultItem tri = new TestResultItem();
 		tri.setTestResultId(tresult.getId());
-		tri.setSoruceValue(keyValue);
+		tri.setSourceValue(keyValue);
 		if (fieldProperty == EnumFieldPropertyType.FiledLengthNotSame) {
 			tri.setResult("data_len not same");
 		}

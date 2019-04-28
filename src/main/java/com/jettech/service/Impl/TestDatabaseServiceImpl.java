@@ -9,6 +9,7 @@ import java.util.Date;
 import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.transaction.Transactional;
 
 import org.apache.poi.hssf.usermodel.HSSFCellStyle;
 import org.apache.poi.hssf.usermodel.HSSFDataFormat;
@@ -16,16 +17,21 @@ import org.apache.poi.hssf.usermodel.HSSFFont;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Row;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.jcraft.jsch.Logger;
+import com.jettech.entity.CaseModelSetDetails;
 import com.jettech.entity.DataSource;
 import com.jettech.entity.DataTable;
 import com.jettech.entity.DataSchema;
 import com.jettech.entity.DataField;
 import com.jettech.entity.MetaHistory;
 import com.jettech.entity.TestQueryField;
+import com.jettech.repostory.CaseModelSetDetailsRepository;
+import com.jettech.repostory.CaseModelSetRepository;
 import com.jettech.repostory.DataFieldRepository;
 import com.jettech.repostory.DataSchemaRepository;
 import com.jettech.repostory.DataSourceRepository;
@@ -41,7 +47,6 @@ import com.jettech.vo.StatusCode;
 import com.jettech.vo.SycData;
 import com.jettech.vo.TestDatabaseVO;
 import com.jettech.vo.TestFieldVO;
-
 @Service
 public class TestDatabaseServiceImpl implements DataSchemaService {
 	@Autowired
@@ -62,7 +67,13 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 	private MetaHistoryItemRepository metaHistoryItemRepository;
 	@Autowired
 	private DataSourceRepository dataSourcereRository;
-
+	@Autowired
+	CaseModelSetDetailsRepository caseModelSetDetailsRepository;
+	@Autowired
+	CaseModelSetRepository caseModelSetRepository;
+	
+	private static org.slf4j.Logger logger = LoggerFactory
+			.getLogger(TestDatabaseServiceImpl.class);
 	@Override
 	public ResultVO add(TestDatabaseVO testDatabaseVO) {
 		DataSchema testDatabase = new DataSchema();
@@ -116,6 +127,7 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 	}
 
 	@Override
+	@Transactional
 	public ResultVO delete(Integer id) {
 		// 根据testdatabaseId查询testtable
 		List<DataTable> testTables = testTableRepository.findByForeignKey(id);
@@ -134,9 +146,10 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 					for (TestQueryField testQueryField : testQueryFields) {
 						testQueryFieldrepository.delete(testQueryField);
 					}
-					testFieldRepository.delete(testField);
+					testFieldRepository.delById(testField.getId());
 				}
-				testTableRepository.delete(testTable);
+				caseModelSetDetailsRepository.deleteBydatumTabOrTestTab(testTable.getId(), testTable.getId());
+				testTableRepository.delById(testTable.getId());
 			}
 
 		}
@@ -152,7 +165,7 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 			}
 			metaHistoryRepository.deletedByForeignKeyID(id);
 		}
-
+		caseModelSetRepository.deleteByTestOrDatumId(dataSchema.getId(), dataSchema.getId());
 		testDatabaseRepository.delete(dataSchema);
 		return new ResultVO(true, StatusCode.OK, "删除成功");
 	}
@@ -364,6 +377,9 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 		DataSchema copyDataSchema = new DataSchema();
 		BeanUtils.copyProperties(dataSchema, copyDataSchema);
 		copyDataSchema.setCreateTime(new Date());
+		copyDataSchema.setCreateUser(null);
+		copyDataSchema.setEditTime(new Date());
+		copyDataSchema.setEditUser(null);
 		copyDataSchema.setId(null);
 		copyDataSchema.setName(name);
 		testDatabaseRepository.save(copyDataSchema);
@@ -376,6 +392,9 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 				BeanUtils.copyProperties(dataTable, copyDataTable);
 				copyDataTable.setId(null);
 				copyDataTable.setCreateTime(new Date());
+				copyDataTable.setCreateUser(null);
+				copyDataTable.setEditTime(new Date());
+				copyDataTable.setEditUser(null);
 				copyDataTable.setDataSchema(savedataSchema);
 				copydataTables.add(copyDataTable);
 			}
@@ -387,6 +406,7 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 	}
 
 	@Override
+	@Transactional
 	public void SetOneDataSchema(int id) {
 		// 找到这个库
 		DataSchema tongbuDataSchema = testDatabaseRepository.findById(id).get();
@@ -408,6 +428,17 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 	@Override
 	public List<DataSchema> getAllDataSchema(){
 		List<DataSchema> list=testDatabaseRepository.findAll();
+		return list;
+	}
+
+	@Override
+	public DataSchema findSchemaByID(int id) {
+		return testDatabaseRepository.getOne(id);
+	}
+
+	@Override
+	public List<DataSchema> getSchemasByDataSourceID(int dataSourceID, String schemaName) {
+		List<DataSchema> list = testDatabaseRepository.findSchemasByDataSourceID(dataSourceID,schemaName);
 		return list;
 	}
 }

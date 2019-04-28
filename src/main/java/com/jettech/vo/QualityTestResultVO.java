@@ -18,7 +18,7 @@ public class QualityTestResultVO extends BaseVO{
 	// 明细结果数据量
 	private Integer itemCount;
 	// target执行状态
-	private EnumExecuteStatus execState;
+	private EnumExecuteStatus execState = EnumExecuteStatus.Ready;
 	private Date startTime;
 	private Date endTime;
 	private Boolean result;
@@ -34,6 +34,11 @@ public class QualityTestResultVO extends BaseVO{
 	private String testCaseName;
 	// 明细表名称
 	private String secordaryTable;
+
+	//测试意图
+	private String testPurpose;
+	//期望值
+	private String purposeValue = "0";
 
 	public Integer getDataCount() {
 		return dataCount;
@@ -138,12 +143,25 @@ public class QualityTestResultVO extends BaseVO{
 		super(entity);
 		if(entity!=null) {
 			QualityTestResult q = (QualityTestResult) entity;
-			this.execState=EnumExecuteStatus.Ready;
+		//	this.execState=EnumExecuteStatus.Ready;
+			this.execState = q.getExecState();
 		}
 	}
 
-	
-	
-	
-	
+
+	public String getTestPurpose() {
+		return testPurpose;
+	}
+
+	public void setTestPurpose(String testPurpose) {
+		this.testPurpose = testPurpose;
+	}
+
+	public String getPurposeValue() {
+		return purposeValue;
+	}
+
+	public void setPurposeValue(String purposeValue) {
+		this.purposeValue = purposeValue;
+	}
 }

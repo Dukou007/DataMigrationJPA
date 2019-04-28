@@ -5,12 +5,13 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import com.jettech.BizException;
 import com.jettech.entity.Product;
+import com.jettech.vo.ProductVO;
 
 public interface ProductService extends IService<Product, Integer> {
 
-
-	Product getByName(String productName);
+Product getByName(String productName);
 	
 	List<Product> findSubProductList(Integer parentID);
 
@@ -39,7 +40,17 @@ public interface ProductService extends IService<Product, Integer> {
 	Page<Product> findProductByProductName(String productName, Pageable pageable);
 
 
-	Page<Product> findByNameLike(String name, Pageable pageable);
+	Page<Product> findByProductIdIsNull(Pageable pageable);
 
+	Page<Product> findProductByParentId(Integer parentId, Pageable pageable) throws BizException;
 
+	void addProduct(ProductVO productVO) throws BizException;
+
+	void updateProduct(ProductVO productVO) throws BizException;
+
+	void deleteProduct(String ids) throws BizException;
+
+	Product findByName(String name);
+
+	List<Product> findByNameLike(String name);
 }

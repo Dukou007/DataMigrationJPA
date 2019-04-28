@@ -24,7 +24,7 @@ public class SpringUtils implements ApplicationContextAware {
 	 * 
 	 * @return
 	 */
-	public static ApplicationContext getApplicationContext() {
+	public synchronized static ApplicationContext getApplicationContext() {
 		boolean result = Jettech.execute();//验证证书的有效性
 		if(!result){
 			return null;

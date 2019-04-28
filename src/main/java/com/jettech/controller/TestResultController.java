@@ -2,13 +2,13 @@ package com.jettech.controller;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +21,11 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.jettech.EnumExecuteStatus;
 import com.jettech.entity.TestCase;
 import com.jettech.entity.TestResult;
+import com.jettech.entity.TestRound;
+import com.jettech.repostory.TestResultRepository;
 import com.jettech.service.ITestCaseService;
 import com.jettech.service.ITestResultItemService;
 import com.jettech.service.ITestReusltService;
@@ -64,6 +67,7 @@ public class TestResultController {
 	@SuppressWarnings("unused")
 	@Autowired
 	private TestRoundService testRoundService;
+	
 
 	// @Autowired
 	// private TestResultRepository repository;
@@ -200,8 +204,13 @@ public class TestResultController {
 			Page<TestResult> testResultList = testReSultService.findTestResultByIdOrderStartTime(testRoundId, pageable);
 			for (TestResult testResult : testResultList) {
 				TestResultVO testResultVO = new TestResultVO(testResult);
-				/* testResultVO.sets */
-				/* testRoundService.findById(testRoundId).; */
+				TestCase findById = testCaseService.findById(Integer.parseInt(testResult.getCaseId()));
+				if (findById != null) {
+					testResultVO.setCaseName(findById.getName());
+				} else {
+					testResultVO.setCaseName(null);
+				}
+
 				testResultVOList.add(testResultVO);
 			}
 			map.put("totalElements", testResultList.getTotalElements());
@@ -252,52 +261,36 @@ public class TestResultController {
 
 	@SuppressWarnings("serial")
 	@RequestMapping(value = "findTestResultByCaseAndStartTimeAndEndTime", method = RequestMethod.GET)
-	@ApiOperation(value = "testCaseList页---点击执行记录----根据案例的ID查找轮次记录,跳转到testCaseResultList的界面，根据案例ID、开始时间，结束时间来查询测试结果,。", notes = "不输入开始时间和结束时间默认查找所有。")
-	@ApiImplicitParams({
-			@ApiImplicitParam(paramType = "query", name = "caseId", value = "案例集ID", required = true, dataType = "String"),
-			@ApiImplicitParam(paramType = "query", name = "startTime", value = "开始时间", required = false, dataType = "String"),
-			@ApiImplicitParam(paramType = "query", name = "endTime", value = "结束时间", required = false, dataType = "String"),
-			@ApiImplicitParam(paramType = "query", name = "pageNum", value = "页码值", required = false, dataType = "Long"),
-			@ApiImplicitParam(paramType = "query", name = "pageSize", value = "每页条数", required = false, dataType = "Long") })
-	public ResultVO findTestResultByCaseAndStartTimeAndEndTime(@RequestParam String caseId,
+//	@ApiOperation(value = "testCaseList页---点击执行记录----根据案例的ID查找轮次记录,跳转到testCaseResultList的界面，根据案例ID、开始时间，结束时间来查询测试结果,。", notes = "不输入开始时间和结束时间默认查找所有。")
+//	@ApiImplicitParams({
+//			@ApiImplicitParam(paramType = "query", name = "caseId", value = "案例集ID", required = true, dataType = "String"),
+//			@ApiImplicitParam(paramType = "query", name = "startTime", value = "开始时间", required = false, dataType = "String"),
+//			@ApiImplicitParam(paramType = "query", name = "endTime", value = "结束时间", required = false, dataType = "String"),
+//			@ApiImplicitParam(paramType = "query", name = "pageNum", value = "页码值", required = false, dataType = "Long"),
+//			@ApiImplicitParam(paramType = "query", name = "pageSize", value = "每页条数", required = false, dataType = "Long") })
+	public ResultVO findTestResultByCaseAndStartTimeAndEndTime(
+			@RequestParam String caseId,
 			@RequestParam(value = "startTime", required = false) String startTime,
 			@RequestParam(value = "endTime", required = false) String endTime,
+			@RequestParam(value = "execState", required = false) EnumExecuteStatus execState,
+			@RequestParam(value = "testRoundId", required = false) String testRoundId,
+			@RequestParam(value = "targetData", required = false) String targetData,
+			@RequestParam(value = "sourceData", required = false) String sourceData,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
 		try {
 			Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
-			Page<TestResult> testResultList = null;
-			Specification<TestResult> specification = new Specification<TestResult>() {
-				@Override
-				public Predicate toPredicate(Root<TestResult> root, CriteriaQuery<?> query,
-						CriteriaBuilder criteriaBuilder) {
-					ArrayList<Predicate> predicateList = new ArrayList<Predicate>();
-					if (org.apache.commons.lang.StringUtils.isNotBlank(startTime)) {
-						predicateList.add(criteriaBuilder.greaterThanOrEqualTo(root.get("startTime").as(String.class),
-								startTime));
-					}
-					if (org.apache.commons.lang.StringUtils.isNotBlank(endTime)) {
-						predicateList
-								.add(criteriaBuilder.lessThanOrEqualTo(root.get("endTime").as(String.class), endTime));
-					}
-					if (org.apache.commons.lang.StringUtils.isNotBlank(caseId)) {
-						predicateList.add(criteriaBuilder.equal(root.get("caseId").as(String.class), caseId));
-					}
-
-					return criteriaBuilder.and(predicateList.toArray(new Predicate[predicateList.size()]));
-				}
-			};
-
-			if ((startTime == null || startTime.trim().length() == 0)
-					&& ((endTime == null || endTime.trim().length() == 0))) {
-				testResultList = this.testReSultService.findTestResultByTestCaseID(Integer.parseInt(caseId), pageable);
-			} else {
-				testResultList = this.testReSultService.findAll(specification, pageable);
-			}
+			Page<TestResult> testResultList = testReSultService.findTestResultByCaseAndStartTimeAndEndTime(caseId,startTime,endTime,execState,testRoundId,targetData,sourceData,pageable);
 			ArrayList<TestResultVO> testResultVOList = new ArrayList<TestResultVO>();
 			for (TestResult testResult : testResultList) {
 				TestResultVO testResultVO = new TestResultVO(testResult);
-				testResultVO.setCaseName(testCaseService.findById(Integer.valueOf(caseId)).getName());
+				Integer id = Integer.valueOf(caseId);
+				TestCase testCase = testCaseService.findById(id);
+				if(testCase==null||testCase.equals("")) {
+					testResultVO.setCaseName(null);
+				}else {
+					testResultVO.setCaseName(testCase.getName());
+				}
 				testResultVOList.add(testResultVO);
 			}
 			HashMap<String, Object> map = new HashMap<String, Object>();
@@ -347,27 +340,108 @@ public class TestResultController {
 		}
 	}
 
+	/**
+	 * 根据执行状态来查找对应的执行结果
+	 * 
+	 * @param state
+	 * @param pageNum
+	 * @param pageSize
+	 * @return
+	 */
+	@RequestMapping(value = "findAllByExecState", method = RequestMethod.GET)
 	public ResultVO findAllByExecState(@RequestParam(value = "state", defaultValue = "", required = false) String state,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
 		Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
 		ArrayList<TestResultVO> testResultVOList = new ArrayList<TestResultVO>();
-		Page<TestResult> testResultList= testReSultService.findAllByExecState(state,pageable);
-		for (TestResult testResult : testResultList) {
-			TestResultVO testResultVO = new TestResultVO(testResult);
-			TestCase findById = testCaseService.findById(Integer.parseInt(testResult.getCaseId()));
-			if (findById != null) {
-				testResultVO.setCaseName(findById.getName());
-			} else {
-				testResultVO.setCaseName(null);
+		try {
+			Page<TestResult> testResultList = testReSultService.findAllByExecState(state, pageable);
+			for (TestResult testResult : testResultList) {
+				TestResultVO testResultVO = new TestResultVO(testResult);
+				TestCase findById = testCaseService.findById(Integer.parseInt(testResult.getCaseId()));
+				if (findById != null) {
+					testResultVO.setCaseName(findById.getName());
+				} else {
+					testResultVO.setCaseName(null);
+				}
+				testResultVOList.add(testResultVO);
 			}
-			testResultVOList.add(testResultVO);
+			HashMap<String, Object> map = new HashMap<String, Object>();
+			map.put("totalElements", testResultList.getTotalElements());
+			map.put("totalPages", testResultList.getTotalPages());
+			map.put("list", testResultVOList);
+			return new ResultVO(true, StatusCode.OK, "查询成功", map);
+		} catch (NumberFormatException e) {
+			log.error("根据状态查询报错" + state, e);
+			e.printStackTrace();
+			return new ResultVO(false, StatusCode.ERROR, "查询异常");
 		}
-		HashMap<String, Object> map = new HashMap<String, Object>();
-		map.put("totalElements", testResultList.getTotalElements());
-		map.put("totalPages", testResultList.getTotalPages());
-		map.put("list", testResultVOList);
-		return new ResultVO(true, StatusCode.OK, "查询成功", map);
+	}
+
+	/**
+	 * 根据源数据源查询结果
+	 * 
+	 * @param dataSource
+	 * @param pageNum
+	 * @param pageSize
+	 * @return
+	 */
+	@RequestMapping(value = "findBySourceDataSource", method = RequestMethod.GET)
+	public ResultVO findBySourceDataSource(
+			@RequestParam(value = "dataSource", defaultValue = "", required = false) String dataSource,
+			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
+			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
+		Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
+		ArrayList<TestResultVO> testResultVOList = new ArrayList<TestResultVO>();
+		try {
+			Page<TestResult> testResultList = testReSultService.findBySourceDataSource(dataSource, pageable);
+			for (TestResult testResult : testResultList) {
+				TestResultVO vo = new TestResultVO(testResult);
+				testResultVOList.add(vo);
+			}
+			HashMap<String, Object> map = new HashMap<String, Object>();
+			map.put("totalElements", testResultList.getTotalElements());
+			map.put("totalPages", testResultList.getTotalPages());
+			map.put("list", testResultVOList);
+			return new ResultVO(true, StatusCode.OK, "查询成功", map);
+		} catch (Exception e) {
+			log.error("根据源数据源查询报错" + dataSource, e);
+			e.printStackTrace();
+			return new ResultVO(false, StatusCode.ERROR, "查询异常");
+		}
+	}
+
+	/**
+	 * 根据目标数据源查询
+	 * 
+	 * @param dataSource
+	 * @param pageNum
+	 * @param pageSize
+	 * @return
+	 */
+	@RequestMapping(value = "findByTargetDataSource", method = RequestMethod.GET)
+	public ResultVO findByTargetDataSource(
+			@RequestParam(value = "dataSource", defaultValue = "", required = false) String dataSource,
+			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
+			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
+		Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
+		ArrayList<TestResultVO> testResultVOList = new ArrayList<TestResultVO>();
+		try {
+			Page<TestResult> testResultList = testReSultService.findByTargetDataSource(dataSource, pageable);
+			for (TestResult testResult : testResultList) {
+				TestResultVO vo = new TestResultVO(testResult);
+				testResultVOList.add(vo);
+			}
+			HashMap<String, Object> map = new HashMap<String, Object>();
+			map.put("totalElements", testResultList.getTotalElements());
+			map.put("totalPages", testResultList.getTotalPages());
+			map.put("list", testResultVOList);
+			return new ResultVO(true, StatusCode.OK, "查询成功", map);
+		} catch (Exception e) {
+			log.error("根据目标数据源查询报错" + dataSource, e);
+			e.printStackTrace();
+			return new ResultVO(false, StatusCode.ERROR, "查询异常");
+		}
 	}
 
 }

@@ -1,14 +1,10 @@
 package com.jettech.controller;
 
-import com.jettech.entity.*;
-import com.jettech.repostory.TestRoundRepository;
-import com.jettech.service.*;
-import com.jettech.vo.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiImplicitParam;
-import io.swagger.annotations.ApiImplicitParams;
-import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,18 +12,37 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.jettech.entity.Product;
+import com.jettech.entity.TestCase;
+import com.jettech.entity.TestResult;
+import com.jettech.entity.TestResultItem;
+import com.jettech.entity.TestRound;
+import com.jettech.entity.TestSuite;
+import com.jettech.repostory.TestRoundRepository;
+import com.jettech.service.ITestCaseService;
+import com.jettech.service.ITestResultItemService;
+import com.jettech.service.ITestReusltService;
+import com.jettech.service.ProductService;
+import com.jettech.service.TestRoundService;
+import com.jettech.service.TestSuiteCaseService;
+import com.jettech.service.TestSuiteService;
+import com.jettech.vo.PageResult;
+import com.jettech.vo.ResultVO;
+import com.jettech.vo.StatusCode;
+import com.jettech.vo.TestCaseVO;
+import com.jettech.vo.TestRoundVO;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
 
 @RestController
 @RequestMapping(value = "/testRound")
@@ -57,10 +72,9 @@ public class TestRoundController {
 
 	@Autowired
 	private TestRoundRepository repository;
-	
+
 	@Autowired
 	private TestSuiteCaseService testSuiteCaseService;
-	
 
 	@SuppressWarnings("unused")
 	private static Logger log = LoggerFactory.getLogger(TestRoundController.class);
@@ -127,38 +141,24 @@ public class TestRoundController {
 			@ApiImplicitParam(paramType = "query", name = "endTime", value = "结束时间", required = false, dataType = "String"),
 			@ApiImplicitParam(paramType = "query", name = "pageNum", value = "页码值", required = false, dataType = "Long"),
 			@ApiImplicitParam(paramType = "query", name = "pageSize", value = "每页条数", required = false, dataType = "Long") })
-	public ResultVO findTestRoundOrderByTestSuiteIDAndStarTimeAndEndTime(@RequestParam String testSuiteID,
+	public ResultVO findTestRoundOrderByTestSuiteIDAndStarTimeAndEndTime(
+			@RequestParam String testSuiteID,
 			@RequestParam(value = "startTime", required = false) String startTime,
 			@RequestParam(value = "endTime", required = false) String endTime,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
 		HashMap<String, Object> map = new HashMap<String, Object>();
 		Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
+		Page<TestRound>testRoundList=null;
 		try {
-			Page<TestRound> testRoundList = null;
-			ArrayList<TestRoundVO> testRoundVOList = new ArrayList<TestRoundVO>();
-			@SuppressWarnings("serial")
-			Specification<TestRound> querySpecifi = new Specification<TestRound>() {
-				@Override
-				public Predicate toPredicate(Root<TestRound> root, CriteriaQuery<?> query,
-						CriteriaBuilder criteriaBuilder) {
-					ArrayList<Predicate> predicateList = new ArrayList<Predicate>();
-					if (StringUtils.isNotBlank(testSuiteID)) {
-						predicateList.add(criteriaBuilder.equal(root.get("testSuite").get("id"), testSuiteID));
-					}
-					if (StringUtils.isEmpty(startTime)) {
-						predicateList.add(criteriaBuilder.greaterThanOrEqualTo(root.get("startTime").as(String.class),
-								startTime));
-					}
-					if (StringUtils.isEmpty(endTime)) {
-						predicateList
-								.add(criteriaBuilder.lessThanOrEqualTo(root.get("endTime").as(String.class), endTime));
-					}
-					return criteriaBuilder.and(predicateList.toArray(new Predicate[predicateList.size()]));
-				}
-			};
-			testRoundList = this.repository.findAll(querySpecifi, pageable);
-			for (TestRound testRound : testRoundList) {
+			if(startTime==endTime) {
+				testRoundList=testRoundService.findBySuiteIdAndStartTimeAndEndTime(testSuiteID,startTime,pageable);
+			}else {
+				testRoundList=testRoundService.findBySuiteIdAndStartTimeAndEndTime(testSuiteID,startTime,endTime,pageable);
+				
+			}
+		ArrayList<TestRoundVO> testRoundVOList = new ArrayList<TestRoundVO>();	
+		for (TestRound testRound : testRoundList) {
 				TestRoundVO testRoundVO = new TestRoundVO(testRound);
 				testRoundVOList.add(testRoundVO);
 			}
@@ -384,10 +384,9 @@ public class TestRoundController {
 		PageRequest pageable = PageRequest.of(pageNum - 1, pageSize);
 		// Page<TestResultItem> TestResultItemList =
 		// testResultItemService.getTestResultItemByTestResultId(testResultId,pageable);
-		Page<TestResultItem> TestResultItemList = testResultItemService.findTestResultItemByTestResultID(testResultId,"",
-				pageable);
+		Page<TestResultItem> TestResultItemList = testResultItemService.findTestResultItemByTestResultID(testResultId,
+				"", pageable);
 		return new ResultVO(true, StatusCode.OK, "查询成功", TestResultItemList);
 	}
-
 
 }

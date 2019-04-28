@@ -10,17 +10,20 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import javax.transaction.Transactional;
-
+import org.hibernate.StaleObjectStateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.transaction.TransactionSystemException;
 
 import com.jettech.EnumExecuteStatus;
 import com.jettech.EnumFieldType;
 import com.jettech.EnumTestCaseType;
 import com.jettech.domain.CaseModel;
 import com.jettech.domain.CompareCaseModel;
+import com.jettech.domain.DataField;
+import com.jettech.domain.CompareaToFileCaseModel;
 import com.jettech.domain.DataModel;
 import com.jettech.domain.FieldModel;
 import com.jettech.domain.ModelCaseModel;
@@ -28,21 +31,20 @@ import com.jettech.domain.QualityResultModel;
 import com.jettech.domain.QualityTestCaseModel;
 import com.jettech.domain.QueryModel;
 import com.jettech.domain.ResultModel;
-import com.jettech.entity.QualityTestResult;
-import com.jettech.entity.QualityTestResultItem;
-import com.jettech.entity.DataField;
 import com.jettech.entity.ModelTestResult;
 import com.jettech.entity.ModelTestResultItem;
-import com.jettech.entity.TestQueryField;
+import com.jettech.entity.QualityTestResult;
+import com.jettech.entity.QualityTestResultItem;
 import com.jettech.entity.TestResult;
 import com.jettech.entity.TestResultItem;
-import com.jettech.service.IQualityTestReusltService;
+import com.jettech.entity.TestRound;
+import com.jettech.service.IQualityTestResultService;
 import com.jettech.service.ITestReusltService;
 import com.jettech.service.ModelTestResultService;
 import com.jettech.service.Impl.ModelTestResultServiceImpl;
 import com.jettech.service.Impl.QualityTestResultServiceImpl;
-import com.jettech.service.Impl.TestCaseServiceImpl;
 import com.jettech.service.Impl.TestResultServiceImpl;
+import com.jettech.service.Impl.TestRoundServiceImpl;
 import com.jettech.util.DateUtil;
 import com.jettech.util.SpringUtils;
 
@@ -90,7 +92,9 @@ public class JobWorker implements Runnable {
 			QualityTestCaseModel qaCase = (QualityTestCaseModel) testCase;
 			doQualityWork(qaCase);
 			break;
-		case AccountingEntry:
+		case DataCompareToFile:
+			CompareaToFileCaseModel cpfCase = (CompareaToFileCaseModel) testCase;
+			doDataCompareToFileWork(cpfCase);
 			break;
 		case RepaymentSchedule:
 			break;
@@ -104,15 +108,15 @@ public class JobWorker implements Runnable {
 
 	}
 
-	IQualityTestReusltService qualityTestResultService = null;
+	IQualityTestResultService qualityTestResultService = null;
 
 	private void doQualityWork(QualityTestCaseModel testCase) {
-		String info = "do testCase:" + testCase.getId() + "_" + testCase.getName();
+		String info = "do qualityTestCase:" + testCase.getId() + "_" + testCase.getName();
 		try {
 			logger.info(info);
-			qualityTestResultService = (IQualityTestReusltService) SpringUtils
+			qualityTestResultService = (IQualityTestResultService) SpringUtils
 			        .getBean(QualityTestResultServiceImpl.class);
-			qualityTestResult = createTestReuslt(testCase, qualityTestResultService);
+			qualityTestResult = createTestResult(testCase, qualityTestResultService);
 
 			testCase.setTestQualityResult(new QualityResultModel(qualityTestResult));
 			if (testCase.getUsePage() && testCase.getPageSize() > 0) {
@@ -141,18 +145,28 @@ public class JobWorker implements Runnable {
 		// 创建存储源数据的队列，默认大小为5
 		BlockingQueue<QualityBaseData> dataQueue = new LinkedBlockingQueue<>(maxPagesInQueue);
 
-		// 全量读取到队列单个对象中
-		QualityCommonDataWorker dataWorker = new QualityCommonDataWorker(dataQueue, testCase.getTargetQuery());
-		Thread dataThread = new Thread(dataWorker);
+		//新加质量方法执行案例写入结果集   20190412
+		testCase.getTargetQuery().setQualityTestResultId(qualityTestResult.getId());
+		QualityCommonDataWorkerOne qulityDataWorker = new QualityCommonDataWorkerOne(itemQueue,testCase.getTargetQuery());
+		Thread dataThread = new Thread(qulityDataWorker);
 		dataThread.setName("DT:" + testCase.getName());
 		dataThread.start();
 		dataThread.join();
+		Boolean bo = qulityDataWorker.state;
+		//System.out.println("bo===>"+bo);
+		int itemCount = itemQueue.size();
+		// 全量读取到队列单个对象中
+	/*	QualityCommonDataWorker dataWorker = new QualityCommonDataWorker(dataQueue, testCase.getTargetQuery());
+		Thread dataThread = new Thread(dataWorker);
+		dataThread.setName("DT:" + testCase.getName());
+		dataThread.start();
+		dataThread.join();*/
 
 		// 执行操作
-		CommonCheckWorker worker = new CommonCheckWorker(dataQueue, itemQueue, testCase);
+		/*CommonCheckWorker worker = new CommonCheckWorker(dataQueue, itemQueue, testCase);
 		Thread testThread = new Thread(worker);
 		testThread.setName("Do:" + testCase.getName());
-		testThread.start();
+		testThread.start();*/
 
 		// 启动写主结果记录进程
 		QualityTestResultWorker resultWorker = new QualityTestResultWorker(itemQueue);
@@ -160,17 +174,97 @@ public class JobWorker implements Runnable {
 		resultThread.setName("Item:" + testCase.getName());
 		resultThread.start();
 
-		testThread.join();
+	//	testThread.join();
+		//添加写结果集方法 20190409
+		resultThread.join();
+		List<DataField> colsList = qulityDataWorker.testQuery.getQueryColumns();
+		//List<DataField> colsList = dataWorker.testQuery.getQueryColumns();
+		StringBuffer sb = new StringBuffer();
+		if(colsList != null){
+			for (int i = 0; i < colsList.size(); i++) {
+				if(i < colsList.size()-1){
+					sb.append(colsList.get(i).getColumnName()+",");
+				}else{
+					sb.append(colsList.get(i).getColumnName());
+				}
+			}
+		}
+		int dataCount = 0;
+		if(colsList != null && colsList.size()> 0){
+			dataCount = itemCount/colsList.size();
+		}
+		this.qualityTestResult.setSelectCols(sb.toString());
+		//质量代码添加结果集主表的部分信息   20190409 ==
+		if(testCase.getTargetQuery()!=null){
+			this.qualityTestResult.setSqlText(testCase.getTargetQuery().getSqlText());
+			if(testCase.getTargetQuery().getDataSource() != null)
+				this.qualityTestResult.setDataSource(testCase.getTargetQuery().getDataSource().getName());
+		}
+		this.qualityTestResult.setTestCaseName(testCase.getName());
 
 		this.qualityTestResult.setExecState(EnumExecuteStatus.Finish);
 		this.qualityTestResult.setEndTime(new Date());
-		this.qualityTestResult.setDataCount(testCase.getTestQualityResult().getDataCount());
-		this.qualityTestResult.setItemCount(testCase.getTestQualityResult().getItemCount());
-		this.qualityTestResult.setResult(testCase.getTestQualityResult().getResult());
-		this.qualityTestResultService.save(qualityTestResult);
+	//	this.qualityTestResult.setDataCount(testCase.getTestQualityResult().getDataCount()); dataCount
+		this.qualityTestResult.setDataCount(dataCount);
+	//	this.qualityTestResult.setItemCount(testCase.getTestQualityResult().getItemCount());
+		this.qualityTestResult.setItemCount(itemCount);
 
+		this.qualityTestResult.setResult(bo);
+		//添加测试意图 testCase
+		//qualityTestResult.setTestPurpose(testCase.getTargetQuery());   修改中
+		//this.qualityTestResult.setResult(testCase.getTestQualityResult().getResult());
+		this.qualityTestResultService.save(qualityTestResult);
 		logger.info("Job is end." + testCase.getName() + " use " + DateUtil.getEclapsedTimesStr(start));
 
+	/*	//添加保存轮次的方法   20190416  TestRoundServiceImpl
+		TestRoundServiceImpl testRoundService = (TestRoundServiceImpl) SpringUtils
+				.getBean(TestRoundServiceImpl.class);
+		//查询轮次
+		TestRound tr = testRoundService.findById(testCase.getTestRoundId());
+		if(bo){
+			if(tr.getSuccessCount() == null){
+				tr.setSuccessCount(1);
+			}else{
+				int successCount = tr.getSuccessCount().intValue();
+				tr.setSuccessCount(successCount+1);
+			}
+		}
+		tr.setEndTime(new Date());
+		tr.setEditTime(new Date());
+		testRoundService.save(tr);*/
+		if( testCase.getTestRoundId()!= null && testCase.getTestRoundId() != 0 ){
+			updateTestRound( bo);
+		}
+
+	}
+
+	private void updateTestRound(Boolean bo){
+		try {
+			//添加保存轮次的方法   20190416  TestRoundRepository TestRoundServiceImpl
+			TestRoundServiceImpl testRoundService = (TestRoundServiceImpl) SpringUtils
+					.getBean(TestRoundServiceImpl.class);
+			//查询轮次
+			TestRound tr = testRoundService.findById(testCase.getTestRoundId());
+			if(bo){
+				if(tr.getSuccessCount() == null || tr.getSuccessCount() == 0){
+					tr.setSuccessCount(1);
+				}else{
+					tr.setSuccessCount(tr.getSuccessCount()+1);
+				}
+			}
+			tr.setEndTime(new Date());
+			int ok = testRoundService.updateWithVersion(tr.getId(),tr.getSuccessCount(),new Date(),tr.getVersion());
+			if(ok == 0){
+				updateTestRound(bo);
+			}
+		}catch (Exception e){
+			if (e instanceof ObjectOptimisticLockingFailureException || e instanceof StaleObjectStateException || e instanceof TransactionSystemException) {
+				logger.error("乐观锁循环"+e);
+				updateTestRound(bo);
+			}else{
+				logger.error("保存失败！"+e);
+			}
+		}
 	}
 
 	private void doQualityUnionWork(QualityTestCaseModel testCase) throws Exception {
@@ -200,7 +294,7 @@ public class JobWorker implements Runnable {
 		// Integer pageSize = testCase.getPageSize();
 		// 全量读取到队列单个对象中
 		QualityPageDataWorker dataWorker = new QualityPageDataWorker(dataQueue, testCase.getTargetQuery(),
-		        testCase.getPageSize());
+				testCase.getPageSize());
 		Thread dataThread = new Thread(dataWorker);
 		dataThread.setName("DT:" + testCase.getName());
 		dataThread.start();
@@ -244,7 +338,7 @@ public class JobWorker implements Runnable {
 
 		// 全量读取到队列单个对象中
 		QualityPageDataWorker dataWorker = new QualityPageDataWorker(dataQueue, testCase.getTargetQuery(),
-		        testCase.getPageSize());
+				testCase.getPageSize());
 		Thread dataThread = new Thread(dataWorker);
 		dataThread.setName("DT:" + testCase.getName());
 
@@ -309,7 +403,7 @@ public class JobWorker implements Runnable {
 		try {
 			logger.info(info);
 			testResultService = (ITestReusltService) SpringUtils.getBean(TestResultServiceImpl.class);
-			testResult = createTestReuslt(testCase);
+			testResult = createTestResult(testCase);
 			testCase.setTestResult(new ResultModel(testResult));
 			if (testCase.getUsePage() && testCase.getPageSize() > 0) {
 				logger.info(info + " use page mode.");
@@ -318,12 +412,93 @@ public class JobWorker implements Runnable {
 				logger.info(info + " use common mode.");
 				doCommonWork(testCase);
 			}
-
 		} catch (InterruptedException e1) {
 			logger.error(info + " error", e1);
 		} catch (Exception e) {
 			logger.error(info + " error", e);
 		}
+	}
+
+	private void doDataCompareToFileWork(CompareaToFileCaseModel testCase) {
+		String info = "do testCase:" + testCase.getId() + "_" + testCase.getName();
+		try {
+			logger.info(info);
+			testResultService = (ITestReusltService) SpringUtils.getBean(TestResultServiceImpl.class);
+			testResult = createTestResult(testCase);
+			testCase.setTestResult(new ResultModel(testResult));
+			if (testCase.getUsePage() && testCase.getPageSize() > 0) {
+				logger.info(info + " use page mode.");
+				// doUnionWork(testCase);
+			} else {
+				logger.info(info + " use common mode.");
+				doFileCommonWork(testCase);
+			}
+		} catch (InterruptedException e1) {
+			logger.error(info + " error", e1);
+		} catch (Exception e) {
+			logger.error(info + " error", e);
+		}
+	}
+
+	private void doFileCommonWork(CompareaToFileCaseModel testCase) throws Exception, InterruptedException {
+		long start = DateUtil.getNow().getTime();
+		final CountDownLatch latch = new CountDownLatch(3);
+		// QualityTestResult testReulst =null;
+		// 更新结果状态
+		this.testResult.setExecState(EnumExecuteStatus.Executing);
+		this.testResult.setStartTime(new Date());
+		this.testResultService.save(testResult);
+
+		// 结果明细队列
+		BlockingQueue<TestResultItem> itemQueue = new LinkedBlockingQueue<>();
+
+		// 启动获取源数据的进程
+		// 创建存储源数据的队列，默认大小为5
+		BlockingQueue<BaseData> sourceQueue = new LinkedBlockingQueue<>(maxPagesInQueue);
+		// 全量读取到队列单个对象中
+		CommonDataWorker sourceDataWorker = new CommonDataWorker(sourceQueue, testCase.getSourceQuery());
+		Thread sourceThread = new Thread(sourceDataWorker);
+		sourceThread.setName("S.DT:" + testCase.getName());
+		sourceThread.start();
+
+		// 启动获取目标数据的进程
+		BlockingQueue<BaseData> targetQueue = new LinkedBlockingQueue<>(maxPagesInQueue);
+		CommonFileDataWorker targetDataWorker = new CommonFileDataWorker(targetQueue, testCase.getTargetQuery());
+		Thread targetThread = new Thread(targetDataWorker);
+		targetThread.setName("T.DT:" + testCase.getName());
+		targetThread.start();
+
+		sourceThread.join();
+		targetThread.join();
+
+		// 启动写主结果记录进程
+		TestResultWorker resultWorker = new TestResultWorker(itemQueue);
+		Thread resultThread = new Thread(resultWorker);
+		resultThread.setName("Item:" + testCase.getName());
+		resultThread.start();
+
+		// 比较操作
+		CommonTestWorker worker = new CommonTestWorker(sourceQueue, targetQueue, itemQueue, testCase);
+		// worker.compare();//使用当前线程进行执行，不新开子线程
+		Thread compareThread = new Thread(worker);
+		compareThread.setName("Do:" + testCase.getName());
+		compareThread.start();
+
+		compareThread.join();
+		resultThread.join();
+		// 等待结果详情写完
+		// while (!itemQueue.isEmpty()) {
+		// try {
+		// Thread.sleep(100);
+		// } catch (InterruptedException e) {
+		// e.printStackTrace();
+		// }
+		// }
+
+		updateTestResult(testCase.getTestResult());
+
+		logger.info("Job is end.结果:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
+				+ DateUtil.getEclapsedTimesStr(start));
 	}
 
 	private void doCommonWork(CompareCaseModel testCase) throws Exception, InterruptedException {
@@ -384,7 +559,7 @@ public class JobWorker implements Runnable {
 		updateTestResult(testCase.getTestResult());
 
 		logger.info("Job is end.结果:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
-		        + DateUtil.getEclapsedTimesStr(start));
+				+ DateUtil.getEclapsedTimesStr(start));
 	}
 
 	private void updateTestResult(ResultModel resultModel) {
@@ -395,15 +570,36 @@ public class JobWorker implements Runnable {
 		this.testResult.setSameRow(resultModel.getSameRow());
 		this.testResult.setNotSameData(resultModel.getNotSameData());
 		this.testResult.setNotSameRow(resultModel.getNotSameRow());
-		if (resultModel.getSameRow() > 0 && (resultModel.getNotSameData() == null || resultModel.getNotSameData() == 0)
-		        && (resultModel.getNotSameRow() == null || resultModel.getNotSameRow() == 0)) {
+		if (resultModel.getSameRow() != null && resultModel.getSameRow() > 0
+				&& (resultModel.getNotSameData() == null || resultModel.getNotSameData() == 0)
+				&& (resultModel.getNotSameRow() == null || resultModel.getNotSameRow() == 0)) {
 			this.testResult.setResult(String.valueOf(Boolean.TRUE));
 		} else {
 			this.testResult.setResult(String.valueOf(Boolean.FALSE));
 		}
 		this.testResultService.save(testResult);
 	}
-
+	private void updateUnionTestResult(ResultModel resultModel) {
+		this.testResult.setExecState(EnumExecuteStatus.Finish);
+		this.testResult.setEndTime(new Date());
+		this.testResult.setSourceCount(resultModel.getSourceCount());
+		this.testResult.setTargetCount(resultModel.getTargetCount());
+		this.testResult.setSameRow(resultModel.getSameRow());
+		this.testResult.setNotSameData(resultModel.getNotSameData());
+		this.testResult.setNotSameRow(resultModel.getNotSameRow());
+		if(!String.valueOf(Boolean.FALSE).equals(this.testResult.getResult())) {
+			if (resultModel.getSameRow() != null && resultModel.getSameRow() > 0
+			        && (resultModel.getNotSameData() == null || resultModel.getNotSameData() == 0)
+			        && (resultModel.getNotSameRow() == null || resultModel.getNotSameRow() == 0)) {
+				this.testResult.setResult(String.valueOf(Boolean.TRUE));
+			} else {
+				this.testResult.setResult(String.valueOf(Boolean.FALSE));
+			}
+		}
+		
+		
+		this.testResultService.save(testResult);
+	}
 	private void doUnionWork(CompareCaseModel testCase) throws Exception {
 		long start = DateUtil.getNow().getTime();
 
@@ -426,7 +622,7 @@ public class JobWorker implements Runnable {
 		// 创建存储源数据的队列，默认大小为5
 		BlockingQueue<BaseData> dataQueue = new LinkedBlockingQueue<>(maxPagesInQueue);
 		UnionDataWorker unionDataWorker = new UnionDataWorker(dataQueue, testCase, testCase.getPageSize(),
-		        testCase.getTargetQuery());
+				testCase.getTargetQuery());
 		Thread dataThread = new Thread(unionDataWorker);
 		dataThread.setName("UData:" + testCase.getName());
 		dataThread.start();
@@ -441,15 +637,15 @@ public class JobWorker implements Runnable {
 		dataThread.join();
 		compareThread.join();
 		resultThread.join();
-
-		updateTestResult(testCase.getTestResult());
+        
+		updateUnionTestResult(testCase.getTestResult());
 
 		logger.info("Job is end.结果:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
-		        + DateUtil.getEclapsedTimesStr(start));
+				+ DateUtil.getEclapsedTimesStr(start));
 	}
 
-	private QualityTestResult createTestReuslt(QualityTestCaseModel testCase,
-	        IQualityTestReusltService testResultService) {
+	private QualityTestResult createTestResult(QualityTestCaseModel testCase,
+	        IQualityTestResultService testResultService) {
 		QualityTestResult result = new QualityTestResult();
 		if (testCase.getId() == null) {
 			logger.error("########### testCase's Id is null #############");
@@ -462,11 +658,13 @@ public class JobWorker implements Runnable {
 
 		result.setExecState(EnumExecuteStatus.Ready);
 		result.setStartTime(new Date());
+		//添加轮次id
+		result.setTestRoundId(testCase.getTestRoundId());
 		result = testResultService.saveOne(result);
 		return result;
 	}
 
-	private TestResult createTestReuslt(CaseModel testCase) {
+	private TestResult createTestResult(CaseModel testCase) {
 		TestResult result = new TestResult();
 		if (testCase.getId() == null) {
 			logger.error("########### testCase's Id is null #############");
@@ -482,6 +680,7 @@ public class JobWorker implements Runnable {
 		result = testResultService.saveOne(result);
 		return result;
 	}
+
 	private TestResult createModelTestReuslt(CaseModel testCase) {
 		ModelTestResult result = new ModelTestResult();
 		if (testCase.getId() == null) {
@@ -496,11 +695,12 @@ public class JobWorker implements Runnable {
 		result.setExecState(EnumExecuteStatus.Ready);
 		result.setStartTime(new Date());
 		result = modelTestResultService.saveOne(result);
-		TestResult testResult=new TestResult();
+		TestResult testResult = new TestResult();
 		BeanUtils.copyProperties(result, testResult);
 		return testResult;
 	}
-	private TestResult createTestReuslt(CompareCaseModel testCase) {
+
+	private TestResult createTestResult(CompareCaseModel testCase) {
 		TestResult result = new TestResult();
 		if (testCase.getId() == null) {
 			logger.error("########### testCase's Id is null #############");
