@@ -1,7 +1,9 @@
 package com.jettech.repostory;
 
-import com.jettech.entity.QualitySuite;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface QualitySuiteRepository extends JpaRepository<QualitySuite,Integer> {
+import com.jettech.entity.QualitySuite;
+
+public interface QualitySuiteRepository extends JpaRepository<QualitySuite,Integer>, JpaSpecificationExecutor<QualitySuite> {
 }

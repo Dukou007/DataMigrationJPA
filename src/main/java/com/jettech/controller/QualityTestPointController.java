@@ -5,21 +5,29 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.websocket.server.PathParam;
+
+import org.apache.commons.lang3.EnumUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.jettech.EnumQualityRuleType;
 import com.jettech.entity.DataField;
+import com.jettech.entity.DataSchema;
 import com.jettech.entity.QualityTestPoint;
 import com.jettech.repostory.QualityTestPointRepository;
 import com.jettech.service.IQualityTestPointService;
 import com.jettech.service.ITestFieldService;
 import com.jettech.vo.ResultVO;
 import com.jettech.vo.StatusCode;
+import com.jettech.vo.TestDatabaseVO;
 
 @RestController
 @RequestMapping(value = "/qualityTestPoint")
@@ -94,8 +102,9 @@ public class QualityTestPointController {
 	 */
 	@RequestMapping(value = "/createQualityDataCheckCase",produces = {"application/json;charset=UTF-8" }, method = RequestMethod.POST)
 	public ResultVO createQualityDataCheckCase(@RequestBody Map<Object, Object> map) {
-		System.out.println("params=====================:"+map);
-		//Integer qualitySuiteId = Integer.parseInt(map.get("qualitySuiteId")+ "");
+		//System.out.println("params=====================:"+map);
+		log.info("params=====================:"+map);
+//		Integer qualitySuiteId = Integer.parseInt(map.get("qualitySuiteId")+ "");
 		ResultVO rv = new ResultVO(false, StatusCode.ERROR, "批量生成案例失败");
 		try{
 			rv = testPointService.batchCreateQualityCase(map);
@@ -143,7 +152,8 @@ public class QualityTestPointController {
 		}catch(Exception e){
 			e.printStackTrace();
 		}
-		System.out.println("BATCHADD============="+rv.getMessage());
+		//System.out.println("BATCHADD============="+rv.getMessage());
+		log.info("BATCHADD============="+rv.getMessage());
 		return rv;
 	}
 
@@ -220,5 +230,42 @@ public class QualityTestPointController {
 //        return testPointService.tableCheckNonAmountRange(map);
 //    }
 
- 
+	@RequestMapping(method = RequestMethod.POST, value = "/checkPointTable")
+	public ResultVO checkPointByTable(@RequestBody Map<Object, Object> map) {
+		return testPointService.checkPointByTable(map);
+	}
+
+	/**
+	 * 获取所有质量规则枚举类型
+	 * @param dataSourceID
+	 * @return
+	 */
+	@ResponseBody
+    @RequestMapping(value="/getEnumQualityRuleType",produces = { "application/json;charset=UTF-8" },method = RequestMethod.GET)
+    public  ResultVO getEnumQualityRuleType(){
+		Map<String,Object> resultmap = new HashMap<String,Object>();
+//		if(typeName == null){
+//			typeName = "";
+//		}
+//		List<Map<String,Object>> tdlist = new ArrayList<Map<String,Object>>();
+        try {
+//        	if(StringUtils.isNotBlank(typeName) && EnumUtils.isValidEnum(EnumQualityRuleType.class, typeName)){
+        		//Map<String,Object> map = EnumQualityRuleType.
+        		//tdlist.add(typeName);
+//        	}else if(StringUtils.isBlank(typeName)){
+        		//for (EnumQualityRuleType ert : EnumQualityRuleType.values()) { 
+//        		    tdlist.addAll(EnumQualityRuleType.toList());
+//        		    EnumQualityRuleType.
+        		//}
+//        	}else if(!EnumUtils.isValidEnum(EnumQualityRuleType.class, typeName)){
+//        		return new ResultVO(false, StatusCode.ERROR, "无效的参数:"+typeName, resultmap);
+//        	}
+	        resultmap.put("list",EnumQualityRuleType.toList());
+	        return new ResultVO(true, StatusCode.OK, "查询成功", resultmap);
+	    }catch(Exception e) {
+	    	e.printStackTrace();
+	    	e.getLocalizedMessage();
+	    	return new ResultVO(false, StatusCode.ERROR, "查询失败", resultmap);
+	    }
+	}
 }

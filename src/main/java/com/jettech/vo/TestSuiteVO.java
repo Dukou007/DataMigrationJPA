@@ -27,6 +27,11 @@ public class TestSuiteVO extends BaseVO {
 		if (entity != null) {
 			TestSuite testSuite = (TestSuite) entity;
 			this.name = testSuite.getName();
+			if(testSuite.getType() == 0){
+
+			}else if(testSuite.getType() == 1){
+				this.testCaseNumber = testSuite.getQualityTestCases().size();
+			}
 			if (testSuite.getProduct() != null)
 				this.productID = testSuite.getProduct().getId();
 				this.productName=testSuite.getProduct().getName();

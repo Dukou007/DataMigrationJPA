@@ -1,14 +1,11 @@
 package com.jettech.vo;
 
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.jettech.entity.BaseEntity;
 import com.jettech.entity.TestRound;
-import com.jettech.util.DateUtil;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TestRoundVO extends BaseVO {
@@ -28,7 +25,7 @@ public class TestRoundVO extends BaseVO {
 	public TestRoundVO() {
 	}
 
-	public TestRoundVO(BaseEntity entity) throws ParseException {
+	public TestRoundVO(BaseEntity entity)  {
 		super(entity);
 		if (entity != null) {
 			TestRound e = (TestRound) entity;
@@ -43,9 +40,10 @@ public class TestRoundVO extends BaseVO {
 					this.successCount=0;
 					this.failCount=0;
 				}
-				String newStartTime = e.getStartTime().toString();
-				DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				this.startTime=df.parse(newStartTime).toString();
+				DateFormat df=new SimpleDateFormat("yyyy-MM-dd HH-mm:ss");
+				this.startTime=df.format(e.getStartTime());
+				this.endTime=df.format(e.getEndTime());
+			
 		}
 	}
 
@@ -74,6 +72,10 @@ public class TestRoundVO extends BaseVO {
 	}
 
 
+	public Integer getFailCount() {
+		return failCount;
+	}
+
 	public String getStartTime() {
 		return startTime;
 	}
@@ -90,10 +92,6 @@ public class TestRoundVO extends BaseVO {
 		this.endTime = endTime;
 	}
 
-	public Integer getFailCount() {
-		return failCount;
-	}
-
 	public void setFailCount(Integer failCount) {
 		this.failCount = failCount;
 	}
@@ -105,5 +103,7 @@ public class TestRoundVO extends BaseVO {
 	public void setSuiteID(Integer suiteID) {
 		SuiteID = suiteID;
 	}
+
+
 
 }

@@ -1,8 +1,7 @@
 package com.jettech.repostory;
 
-import com.jettech.entity.TestSuite;
+import java.util.List;
 
-import org.hibernate.type.TrueFalseType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import com.jettech.entity.TestSuite;
 @Repository
 public interface TestSuiteRepository extends JpaRepository<TestSuite, Integer> {
 	List<TestSuite> findByName(String name);

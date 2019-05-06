@@ -2,6 +2,7 @@ package com.jettech.entity;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import javax.persistence.*;
 
@@ -22,7 +23,7 @@ public class TestSuite extends BaseEntity {
 
 	// 添加质量的关联表 20190321
 	private List<QualityTestCase> qualityTestCases = new ArrayList<>();
-
+	//private Set<QualityTestCase> qualityTestCases;
 	private int type;// 集合类型，0迁移，1质量
 
 
@@ -67,13 +68,19 @@ public class TestSuite extends BaseEntity {
 	 * public void setTestCases(List<TestCase> testCases) { this.testCases =
 	 * testCases; }
 	 */
-	// 添加质量关联关系 20190321
-	// @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST) //,optional
-	// = true
-	// @JoinColumn(name = "quality_test_suite_id", referencedColumnName = "id")
-//===========	@OneToMany(mappedBy = "testSuite", fetch = FetchType.LAZY)
+
+/*	@ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+	@JoinTable(name = "suite_quality_case", joinColumns = @JoinColumn(name = "test_suite_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "quality_test_case_id", referencedColumnName = "id"))
+	public Set<QualityTestCase> getQualityTestCases() {
+		return qualityTestCases;
+	}
+
+	public void setQualityTestCases(Set<QualityTestCase> qualityTestCases) {
+		this.qualityTestCases = qualityTestCases;
+	}*/
+
 	@ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinTable(name = "quality_suite_case", joinColumns = @JoinColumn(name = "test_suite_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "quality_test_case_id", referencedColumnName = "id"))
+	@JoinTable(name = "suite_quality_case", joinColumns = @JoinColumn(name = "test_suite_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "quality_test_case_id", referencedColumnName = "id"))
 	public List<QualityTestCase> getQualityTestCases() {
 		return qualityTestCases;
 	}
@@ -87,5 +94,4 @@ public class TestSuite extends BaseEntity {
 		return "TestSuite [name=" + name + ", product=" + product + ", qualityTestCases=" + qualityTestCases + ", type="
 				+ type + "]";
 	}
-
 }

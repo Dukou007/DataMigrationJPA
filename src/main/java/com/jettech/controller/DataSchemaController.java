@@ -159,6 +159,9 @@ public class DataSchemaController {
 	    public  ResultVO getSchemaByDataSourceID(@PathParam(value = "dataSourceID") Integer dataSourceID,@PathParam(value = "schemaName") String schemaName){
 			Map<String,Object> resultmap = new HashMap<String,Object>();
 			List<TestDatabaseVO> arrvolist=new ArrayList<>();
+			if(schemaName == null){
+				schemaName = "";
+			}
 	        try {
 	        	List<DataSchema> tdlist = testDatabaseService.getSchemasByDataSourceID(dataSourceID,schemaName);
 		        for(DataSchema td : tdlist) {

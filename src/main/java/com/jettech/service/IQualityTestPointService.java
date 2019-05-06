@@ -28,4 +28,6 @@ public interface IQualityTestPointService {
     
     public ResultVO batchCreateQualityCase(Map<Object, Object> map) throws Exception;
 
+    public ResultVO checkPointByTable(Map<Object, Object> map);
+
 }

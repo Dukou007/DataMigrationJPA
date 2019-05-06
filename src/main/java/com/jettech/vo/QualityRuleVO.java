@@ -1,5 +1,6 @@
 package com.jettech.vo;
 
+import com.jettech.EnumQualityRuleType;
 import com.jettech.entity.BaseEntity;
 import com.jettech.entity.QualityRule;
 import com.jettech.entity.QualitySuite;
@@ -16,6 +17,9 @@ public class QualityRuleVO extends BaseVO {
 	private String name;
 	private String des;
 	private List<Integer> qualitySuiteIds;
+	private EnumQualityRuleType ruleType;//规则类型
+	private String andOr;//用于拼接where语句与前面规则是and或者or
+	private String defaultValue;//值域
 	
 	public QualityRuleVO(BaseEntity entity) {
 		super(entity);
@@ -59,6 +63,30 @@ public class QualityRuleVO extends BaseVO {
 
 	public void setQualitySuiteIds(List<Integer> qualitySuiteIds) {
 		this.qualitySuiteIds = qualitySuiteIds;
+	}
+
+	public EnumQualityRuleType getRuleType() {
+		return ruleType;
+	}
+
+	public void setRuleType(EnumQualityRuleType ruleType) {
+		this.ruleType = ruleType;
+	}
+
+	public String getAndOr() {
+		return andOr;
+	}
+
+	public void setAndOr(String andOr) {
+		this.andOr = andOr;
+	}
+
+	public String getDefaultValue() {
+		return defaultValue;
+	}
+
+	public void setDefaultValue(String defaultValue) {
+		this.defaultValue = defaultValue;
 	}
 	
 	

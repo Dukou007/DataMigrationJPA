@@ -395,7 +395,7 @@ public class TestCaseController {
 	/**
 	 * 新增TestCase
 	 * 
-	 * @param TestSuite
+	 * @param TestCaseVO
 	 * @return
 	 */
 	@ResponseBody

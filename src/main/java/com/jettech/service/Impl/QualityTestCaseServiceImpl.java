@@ -245,15 +245,6 @@ public class QualityTestCaseServiceImpl implements IQualityTestCaseService {
 		}
 	}
 
-	@Override
-	public Page<QualityTestCase> findBySuiteId(Integer testSuiteID, Pageable pageable) {
-		Page<QualityTestCase> list = caseRepository.findBySuiteId(testSuiteID, pageable);
-		if (list.getSize() > 0) {
-			return list;
-		} else {
-			return new PageImpl<>(new ArrayList<QualityTestCase>(), pageable, 0);
-		}
-	}
 
 	@Override
 	public void batchDelete(String testCaseIDs) {
@@ -414,34 +405,65 @@ public class QualityTestCaseServiceImpl implements IQualityTestCaseService {
 
 	@Override
 	@Transactional
-	public void changeTestCasePosition(Integer caseId, Integer suiteId) {
+	//public void changeTestCasePosition(Integer caseId, Integer suiteId) {
+	public void changeTestCasePosition(List<Integer> caseId, Integer suiteId) {
 		TestSuite testSuite = testSutieRepository.getOne(suiteId);
-		QualityTestCase testCase = caseRepository.getOne(caseId);
+		//QualityTestCase testCase = caseRepository.getOne(caseId);
 	//	testCase.setTestSuite(testSuite);
 		//修改为多对对关系liu
-		List<TestSuite> testSuites = new ArrayList();
-		testSuites.add(testSuite);
-		testCase.setTestSuites(testSuites);
-
-		caseRepository.saveAndFlush(testCase);
+		for (Integer id : caseId){
+			QualityTestCase testCase = caseRepository.getOne(id);
+			testSuite.getQualityTestCases().remove(testCase);
+			testSuite.getQualityTestCases().add(testCase);
+		}
 		testSuiteRepository.saveAndFlush(testSuite);
+
+	/*	caseRepository.saveAndFlush(testCase);
+		testSuiteRepository.saveAndFlush(testSuite);*/
 
 	}
 
 	@Override
 	@Transactional
-	public void backDisorder(Integer caseId, Integer suiteId) {
-		QualityTestCase testCase = caseRepository.findByCaseIdAndSuiteId(caseId, suiteId);
+	public void backDisorder(List<Integer> caseId, Integer suiteId) {
+	//	QualityTestCase testCase = caseRepository.findByCaseIdAndSuiteId(caseId, suiteId);
 		//testCase.setTestSuite(null);
 		//修改为多对对关系liu
-		List<TestSuite> testSuites = new ArrayList();
-		testCase.setTestSuites(testSuites);
+		TestSuite testSuite = testSutieRepository.getOne(suiteId);
+		for (Integer id : caseId){
+			QualityTestCase testCase = caseRepository.getOne(id);
+			testSuite.getQualityTestCases().remove(testCase);
+		}
+		/*List<TestSuite> testSuites = new ArrayList();
+		testCase.setTestSuites(testSuites);*/
+		testSuiteRepository.saveAndFlush(testSuite);
 
-		caseRepository.saveAndFlush(testCase);
+	//	caseRepository.saveAndFlush(testCase);
 	}
 
 	public List<QualityTestCase> findByTestSuitIdAndRoundId(Integer test_suit_id, Integer test_round_id) {
 		return caseRepository.findByTestSuitIdAndRoundId(test_suit_id, test_round_id);
+	}
+
+	@Override
+	public Page<QualityTestCase> findByNotSuiteId(Integer suiteId, Pageable pageable) {
+		return caseRepository.findByNotSuiteId( suiteId, pageable);
+	}
+
+	@Override
+	public Page<QualityTestCase> findByNotCaseName(Integer suiteId, String name, Pageable pageable) {
+		return caseRepository.findByNotCaseName(suiteId,name,pageable);
+	}
+
+	@Override
+	public Page<QualityTestCase> findCaseBySuiteId(Integer suiteId, Pageable pageable) {
+
+		return caseRepository.findCaseBySuiteId(suiteId,pageable);
+	}
+
+	@Override
+	public Page<QualityTestCase> findByCaseName(Integer suiteId, String name, Pageable pageable) {
+		return caseRepository.findCaseByName(suiteId,name,pageable);
 	}
 
 }

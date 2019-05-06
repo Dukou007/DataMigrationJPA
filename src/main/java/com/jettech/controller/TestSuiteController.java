@@ -25,7 +25,6 @@ import com.jettech.entity.Product;
 import com.jettech.entity.QualityTestCase;
 import com.jettech.entity.TestCase;
 import com.jettech.entity.TestSuite;
-import com.jettech.entity.TestSuiteCase;
 import com.jettech.service.IQualityTestCaseService;
 import com.jettech.service.ITestCaseService;
 import com.jettech.service.ProductService;
@@ -62,8 +61,6 @@ public class TestSuiteController {
 	@ResponseBody
 	@RequestMapping(value = "/doTestSuite", produces = {
 			"application/json;charset=UTF-8" }, method = RequestMethod.POST)
-	@ApiOperation(value = "根据testSuiteId执行测试集", notes = "根据testSuiteId执行测试集")
-	@ApiImplicitParam(paramType = "Integer", name = "testSuiteId", value = "测试集ID", required = true, dataType = "Integer")
 	public ResultVO doTestCase(Integer testSuiteId) {
 		try {
 			testSuiteService.doTestSuite(testSuiteId);
@@ -84,10 +81,6 @@ public class TestSuiteController {
 	@ResponseBody
 	@RequestMapping(value = "/getTestSuiteList", produces = {
 			"application/json;charset=UTF-8" }, method = RequestMethod.GET)
-	@ApiOperation(value = "查询所有并分页", notes = "查询所有并分页")
-	@ApiImplicitParams({
-			@ApiImplicitParam(paramType = "Integer", name = "pageNum", value = "页码数", required = false, dataType = "Integer"),
-			@ApiImplicitParam(paramType = "Integer", name = "pageSize", value = "每页条数", required = false, dataType = "Integer") })
 	public ResultVO getTestSuiteList(
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
@@ -154,7 +147,7 @@ public class TestSuiteController {
 				for (String id : ids) {
 					int caseId = Integer.parseInt(id);
 					TestCase testCase = testCaseService.findById(caseId);
-					if(testCase==null&&testCase.equals("")) {
+					if(testCase==null||testCase.equals("")) {
 						return new ResultVO(false, StatusCode.ERROR, "不存在案例的ID为："+caseId+"的案例");
 					}
 				}
@@ -178,12 +171,6 @@ public class TestSuiteController {
 	@ResponseBody
 	@RequestMapping(value = "/getAllTestSuiteByPage", produces = {
 			"application/json;charset=UTF-8" }, method = RequestMethod.GET)
-	@ApiOperation(value = "根据测试集名称查找测试集并分页", notes = "需要输入测试集名称,不输入默认查询所有")
-	@ApiImplicitParams({
-			@ApiImplicitParam(paramType = "String", name = "name", value = "产品名称", required = false, dataType = "String"),
-			@ApiImplicitParam(paramType = "Integer", name = "pageNum", value = "页码值", required = false, dataType = "Integer"),
-			@ApiImplicitParam(paramType = "Integer", name = "pageSize", value = "每页条数", required = false, dataType = "Integer"),
-			@ApiImplicitParam(paramType = "int", name = "type", value = "集合类型", required = true, dataType = "int") })
 	public ResultVO getAllTestSuiteByPage(
 			@RequestParam(value = "name", defaultValue = "", required = false) String name,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
@@ -198,8 +185,13 @@ public class TestSuiteController {
 				TestSuiteVO vo = new TestSuiteVO();
 				BeanUtils.copyProperties(testSuite, vo);
 				Integer suiteId = testSuite.getId();
-				Integer count = testCaseService.countBySuiteId(suiteId);
-				vo.setTestCaseNumber(count);
+				if(type == 0){
+					Integer count = testSuiteCaseService.CountCase(suiteId);
+					vo.setTestCaseNumber(count);
+				}else if(type == 1){
+					Integer count = testSuite.getQualityTestCases().size();
+					vo.setTestCaseNumber(count);
+				}
 				if (testSuite.getProduct() != null && !testSuite.getProduct().equals("")) {
 					vo.setProductName(testSuite.getProduct().getName());
 					vo.setProductID(testSuite.getProduct().getId());
@@ -229,11 +221,6 @@ public class TestSuiteController {
 	@ResponseBody
 	@RequestMapping(value = "/getTestSuiteByProductID", produces = {
 			"application/json;charset=UTF-8" }, method = RequestMethod.GET)
-	@ApiOperation(value = "根据产品ID查询所有并分页")
-	@ApiImplicitParams({
-			@ApiImplicitParam(paramType = "Integer", name = "productID", value = "产品ID", required = true, dataType = "Integer"),
-			@ApiImplicitParam(paramType = "Integer", name = "pageNum", value = "第几页", required = false, dataType = "Integer"),
-			@ApiImplicitParam(paramType = "Integer", name = "pageSize", value = "每页条数", required = false, dataType = "Integer") })
 	public ResultVO getTestSuiteByProductID(@RequestParam(value = "productID") Integer productID,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
@@ -298,10 +285,6 @@ public class TestSuiteController {
 	 */
 	@ResponseBody
 	@RequestMapping(value = "/updateTestSuite/{testSuiteID}", method = RequestMethod.PUT)
-	@ApiOperation(value = "更新测试集", notes = "更新测试集，testSuiteID")
-	@ApiImplicitParams({
-			@ApiImplicitParam(name = "testSuiteID", value = "测试集ID", required = true, dataType = "Integer"),
-			@ApiImplicitParam(name = "testSuiteVO", value = "testSuiteVO实体", required = true, dataType = "TestSuiteVO") })
 	public ResultVO updateTestSuite(@PathVariable Integer testSuiteID, @RequestBody TestSuiteVO testSuiteVO) {
 		try {
 			TestSuite testSuite = testSuiteService.findById(testSuiteVO.getId());
@@ -409,8 +392,6 @@ public class TestSuiteController {
 	@ResponseBody
 	@RequestMapping(value = "/doQualityTestSuite", produces = {
 			"application/json;charset=UTF-8" }, method = RequestMethod.POST)
-	@ApiOperation(value = "根据testSuiteId执行测试集", notes = "根据testSuiteId执行测试集")
-	@ApiImplicitParam(paramType = "Integer", name = "testSuiteId", value = "测试集ID", required = true, dataType = "Integer")
 	public ResultVO doQualityTestCase(Integer testSuiteId) {
 		try {
 			// testSuiteService.doTestSuite(testSuiteId);

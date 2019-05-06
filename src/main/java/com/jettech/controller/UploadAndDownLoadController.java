@@ -322,129 +322,16 @@ public class UploadAndDownLoadController {
 	@RequestMapping(value = "/downloadCheckedCaseConverToExcel", method = RequestMethod.GET)
 	public ResultVO downloadCheckedCaseConverToExcel(
 			@RequestParam(value = "ids", required = false, defaultValue = "") String ids, HttpServletResponse res)
-			throws Exception {
+			{
 		try {
-			List<TestCase> list = testCaseService.findByCaseIDs(ids);
-			HashMap<String, Object> map = new HashMap<String, Object>();
-			String fileName = "testCase" + ".xls";
-			for (TestCase testCase : list) {
-				map.put("id", testCase.getId());
-				map.put("name", testCase.getName());
-				map.put("caseType", testCase.getCaseType());
-				map.put("maxResultRows", testCase.getMaxResultRows());
-				map.put("sourceQuery", testCase.getSourceQuery());
-				map.put("targetQuery", testCase.getTargetQuery());
-				map.put("version", testCase.getVersion());
-				map.put("createUser", testCase.getCreateUser());
-				map.put("createTime", testCase.getCreateTime());
-				map.put("editUser", testCase.getEditUser());
-				map.put("editTime", testCase.getEditTime());
-
-			}
-
-			// 创建表格文件
-			HSSFWorkbook workbook = new HSSFWorkbook();
-			String sheetName = "TestResultItemDetial";
-			HSSFSheet sheet = workbook.createSheet(sheetName);
-			HSSFRow header = sheet.createRow(0);
-			// 设置表头名称
-			header.createCell(0).setCellValue("id");
-			header.createCell(1).setCellValue("名称");
-			header.createCell(2).setCellValue("类型");
-			header.createCell(3).setCellValue("最大结果数");
-			header.createCell(4).setCellValue("源查询数据源");
-			header.createCell(5).setCellValue("目标查询数据源");
-			header.createCell(6).setCellValue("版本");
-			header.createCell(7).setCellValue("创建人");
-			header.createCell(8).setCellValue("修改人");
-			header.createCell(9).setCellValue("创建时间");
-			header.createCell(10).setCellValue("修改时间");
-			// 设置表内容
-			int rowIndex = 1;
-			for (TestCase testCase : list) {
-				HSSFRow rowItem = sheet.createRow(rowIndex++);
-				if (StringUtils.isNotBlank(testCase.getId().toString())) {
-					// 设置单元格的值
-					rowItem.createCell(0).setCellValue(testCase.getId().toString());
-				} else {
-					rowItem.createCell(0).setCellValue("null");
-				}
-				rowItem.createCell(1).setCellValue(testCase.getName());
-				if (testCase.getCaseType() != null) {
-					rowItem.createCell(2).setCellValue(testCase.getCaseType().toString());
-				}
-				if (testCase.getMaxResultRows() != null) {
-					rowItem.createCell(3).setCellValue(testCase.getMaxResultRows());
-				} else {
-					rowItem.createCell(3).setCellValue("null");
-
-				}
-				if (testCase.getSourceQuery() != null) {
-					rowItem.createCell(4).setCellValue(testCase.getSourceQuery().getDataSource().getName());
-				} else {
-					rowItem.createCell(4).setCellValue("null");
-
-				}
-				if (testCase.getTargetQuery() != null) {
-					rowItem.createCell(5).setCellValue(testCase.getTargetQuery().getDataSource().getName());
-				} else {
-					rowItem.createCell(5).setCellValue("null");
-
-				}
-				if (testCase.getVersion() != null) {
-					rowItem.createCell(6).setCellValue(testCase.getVersion());
-				} else {
-					rowItem.createCell(6).setCellValue("null");
-
-				}
-				if (testCase.getCreateUser() != null) {
-					rowItem.createCell(7).setCellValue(testCase.getCreateUser());
-				} else {
-					rowItem.createCell(7).setCellValue("null");
-
-				}
-				if (testCase.getEditUser() != null) {
-					rowItem.createCell(8).setCellValue(testCase.getEditUser());
-				} else {
-					rowItem.createCell(8).setCellValue("null");
-
-				}
-				if (StringUtils.isNotBlank(testCase.getCreateTime().toString())) {
-					rowItem.createCell(9).setCellValue(testCase.getCreateTime().toString());
-				} else {
-					rowItem.createCell(9).setCellValue("null");
-				}
-				if (StringUtils.isNotBlank(testCase.getEditTime().toString())) {
-					rowItem.createCell(10).setCellValue(testCase.getEditTime().toString());
-				} else {
-					rowItem.createCell(10).setCellValue("null");
-				}
-
-			}
-			String filename = sheetName;
-			res.reset(); // 非常重要
-			res.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-			res.setHeader("Access-Control-Allow-Origin", "*");// 允许跨域请求
-
-			try {
-				OutputStream out = res.getOutputStream();
-				res.addHeader("Content-Disposition",
-						"attachment;filename=" + java.net.URLEncoder.encode(fileName, "UTF-8"));
-				workbook.write(out);
-				out.flush();
-				out.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-
-			System.out.println("……………………………………………………");
-//			return new ResultVO(true, StatusCode.OK, "下载成功");
+			testCaseService.exportCheckedCase(ids,res);
 			return null;
 		} catch (Exception e) {
-			log.error("根据caseid导出当前下载失败原因：", e);
+			log.error("导出报错",e);
 			e.printStackTrace();
-			return new ResultVO(false, StatusCode.ERROR, "下载失败");
+			return new ResultVO(false, StatusCode.ERROR, "导出报错");
 		}
+			
 
 	}
 

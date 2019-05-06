@@ -3,6 +3,8 @@ package com.jettech.service;
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletResponse;
+
 import com.jettech.BizException;
 import com.jettech.EnumCompareDirection;
 import com.jettech.entity.QualityTestCase;
@@ -97,6 +99,8 @@ public interface ITestCaseService extends IService<TestCase, Integer> {
 //	Page<TestCase> findByTestSuiteIdNotInAndNameContaining(Integer testSuiteID, String name, Pageable pageable);
 
 	Page<TestCase> findALLBySuiteId(Integer testSuiteID, String name, Pageable pageable);
+
+	void exportCheckedCase(String ids, HttpServletResponse res);
 
 
 }

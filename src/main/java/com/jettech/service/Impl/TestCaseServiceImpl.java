@@ -1,5 +1,7 @@
 package com.jettech.service.Impl;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -7,16 +9,19 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.transaction.Transactional;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -653,21 +658,16 @@ public class TestCaseServiceImpl implements ITestCaseService {
 	 * }
 	 */
 
-	/*@Override
-	public Page<TestCase> findBySuiteId(Integer testSuiteID, Pageable pageable) {
-		Page<TestCase> list;
-		if (testSuiteID != null && testSuiteID > 0) {
-			list = caseRepository.findByTestSuiteId(testSuiteID, pageable);
-		} else {
-			list = caseRepository.findByTestSuiteIsNull(pageable);
-		}
-		if (list.getSize() > 0) {
-			return list;
-		} else {
-			return new PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0);
-		}
-
-	}*/
+	/*
+	 * @Override public Page<TestCase> findBySuiteId(Integer testSuiteID, Pageable
+	 * pageable) { Page<TestCase> list; if (testSuiteID != null && testSuiteID > 0)
+	 * { list = caseRepository.findByTestSuiteId(testSuiteID, pageable); } else {
+	 * list = caseRepository.findByTestSuiteIsNull(pageable); } if (list.getSize() >
+	 * 0) { return list; } else { return new PageImpl<TestCase>(new
+	 * ArrayList<TestCase>(), pageable, 0); }
+	 * 
+	 * }
+	 */
 
 	/**
 	 * 根据测试集名称查询所有案例 20190121
@@ -776,16 +776,14 @@ public class TestCaseServiceImpl implements ITestCaseService {
 		}
 	}
 
-	
-	
 	@Override
 	@Transactional
-	public void backDisorder(String testCaseIDS,Integer suiteId) {
+	public void backDisorder(String testCaseIDS, Integer suiteId) {
 		if (testCaseIDS != null) {
 			String[] ids = testCaseIDS.split(",");
 			for (String testCaseID : ids) {
 				Integer caseId = Integer.valueOf(testCaseID);
-				TestSuiteCase tsc=	testSuiteCaseRepository.findByCaseIdAndSuiteId(caseId,suiteId);
+				TestSuiteCase tsc = testSuiteCaseRepository.findByCaseIdAndSuiteId(caseId, suiteId);
 				testSuiteCaseRepository.delete(tsc);
 			}
 		} else {
@@ -1143,81 +1141,66 @@ public class TestCaseServiceImpl implements ITestCaseService {
 		return caseRepository.findByTestSuiteId(testSuiteID);
 	}
 
-	/*@Override
-	public Page<TestCase> findByTestSuiteIdNotInAndNameContaining(Integer testSuiteID, String name, Pageable pageable) {
-		Page<TestCase> list;
-		list = caseRepository.findByTestSuiteIdNotInAndNameContaining(testSuiteID, "%" + name + "%", pageable);
-		System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^");
-		return list;
-	}*/
-
-	/*@Override
-	public Page<TestCase> findBySuiteId(Integer testSuiteID, String name, Pageable pageable) {
-		Page<TestCase> list;
-		if (testSuiteID != null && testSuiteID > 0) {
-			if ("".equals(name)) {
-				list = caseRepository.findByTestSuiteId(testSuiteID, pageable);
-			} else {
-				list = caseRepository.findByTestSuiteIdAndNameContaining(testSuiteID, name, pageable);
-			}
-
-		} else {
-			if ("".equals(name)) {
-				list = caseRepository.findByTestSuiteIsNull(pageable);
-			} else {
-				list = caseRepository.findByTestSuiteIsNullAndNameContaining(name, pageable);
-			}
-
-		}
-		if (list.getSize() > 0) {
-			return list;
-		} else {
-			return new PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0);
-		}
-
-	}*/
-
-	/* 右侧案例
-	 * @see com.jettech.service.ITestCaseService#findBySuiteId(java.lang.Integer, java.lang.String, org.springframework.data.domain.Pageable)
+	/*
+	 * @Override public Page<TestCase>
+	 * findByTestSuiteIdNotInAndNameContaining(Integer testSuiteID, String name,
+	 * Pageable pageable) { Page<TestCase> list; list =
+	 * caseRepository.findByTestSuiteIdNotInAndNameContaining(testSuiteID, "%" +
+	 * name + "%", pageable); System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^");
+	 * return list; }
 	 */
-	/*@Override
-	public Page<TestCase> findBySuiteId(Integer testSuiteID, String name, Pageable pageable) {
-		Page<TestCase> list;
-		if (name==null||name.equals("")) {
-			// 名称为空时右侧的所有案例
-			list = caseRepository.findByTestSuiteId(testSuiteID, pageable);
-		} else {
-			// 右侧根据id，名称查询所有
-			list = caseRepository.findByTestSuiteIdAndNameContaining(testSuiteID, name, pageable);
-		}
-		if (list != null && list.getSize() > 0) {
-			return list;
-		} else {
-			return new PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0);
-		}
-	}*/
+
+	/*
+	 * @Override public Page<TestCase> findBySuiteId(Integer testSuiteID, String
+	 * name, Pageable pageable) { Page<TestCase> list; if (testSuiteID != null &&
+	 * testSuiteID > 0) { if ("".equals(name)) { list =
+	 * caseRepository.findByTestSuiteId(testSuiteID, pageable); } else { list =
+	 * caseRepository.findByTestSuiteIdAndNameContaining(testSuiteID, name,
+	 * pageable); }
+	 * 
+	 * } else { if ("".equals(name)) { list =
+	 * caseRepository.findByTestSuiteIsNull(pageable); } else { list =
+	 * caseRepository.findByTestSuiteIsNullAndNameContaining(name, pageable); }
+	 * 
+	 * } if (list.getSize() > 0) { return list; } else { return new
+	 * PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0); }
+	 * 
+	 * }
+	 */
+
+	/*
+	 * 右侧案例
+	 * 
+	 * @see com.jettech.service.ITestCaseService#findBySuiteId(java.lang.Integer,
+	 * java.lang.String, org.springframework.data.domain.Pageable)
+	 */
+	/*
+	 * @Override public Page<TestCase> findBySuiteId(Integer testSuiteID, String
+	 * name, Pageable pageable) { Page<TestCase> list; if
+	 * (name==null||name.equals("")) { // 名称为空时右侧的所有案例 list =
+	 * caseRepository.findByTestSuiteId(testSuiteID, pageable); } else { //
+	 * 右侧根据id，名称查询所有 list =
+	 * caseRepository.findByTestSuiteIdAndNameContaining(testSuiteID, name,
+	 * pageable); } if (list != null && list.getSize() > 0) { return list; } else {
+	 * return new PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0); } }
+	 */
 
 	/**
 	 * 左侧的案例
 	 *//*
-	@Override
-	public Page<TestCase> findALLBySuiteId(Integer testSuiteID, String name, Pageable pageable) {
-		Page<TestCase> list;
-		if (StringUtils.isBlank(name)) {
-			// 名称为空，根据案例ID查询所有
-			list = caseRepository.findByTestSuiteNotContain(testSuiteID, pageable);
-		} else {
-			// 名称不为空，根据三个条件查询所有
-		list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, "%"+name+"%", pageable);
-//			list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, name, pageable);
-		}
-
-		if (list != null && list.getSize() > 0) {
-			return list;
-		} else {
-			return new PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0);
-		}
-	}*/
+		 * @Override public Page<TestCase> findALLBySuiteId(Integer testSuiteID, String
+		 * name, Pageable pageable) { Page<TestCase> list; if
+		 * (StringUtils.isBlank(name)) { // 名称为空，根据案例ID查询所有 list =
+		 * caseRepository.findByTestSuiteNotContain(testSuiteID, pageable); } else { //
+		 * 名称不为空，根据三个条件查询所有 list =
+		 * caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID,
+		 * "%"+name+"%", pageable); // list =
+		 * caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, name,
+		 * pageable); }
+		 * 
+		 * if (list != null && list.getSize() > 0) { return list; } else { return new
+		 * PageImpl<TestCase>(new ArrayList<TestCase>(), pageable, 0); } }
+		 */
 	/**
 	 * 左侧的案例
 	 */
@@ -1229,7 +1212,7 @@ public class TestCaseServiceImpl implements ITestCaseService {
 			list = caseRepository.findByTestSuiteNotContain(testSuiteID, pageable);
 		} else {
 			// 名称不为空，根据三个条件查询所有
-		list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, "%"+name+"%", pageable);
+			list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, "%" + name + "%", pageable);
 //			list = caseRepository.findByTestSuiteIsNullAndNameContaining(testSuiteID, name, pageable);
 		}
 
@@ -1240,9 +1223,11 @@ public class TestCaseServiceImpl implements ITestCaseService {
 		}
 	}
 
-	
-	/* 右侧案例
-	 * @see com.jettech.service.ITestCaseService#findBySuiteId(java.lang.Integer, java.lang.String, org.springframework.data.domain.Pageable)
+	/*
+	 * 右侧案例
+	 * 
+	 * @see com.jettech.service.ITestCaseService#findBySuiteId(java.lang.Integer,
+	 * java.lang.String, org.springframework.data.domain.Pageable)
 	 */
 	@Override
 	public Page<TestCase> findBySuiteId(Integer testSuiteID, String name, Pageable pageable) {
@@ -1252,7 +1237,7 @@ public class TestCaseServiceImpl implements ITestCaseService {
 			list = caseRepository.findByTestSuiteId(testSuiteID, pageable);
 		} else {
 			// 右侧根据id，名称查询所有
-			list = caseRepository.findByTestSuiteIdAndNameContaining(testSuiteID, "%"+name+"%", pageable);
+			list = caseRepository.findByTestSuiteIdAndNameContaining(testSuiteID, "%" + name + "%", pageable);
 		}
 		if (list != null && list.getSize() > 0) {
 			return list;
@@ -1276,6 +1261,145 @@ public class TestCaseServiceImpl implements ITestCaseService {
 		}
 
 	}
-	
-	
+
+	@Override
+	public void exportCheckedCase(String ids, HttpServletResponse res) {
+		// 找到导出的数据、封装
+		List<TestCase> list = findByCaseIds(ids);
+		List<TestCaseVO> voList = convertToVoList(list);
+		// 创建表格等到处环境
+		HSSFWorkbook workbook = new HSSFWorkbook();
+		String sheetName = "testCase";
+		HSSFSheet sheet = workbook.createSheet(sheetName);
+		// 设置表头内容
+		setHeaderContent(sheet);
+		// 设置表格内容
+		createTableContent(sheet, voList);
+		// 导出
+		export(workbook, res);
+	}
+
+	private void export(HSSFWorkbook workbook, HttpServletResponse res) {
+		String fileName = "testCase" + ".xls";
+		res.reset();
+		res.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+		res.setHeader("Access-Control-Allow-Origin", "*");// 允许跨域请求
+
+		try {
+			OutputStream os = res.getOutputStream();
+			res.addHeader("Content-Disposition",
+					"attachment;fileName=" + java.net.URLEncoder.encode(fileName, "UTF-8"));
+			workbook.write(os);
+			os.flush();
+			os.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	private void createTableContent(HSSFSheet sheet, List<TestCaseVO> voList) {
+		int rowIndex = 1;
+		for (TestCaseVO vo : voList) {
+			HSSFRow rowItem = sheet.createRow(rowIndex++);
+			if (StringUtils.isNotBlank(vo.getId().toString())) {
+				// 设置单元格的值
+				rowItem.createCell(0).setCellValue(vo.getId().toString());
+			} else {
+				rowItem.createCell(0).setCellValue("null");
+			}
+			rowItem.createCell(1).setCellValue(vo.getName());
+			if (vo.getCaseType() != null) {
+				rowItem.createCell(2).setCellValue(vo.getCaseType().toString());
+			}
+			if (vo.getMaxResultRows() != null) {
+				rowItem.createCell(3).setCellValue(vo.getMaxResultRows());
+			} else {
+				rowItem.createCell(3).setCellValue("null");
+
+			}
+			if (StringUtils.isNotBlank(vo.getSourceDataSourceName())) {
+				rowItem.createCell(4).setCellValue(vo.getSourceDataSourceName());
+			} else {
+				rowItem.createCell(4).setCellValue("null");
+
+			}
+			if (StringUtils.isNotBlank(vo.getTargetDataSourceName())) {
+				rowItem.createCell(5).setCellValue(vo.getTargetDataSourceName());
+			} else {
+				rowItem.createCell(5).setCellValue("null");
+
+			}
+			if (vo.getVersion() != null) {
+				rowItem.createCell(6).setCellValue(vo.getVersion());
+			} else {
+				rowItem.createCell(6).setCellValue("null");
+
+			}
+			if (vo.getCreateUser() != null) {
+				rowItem.createCell(7).setCellValue(vo.getCreateUser());
+			} else {
+				rowItem.createCell(7).setCellValue("null");
+
+			}
+			if (vo.getEditUser() != null) {
+				rowItem.createCell(8).setCellValue(vo.getEditUser());
+			} else {
+				rowItem.createCell(8).setCellValue("null");
+
+			}
+			if (StringUtils.isNotBlank(vo.getCreateTime().toString())) {
+				rowItem.createCell(9).setCellValue(vo.getCreateTime().toString());
+			} else {
+				rowItem.createCell(9).setCellValue("null");
+			}
+			if (StringUtils.isNotBlank(vo.getEditTime().toString())) {
+				rowItem.createCell(10).setCellValue(vo.getEditTime().toString());
+			} else {
+				rowItem.createCell(10).setCellValue("null");
+			}
+
+		}
+
+	}
+
+	private void setHeaderContent(HSSFSheet sheet) {
+		HSSFRow header = sheet.createRow(0);
+		header.createCell(0).setCellValue("id");
+		header.createCell(1).setCellValue("名称");
+		header.createCell(2).setCellValue("类型");
+		header.createCell(3).setCellValue("最大结果数");
+		header.createCell(4).setCellValue("源查询数据源");
+		header.createCell(5).setCellValue("目标查询数据源");
+		header.createCell(6).setCellValue("版本");
+		header.createCell(7).setCellValue("创建人");
+		header.createCell(8).setCellValue("修改人");
+		header.createCell(9).setCellValue("创建时间");
+		header.createCell(10).setCellValue("修改时间");
+	}
+
+	private List<TestCaseVO> convertToVoList(List<TestCase> list) {
+		ArrayList<TestCaseVO> voList = new ArrayList<TestCaseVO>();
+		for (TestCase testCase : list) {
+			TestCaseVO vo = new TestCaseVO(testCase);
+			voList.add(vo);
+		}
+		return voList;
+	}
+
+	private List<TestCase> findByCaseIds(String ids) {
+		List<TestCase> list=new ArrayList<TestCase>();
+		if (StringUtils.isNotBlank(ids)) {
+			String[] testCaseIds = ids.split(",");
+			for (String testCaseId : testCaseIds) {
+				int caseId = Integer.parseInt(testCaseId);
+				TestCase testCase = caseRepository.findById(caseId).get();
+				list.add(testCase);
+			}
+		} else {
+			list = caseRepository.findAll();
+		}
+		return list;
+	}
+
 }

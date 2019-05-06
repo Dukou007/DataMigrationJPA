@@ -900,6 +900,11 @@ return message;
 	
 	@Override
 	public void delOneDatasource(int data_source_id) throws SQLException {
+		List<DataSchema> dataSchemas=testDatabaseRepository.findByForeignKey(data_source_id);
+		for(DataSchema dataSchema:dataSchemas){
+			dataSchema.setDataSource(null);
+			testDatabaseRepository.save(dataSchema);
+		}
 		repository.deleteById(data_source_id);
 	}
 

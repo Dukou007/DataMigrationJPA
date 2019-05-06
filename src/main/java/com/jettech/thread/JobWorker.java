@@ -41,6 +41,7 @@ import com.jettech.entity.TestRound;
 import com.jettech.service.IQualityTestResultService;
 import com.jettech.service.ITestReusltService;
 import com.jettech.service.ModelTestResultService;
+import com.jettech.service.WebSocketService;
 import com.jettech.service.Impl.ModelTestResultServiceImpl;
 import com.jettech.service.Impl.QualityTestResultServiceImpl;
 import com.jettech.service.Impl.TestResultServiceImpl;
@@ -506,9 +507,13 @@ public class JobWorker implements Runnable {
 		final CountDownLatch latch = new CountDownLatch(3);
 		// QualityTestResult testReulst =null;
 		// 更新结果状态
+		
 		this.testResult.setExecState(EnumExecuteStatus.Executing);
 		this.testResult.setStartTime(new Date());
 		this.testResultService.save(testResult);
+		
+		WebSocketService.sendMsgToAll("开始进行比较:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
+				+ DateUtil.getEclapsedTimesStr(start));
 
 		// 结果明细队列
 		BlockingQueue<TestResultItem> itemQueue = new LinkedBlockingQueue<>();
@@ -521,7 +526,7 @@ public class JobWorker implements Runnable {
 		Thread sourceThread = new Thread(sourceDataWorker);
 		sourceThread.setName("S.DT:" + testCase.getName());
 		sourceThread.start();
-
+		WebSocketService.sendMsgToAll("获取目标数据中:" + testResult.getId() + " 案例:" + testCase.getName());
 		// 启动获取目标数据的进程
 		BlockingQueue<BaseData> targetQueue = new LinkedBlockingQueue<>(maxPagesInQueue);
 		CommonDataWorker targetDataWorker = new CommonDataWorker(targetQueue, testCase.getTargetQuery());
@@ -531,13 +536,13 @@ public class JobWorker implements Runnable {
 
 		sourceThread.join();
 		targetThread.join();
-
+		WebSocketService.sendMsgToAll("启动写主结果记录进程:" + testResult.getId() + " 案例:" + testCase.getName());
 		// 启动写主结果记录进程
 		TestResultWorker resultWorker = new TestResultWorker(itemQueue);
 		Thread resultThread = new Thread(resultWorker);
 		resultThread.setName("Item:" + testCase.getName());
 		resultThread.start();
-
+		WebSocketService.sendMsgToAll("比较线程执行中:" + testResult.getId() + " 案例:" + testCase.getName() );
 		// 比较操作
 		CommonTestWorker worker = new CommonTestWorker(sourceQueue, targetQueue, itemQueue, testCase);
 		// worker.compare();//使用当前线程进行执行，不新开子线程
@@ -547,6 +552,8 @@ public class JobWorker implements Runnable {
 
 		compareThread.join();
 		resultThread.join();
+		WebSocketService.sendMsgToAll("执行结果详情写入中:" + testResult.getId() + " 案例:" + testCase.getName() );
+		// 比较操作
 		// 等待结果详情写完
 		// while (!itemQueue.isEmpty()) {
 		// try {
@@ -559,6 +566,8 @@ public class JobWorker implements Runnable {
 		updateTestResult(testCase.getTestResult());
 
 		logger.info("Job is end.结果:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
+				+ DateUtil.getEclapsedTimesStr(start));
+		WebSocketService.sendMsgToAll("Job is end.结果:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
 				+ DateUtil.getEclapsedTimesStr(start));
 	}
 
@@ -607,12 +616,13 @@ public class JobWorker implements Runnable {
 		this.testResult.setExecState(EnumExecuteStatus.Executing);
 		this.testResult.setStartTime(new Date());
 		this.testResultService.save(testResult);
-
+		WebSocketService.sendMsgToAll("开始进行比较:" + testResult.getId() + " 案例:" + testCase.getName());
 		// 结果明细队列
 		BlockingQueue<TestResultItem> itemQueue = new LinkedBlockingQueue<>();
-
+       
 		// 启动写主结果记录进程
 		// 启动写主结果记录进程
+		WebSocketService.sendMsgToAll("启动写主结果记录进程:" + testResult.getId() + " 案例:" + testCase.getName() );
 		TestResultWorker resultWorker = new TestResultWorker(itemQueue);
 		Thread resultThread = new Thread(resultWorker);
 		resultThread.setName("Result:" + testCase.getName());
@@ -620,6 +630,7 @@ public class JobWorker implements Runnable {
 
 		// 启动获取数据的进程(读取源数据和对应的目标数据)
 		// 创建存储源数据的队列，默认大小为5
+		WebSocketService.sendMsgToAll("启动获取数据的进程:" + testResult.getId() + " 案例:" + testCase.getName());
 		BlockingQueue<BaseData> dataQueue = new LinkedBlockingQueue<>(maxPagesInQueue);
 		UnionDataWorker unionDataWorker = new UnionDataWorker(dataQueue, testCase, testCase.getPageSize(),
 				testCase.getTargetQuery());
@@ -629,6 +640,7 @@ public class JobWorker implements Runnable {
 
 		// 比较操作
 		// testCase.get
+		WebSocketService.sendMsgToAll("进行比较操作中:" + testResult.getId() + " 案例:" + testCase.getName());
 		UnionTestWorker worker = new UnionTestWorker(dataQueue, itemQueue, testCase);
 		Thread compareThread = new Thread(worker);
 		compareThread.setName("compare." + testCase.getName());
@@ -637,10 +649,12 @@ public class JobWorker implements Runnable {
 		dataThread.join();
 		compareThread.join();
 		resultThread.join();
-        
+		WebSocketService.sendMsgToAll("比较结果详情写入线程启动:" + testResult.getId() + " 案例:" + testCase.getName());
 		updateUnionTestResult(testCase.getTestResult());
 
 		logger.info("Job is end.结果:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
+				+ DateUtil.getEclapsedTimesStr(start));
+		WebSocketService.sendMsgToAll("Job is end.结果:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
 				+ DateUtil.getEclapsedTimesStr(start));
 	}
 

@@ -3,7 +3,6 @@ package com.jettech.service.Impl;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -20,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import com.jettech.BizException;
 import com.jettech.domain.CaseModel;
+import com.jettech.domain.CompareCaseModel;
 import com.jettech.domain.QualityTestCaseModel;
 import com.jettech.entity.Product;
 import com.jettech.entity.QualityTestCase;
@@ -116,32 +116,38 @@ public class TestSuiteServiceImpl implements TestSuiteService {
 		}
 		List<CaseModel> caseModelList = new ArrayList<>();
 		ArrayList<TestCase> caseList = new ArrayList<TestCase>();
-		Integer[] caseIds = testSuiteCaseRepository.findCaseIdsBysuiteId(testSuiteId);
-		for (Integer caseId : caseIds) {
-			TestCase testCase = testCaseRepository.getOne(caseId);
-			caseList.add(testCase);
-		}
-		for (TestCase testCase : caseList) {
-			CaseModel caseModel;
-			try {
-				caseModel = new CaseModel(testCase);
-				caseModel.setId(testCase.getId());
-				caseModel.setName(testCase.getName());
-				caseModelList.add(caseModel);
-			} catch (Exception e) {
-				e.printStackTrace();
-				logger.error("cast testCase to model error." + testCase.getId() + "_" + testCase.getName());
+		
+		if(testSuite.getType()==0){//迁移
+			Integer[] caseIds = testSuiteCaseRepository.findCaseIdsBysuiteId(testSuiteId);
+			for (Integer caseId : caseIds) {
+				TestCase testCase = testCaseRepository.getOne(caseId);
+				caseList.add(testCase);
 			}
-			// 特殊的：以下属性不能复制,手工复制一次(暂未查明原因)
+			for (TestCase testCase : caseList) {
+				try {
+						CaseModel caseModel;
+						caseModel = new CompareCaseModel(testCase);
+						caseModel.setId(testCase.getId());
+						caseModel.setName(testCase.getName());
+						caseModel.setTestCaseType(testCase.getCaseType());
+						caseModelList.add(caseModel);
+				} catch (Exception e1) {
+					e1.printStackTrace();
+					logger.error("cast testCase to model error." + testCase.getId() + "_" + testCase.getName());
+				}
+				// 特殊的：以下属性不能复制,手工复制一次(暂未查明原因)
+				
+			}
+			ExecutorService executor = null;
+			executor = Executors.newFixedThreadPool(5);// 线程数量
+			for (CaseModel caseModel : caseModelList) {
+				JobWorker job = new JobWorker(caseModel);
+				executor.execute(job);
+			}
+			executor.shutdown();
+		}else if(testSuite.getType()==1){//质量
+			doQualityTestSuite(testSuiteId);
 		}
-		ExecutorService executor = null;
-		executor = Executors.newFixedThreadPool(5);// 线程数量
-		for (CaseModel caseModel : caseModelList) {
-			JobWorker job = new JobWorker(caseModel);
-			executor.execute(job);
-		}
-		executor.shutdown();
-
 		return null;
 	}
 
@@ -358,15 +364,18 @@ public class TestSuiteServiceImpl implements TestSuiteService {
 			return "not found testSuite id:" + testSuiteId;
 		}
 		List<QualityTestCaseModel> qualityCaseModelList = new ArrayList<>();
-		if (testSuite.getQualityTestCases().size() == 0) {
+		List<QualityTestCase> qualityTestCases=qualityTestCaseRepository.findBySuiteId(testSuiteId);
+		if (qualityTestCases.size() == 0) {
 			return "is not qualityTestCases:" + testSuiteId;
 		}
-		for (QualityTestCase qualityTestCase : testSuite.getQualityTestCases()) {
+		for (QualityTestCase qualityTestCase : qualityTestCases) {
 			QualityTestCaseModel qualityCaseModel;
 			try {
 				qualityCaseModel = new QualityTestCaseModel(qualityTestCase);
 				qualityCaseModel.setId(qualityTestCase.getId());
 				qualityCaseModel.setName(qualityTestCase.getName());
+				//测试集id添加进质量模型
+				qualityCaseModel.setTestSuiteId(testSuiteId);
 				qualityCaseModelList.add(qualityCaseModel);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -410,7 +419,6 @@ public class TestSuiteServiceImpl implements TestSuiteService {
 	@Transactional
 	public String doFalseQualityTestSuite(List<QualityTestCase> qualityTestCases, TestSuite testSuite) {
 		List<QualityTestCaseModel> qualityCaseModelList = new ArrayList<>();
-		int test_case_id = qualityTestCases.get(0).getId();
 		for (QualityTestCase qualityTestCase : qualityTestCases) {
 			QualityTestCaseModel qualityCaseModel;
 			try {

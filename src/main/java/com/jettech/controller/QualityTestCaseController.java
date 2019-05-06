@@ -9,7 +9,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.UUID;
 
 import javax.persistence.criteria.CriteriaBuilder;
@@ -19,7 +18,6 @@ import javax.persistence.criteria.Root;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.camel.model.loadbalancer.RandomLoadBalancerDefinition;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
@@ -33,7 +31,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -44,7 +41,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jettech.BizException;
-import com.jettech.entity.DataField;
 import com.jettech.entity.DataSource;
 import com.jettech.entity.QualityTestCase;
 import com.jettech.entity.QualityTestQuery;
@@ -650,7 +646,13 @@ public class QualityTestCaseController {
 	 * @return
 	 */
 	@RequestMapping(value = "changeTestCasePosition", method = RequestMethod.PUT)
-	public ResultVO changeTestCasePosition(@RequestParam Integer caseId, @RequestParam Integer suiteId) {
+	public ResultVO changeTestCasePosition(@RequestBody Map<String,Object> map) {
+		List<Integer> caseId = null;
+		Integer suiteId = 0;
+		if(map.containsKey("caseId") && map.containsKey("suiteId")){
+			caseId = (List<Integer>)map.get("caseId");
+			suiteId = (Integer) map.get("suiteId");
+		}
 		try {
 			qualityTestCaseService.changeTestCasePosition(caseId, suiteId);
 			return new ResultVO(true, StatusCode.OK, "转移成功");
@@ -660,13 +662,21 @@ public class QualityTestCaseController {
 			return new ResultVO(false, StatusCode.ERROR, "转移失败");
 		}
 	}
-	/**返回无序状态
+
+	/**
+	 * 把案例移出指点集合
 	 * @param caseId
 	 * @param suiteId
 	 * @return
 	 */
 	@RequestMapping(value = "backDisorder", method = RequestMethod.PUT)
-	public ResultVO backDisorder(@RequestParam Integer caseId, @RequestParam Integer suiteId) {
+	public ResultVO backDisorder(@RequestBody Map<String,Object> map) {
+		List<Integer> caseId = null;
+		Integer suiteId = 0;
+		if(map.containsKey("caseId") && map.containsKey("suiteId")){
+			caseId = (List<Integer>)map.get("caseId");
+			suiteId = (Integer) map.get("suiteId");
+		}
 		try {
 			qualityTestCaseService.backDisorder(caseId, suiteId);
 			return new ResultVO(true, StatusCode.OK, "转移成功");
@@ -676,8 +686,97 @@ public class QualityTestCaseController {
 			return new ResultVO(false, StatusCode.ERROR, "转移失败");
 		}
 	}
-	
-	
-	
+
+
+	/**
+	 * 所有可用案例，不在该测试集下的（可以按名称模糊查询）
+	 * @param suiteId
+	 * @param name
+	 * @param pageNum
+	 * @param pageSize
+	 * @return
+	 */
+	@RequestMapping(method = RequestMethod.GET, value = "selectCaseByName")
+	public ResultVO selectCaseByName(
+		@RequestParam(value = "testSuiteID") Integer suiteId,
+		@RequestParam(value = "name", required = false) String name,
+		@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
+		@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize){
+		try {
+			if (suiteId == 0) {
+				throw new BizException("查询的ID不存在");
+			}
+			Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
+			Map<String,Object> map = new HashMap();
+			Page<QualityTestCase> qualityTestCase;
+			if(name == "" || name.equals("")){
+				 qualityTestCase = qualityTestCaseService.findByNotSuiteId(suiteId,pageable);
+			}else{
+				 qualityTestCase = qualityTestCaseService.findByNotCaseName(suiteId,name,pageable);
+			}
+			List<QualityTestCaseVO> list = new ArrayList();
+			for (QualityTestCase s : qualityTestCase) {
+				QualityTestCaseVO qualityCase = new QualityTestCaseVO(s);
+				list.add(qualityCase);
+			}
+			map.put("totalElements", qualityTestCase.getTotalElements());
+			map.put("totalPages", qualityTestCase.getTotalPages());
+			map.put("list", list);
+			return new ResultVO(true, StatusCode.OK, "查询成功", map);
+		} catch (Exception e) {
+			log.error("根据测试集ID和案例名称查询失败：" + suiteId, e);
+			e.printStackTrace();
+			return new ResultVO(false, StatusCode.ERROR, "查询失败");
+		}
+	}
+
+	/**
+	 * 测试集下所有案例（可以按名称模糊搜索）
+	 * @param suiteId
+	 * @param name
+	 * @param pageNum
+	 * @param pageSize
+	 * @return
+	 */
+	@RequestMapping(method = RequestMethod.GET, value = "getCaseByName")
+	public ResultVO selectByName(
+		@RequestParam(value = "testSuiteID") Integer suiteId,
+		@RequestParam(value = "name", required = false) String name,
+		@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
+		@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize){
+		try {
+			if (suiteId == 0) {
+				throw new BizException("查询的ID不存在");
+			}
+			Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
+			Map<String,Object> map = new HashMap();
+			Page<QualityTestCase> qualityTestCase;
+			if(name == "" || name.equals("")){
+				qualityTestCase = qualityTestCaseService.findCaseBySuiteId(suiteId,pageable);
+			}else{
+				qualityTestCase = qualityTestCaseService.findByCaseName(suiteId,name,pageable);
+			}
+			List<QualityTestCaseVO> list = new ArrayList();
+			for (QualityTestCase s : qualityTestCase) {
+				QualityTestCaseVO qualityCase = new QualityTestCaseVO(s);
+				list.add(qualityCase);
+			}
+			map.put("totalElements", qualityTestCase.getTotalElements());
+			map.put("totalPages", qualityTestCase.getTotalPages());
+			map.put("list", list);
+			return new ResultVO(true, StatusCode.OK, "查询成功", map);
+		} catch (Exception e) {
+			log.error("根据测试集ID和案例名称查询失败：" + suiteId, e);
+			e.printStackTrace();
+			return new ResultVO(false, StatusCode.ERROR, "查询失败");
+		}
+	}
+
+
+
+
+
+
+
 
 }

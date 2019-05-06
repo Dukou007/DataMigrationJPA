@@ -20,6 +20,8 @@ public class QualityTestCase extends BaseEntity {
 	private QualityTestQuery qualityTestQuery;
 	//多对多案例对测试集
 	private List<TestSuite> testSuites;
+	
+	private String caseCode;//案例编号
 
 //	@ManyToOne
 	//@JoinColumn(name="quality_test_suite_id")
@@ -107,5 +109,15 @@ public class QualityTestCase extends BaseEntity {
 
 	public void setTestSuites(List<TestSuite> testSuites) {
 		this.testSuites = testSuites;
+	}
+
+
+	public String getCaseCode() {
+		return caseCode;
+	}
+
+
+	public void setCaseCode(String caseCode) {
+		this.caseCode = caseCode;
 	}
 }
