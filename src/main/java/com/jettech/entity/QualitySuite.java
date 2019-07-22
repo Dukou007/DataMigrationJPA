@@ -19,9 +19,9 @@ public class QualitySuite extends BaseEntity {
 	private static final long serialVersionUID = 4196139070106925218L;
 	private List<QualityRule> qualityRules;
 	private List<QualityTestPoint> qualityTestPoints;
-	private Integer leftValue;
-	private Integer rightValue;
-	private String AndOr;
+	private Integer leftValue;//废弃字段 --相关字段放到了规则表中
+	private Integer rightValue;//废弃字段--相关字段放到了规则表中
+	private String AndOr;//废弃字段--相关字段放到了规则表中
 	private String name;
 
 	public Integer getLeftValue() {

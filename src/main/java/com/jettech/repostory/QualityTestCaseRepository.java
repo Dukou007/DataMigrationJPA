@@ -1,5 +1,6 @@
 package com.jettech.repostory;
 
+import com.jettech.EnumExecuteStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -107,29 +108,34 @@ public interface QualityTestCaseRepository
 	@Query(value = "SELECT * FROM quality_test_case t WHERE t.id= ?1 AND t.test_suite_id=?2", nativeQuery = true)
 	QualityTestCase findByCaseIdAndSuiteId(Integer caseId, Integer suiteId);
 
-	//// 根据测试集id以及轮次id查询失败案例
+	//// 根据测试集id以及轮次id查询失败案例 0表示失败false
 	@Query(value = "select  distinct t.*  from quality_test_case t inner  JOIN quality_test_result r on  t.id=r.test_case_id inner join test_round d on"
 			+ " r.test_round_id=d.id  inner join test_suite s on d.test_suite_id=s.id inner join suite_quality_case e on e.quality_test_case_id=t.id "
-			+ " WHERE  r.result<>'true' and e.test_suite_id=?1 and d.id=?2", nativeQuery = true)
+			+ " WHERE  r.result=0 and e.test_suite_id=?1 and d.id=?2", nativeQuery = true)
 	List<QualityTestCase> findByTestSuitIdAndRoundId(Integer test_suite_id, Integer test_round_id);
 
 	//根据测试集id查询不在其中的案例 int suiteId, Pageable pageable
 	@Query(value = "select t.*  from quality_test_case t where t.id not in (select quality_test_case_id from suite_quality_case where test_suite_id = ?1)",
-			countQuery = "select count(*) from quality_test_case t where t.id not in (select quality_test_case_id from quality_suite_case where test_suite_id = ?1)", nativeQuery = true)
+			countQuery = "select count(*) from quality_test_case t where t.id not in (select quality_test_case_id from suite_quality_case where test_suite_id = ?1)", nativeQuery = true)
 	Page<QualityTestCase> findByNotSuiteId(Integer suiteId,Pageable pageable);
 
 	//查询不在该测试集下的所有名称的案例
 	@Query(value = "select t.*  from quality_test_case t where t.id not in (select quality_test_case_id from suite_quality_case where test_suite_id = ?1) and t.name LIKE CONCAT('%',?2,'%')",
-			countQuery = "select count(*) from quality_test_case t where t.id not in (select quality_test_case_id from quality_suite_case where test_suite_id = ?1) and t.name LIKE CONCAT('%',?2,'%')", nativeQuery = true)
+			countQuery = "select count(*) from quality_test_case t where t.id not in (select quality_test_case_id from suite_quality_case where test_suite_id = ?1) and t.name LIKE CONCAT('%',?2,'%')", nativeQuery = true)
 	Page<QualityTestCase> findByNotCaseName(Integer suiteId,String name,Pageable pageable);
 
 	//查询案例根据测试集Id
 	@Query(value = "select t.*  from quality_test_case t where t.id in (select quality_test_case_id from suite_quality_case where test_suite_id = ?1 )",
-			countQuery = "select count(*) from quality_test_case t where t.id in (select quality_test_case_id from quality_suite_case where test_suite_id = ?1)", nativeQuery = true)
+			countQuery = "select count(*) from quality_test_case t where t.id in (select quality_test_case_id from suite_quality_case where test_suite_id = ?1)", nativeQuery = true)
 	Page<QualityTestCase> findCaseBySuiteId(Integer suiteId,Pageable pageable);
+	
+	//查询所属案例根据轮次Id
+	@Query(value = "select * FROM quality_test_case  WHERE id  IN ( SELECT quality_test_case_id FROM suite_quality_case  WHERE test_suite_id in (select test_suite_id from test_round where id=?1))", 
+			countQuery = "select count(*) FROM quality_test_case  WHERE id  IN ( SELECT quality_test_case_id FROM suite_quality_case  WHERE test_suite_id in (select test_suite_id from test_round where id=?1))", nativeQuery = true)
+	Page<QualityTestCase> findCaseByTestRoundId(@Param("suiteId")Integer suiteId, Pageable pageable);
 
 	@Query(value = "select t.*  from quality_test_case t where t.id in (select quality_test_case_id from suite_quality_case where test_suite_id = ?1 ) and t.name LIKE CONCAT('%',?2,'%')",
-			countQuery = "select count(*) from quality_test_case t where t.id in (select quality_test_case_id from quality_suite_case where test_suite_id = ?1) and t.name LIKE CONCAT('%',?2,'%')", nativeQuery = true)
+			countQuery = "select count(*) from quality_test_case t where t.id in (select quality_test_case_id from suite_quality_case where test_suite_id = ?1) and t.name LIKE CONCAT('%',?2,'%')", nativeQuery = true)
 	Page<QualityTestCase> findCaseByName(Integer suiteId,String name,Pageable pageable);
 
 

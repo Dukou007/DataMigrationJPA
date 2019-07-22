@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,7 +39,9 @@ public interface TestResultItemRepository extends JpaRepository<TestResultItem, 
     @Transactional(timeout=300000)
 	@Query(value="SELECT * FROM `test_result_item` t WHERE t.column_name =?1",countQuery="SELECT count(*) FROM `test_result_item` t WHERE t.column_name =?1",nativeQuery=true)
 	Page<TestResultItem> findByColumnName(String columnName, Pageable pageable);
-    
+	@Modifying
+	@Query(value = "DELETE FROM test_result_item  WHERE test_result_id = ?1", nativeQuery = true)
+	void deleteByResultId(int id);
   
     
     

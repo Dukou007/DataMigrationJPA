@@ -4,11 +4,13 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 
+import com.alibaba.fastjson.JSONObject;
 import com.jettech.EnumDatabaseType;
 import com.jettech.db.adapter.AbstractAdapter;
 import com.jettech.entity.DataSchema;
 import com.jettech.entity.DataSource;
 import com.jettech.entity.DataTable;
+import com.jettech.vo.DataSourceVO;
 import com.jettech.vo.ResultVO;
 import com.jettech.vo.SycData;
 
@@ -29,7 +31,10 @@ public interface IDataSourceService extends IService<DataSource, Integer> {
 			DataSchema dataSchema);
 	public String syncOneTableAndFiled(AbstractAdapter adapter,
 			Connection conn, DataTable exitsDataTable);
-	public void delOneDatasource(int data_source_id) throws SQLException;
+	public JSONObject delOneDatasource(int data_source_id) throws SQLException;
 
 	public boolean GetDBLink(DataSource ds) throws SQLException;
+	public String getUrl(DataSourceVO vo);
+	
+	Integer findDataSourceId(Integer id);
 }

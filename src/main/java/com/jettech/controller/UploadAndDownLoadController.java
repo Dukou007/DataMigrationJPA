@@ -3,8 +3,6 @@ package com.jettech.controller;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -13,7 +11,6 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -27,17 +24,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.jettech.EnumExecuteStatus;
-import com.jettech.entity.TestCase;
-import com.jettech.entity.TestResult;
 import com.jettech.entity.TestResultItem;
 import com.jettech.service.ITestCaseService;
 import com.jettech.service.ITestResultItemService;
 import com.jettech.service.ITestReusltService;
-import com.jettech.service.Impl.TestResultServiceImpl;
+import com.jettech.service.TestRoundService;
 import com.jettech.vo.ResultVO;
 import com.jettech.vo.StatusCode;
-import com.jettech.vo.TestResultVO;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
@@ -52,7 +45,8 @@ public class UploadAndDownLoadController {
 
 	@Autowired
 	private ITestResultItemService testRestltItemService;
-
+	@Autowired
+	TestRoundService testRoundService;
 	@Autowired
 	private ITestCaseService testCaseService;
 	@Autowired
@@ -107,28 +101,6 @@ public class UploadAndDownLoadController {
 
 	}
 
-	/**
-	 * @Description: 导入案例的case,返回结果为200成功
-	 * @tips: null;
-	 * @author: zhou_xiaolong in 2019年3月6日上午12:09:22
-	 * @param file
-	 * @param request
-	 * @return
-	 * @throws Exception
-	 *//*
-		 * @SuppressWarnings("unused")
-		 * 
-		 * @ResponseBody
-		 * 
-		 * @RequestMapping(value="/importCaseExcel",method=RequestMethod.POST)
-		 * 
-		 * @ApiOperation(value="导入案例的case,返回结果为200成功=") public
-		 * ResponseEntity<TestCaseVO> importCaseExcel(MultipartFile
-		 * file,HttpServletRequest request) throws Exception { // fileName && filePath
-		 * String excelFileName="D://logs//test.xlsx";
-		 * List<TestCaseVO>testCaseList=ExcelReaderTool.readExcel(excelFileName); return
-		 * new ResponseEntity<>(HttpStatus.OK); }
-		 */
 
 	/**
 	 * 导出当前页 resultItem数据到Excel,依据得是resultitem的ID查询的所有的resultItem
@@ -321,49 +293,37 @@ public class UploadAndDownLoadController {
 	@ResponseBody
 	@RequestMapping(value = "/downloadCheckedCaseConverToExcel", method = RequestMethod.GET)
 	public ResultVO downloadCheckedCaseConverToExcel(
-			@RequestParam(value = "ids", required = false, defaultValue = "") String ids, HttpServletResponse res)
-			{
+			@RequestParam(value = "ids", required = false, defaultValue = "") String ids, HttpServletResponse res) {
 		try {
-			testCaseService.exportCheckedCase(ids,res);
+			testCaseService.exportCheckedCase(ids, res);
 			return null;
 		} catch (Exception e) {
-			log.error("导出报错",e);
+			log.error("导出报错", e);
 			e.printStackTrace();
 			return new ResultVO(false, StatusCode.ERROR, "导出报错");
 		}
-			
 
 	}
 
 	/**
-	 * 导出执行结果
+	 * 根据结果的id导出执行结果；不选的话默认导出所有
 	 * 
-	 * @param testRoundId
+	 * @param testResultIds
 	 * @param res
 	 * @return
 	 */
 	@RequestMapping(value = "exportMigrationResult", method = RequestMethod.GET)
 	public ResultVO exportMigrationResult(@RequestParam String testResultIds, HttpServletResponse res) {
 		try {
-			if(StringUtils.isNotBlank(testResultIds)) {
-				String[] ids = testResultIds.split(",");
-				for (String testResultId : ids) {
-					int id = Integer.parseInt(testResultId);
-					List<TestResult> tr = testResultService.findByTestRoundId(id);
-					if(tr==null||tr.size()==0) {
-						return new ResultVO(false, StatusCode.ERROR, "没有这个执行结果："+id);
-					}else {
-						testResultService.exportMigrationResult(id, res);
-					}
-				}
-				return  null;
-			}else {
-				return new ResultVO(false, StatusCode.ERROR, "无对应的轮次id"+testResultIds);
+			if(testResultIds.length()==0) {
+				return new ResultVO(false, StatusCode.ERROR, "请选择一条数据");
 			}
+			testResultService.exportMigrationResult(testResultIds, res);
+			return new ResultVO(true, StatusCode.OK, "导出案例的执行结果成功");
 		} catch (Exception e) {
 			e.printStackTrace();
-			log.error("导出报错：", e);
-			return new ResultVO(false, StatusCode.ERROR, "导出失败" + e.getLocalizedMessage());
+			log.error("导出案例id为" + testResultIds + "的执行结果失败", e);
+			return new ResultVO(false, StatusCode.ERROR, "导出案例的执行结果失败");
 		}
 
 	}

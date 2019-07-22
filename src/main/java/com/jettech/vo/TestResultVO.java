@@ -229,7 +229,7 @@ public class TestResultVO extends BaseVO {
 				this.secordaryTable = testResult.getSecordaryTable();
 			}
 			if(testResult.getSourceCount()!=null&&testResult.getSourceCount()>0) {
-				this.notSameRow=testResult.getSourceCount()-testResult.getSameRow();
+				this.notSameRow=testResult.getNotSameRow();
 			}else {
 				this.notSameRow=0;
 				this.sourceCount=0;

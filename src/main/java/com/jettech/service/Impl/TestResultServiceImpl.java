@@ -1,8 +1,9 @@
 package com.jettech.service.Impl;
 
+import java.io.IOException;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,7 +26,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import com.jettech.BizException;
 import com.jettech.EnumExecuteStatus;
 import com.jettech.entity.TestCase;
 import com.jettech.entity.TestResult;
@@ -174,12 +174,12 @@ public class TestResultServiceImpl implements ITestReusltService {
 	}
 
 	@Override
-	public Page<TestResult> findBySourceDataSource(String dataSource, Pageable pageable) {
+	public Page<TestResult> findByCaseIdAndSourceDataSource(String caseId,String sourceData, Pageable pageable) {
 		Page<TestResult> list = null;
-		if (dataSource == null || dataSource.equals("")) {
-			list = repository.findAll(pageable);
-		} else {
-			list = repository.findbySourceDataSourceLike("%" + dataSource + "%", pageable);
+		if(sourceData==null ||sourceData.equals("") ) {
+			list=repository.findByCaseId(caseId, pageable);
+		}else {
+			list=repository.findByCaseIdAndSourceDataSource(caseId,"%"+sourceData+"%",pageable);
 		}
 		if (list != null && list.getSize() > 0) {
 			return list;
@@ -188,12 +188,12 @@ public class TestResultServiceImpl implements ITestReusltService {
 		}
 	}
 
-	public Page<TestResult> findByTargetDataSource(String dataSource, Pageable pageable) {
+	public Page<TestResult> findByCaseIdAndTargetDataSource(String caseId, String targetData, Pageable pageable) {
 		Page<TestResult> list = null;
-		if (dataSource == null || dataSource.equals("")) {
-			list = repository.findAll(pageable);
-		} else {
-			list = repository.findByTargetDateSourceLike("%" + dataSource + "%", pageable);
+		if(targetData==null ||targetData.equals("") ) {
+			list=repository.findByCaseId(caseId, pageable);
+		}else {
+			list=repository.findByCaseIdAndTargetDataSource(caseId,"%"+targetData+"%",pageable);
 		}
 		if (list != null && list.getSize() > 0) {
 			return list;
@@ -239,8 +239,9 @@ public class TestResultServiceImpl implements ITestReusltService {
 				if (StringUtils.isNotBlank(sourceData)) {
 					predicateList.add(criteriaBuilder.like(root.get("sourceData").as(String.class), sourceData));
 				}
-
-				return criteriaBuilder.and(predicateList.toArray(new Predicate[predicateList.size()]));
+				query.where(criteriaBuilder.and(predicateList.toArray(new Predicate[predicateList.size()])));
+				query.orderBy(criteriaBuilder.desc(root.get("startTime").as(String.class)));
+				return query.getRestriction();
 			}
 		};
 		testResultList = this.repository.findAll(specification, pageable);
@@ -252,80 +253,56 @@ public class TestResultServiceImpl implements ITestReusltService {
 		return repository.findByTestRoundId(testRoundId);
 	}
 
+	public TestResult findEndTimeByCaseId(Integer caseId) {
+		TestResult testResult = repository.findEndTimeByCaseId(caseId);
+		return testResult;
+	}
+
 	@Override
-	public void exportMigrationResult(Integer testRoundId, HttpServletResponse res) throws BizException {
-		List<TestResult> list = repository.findByTestRoundId(testRoundId);
-		ArrayList<TestResultVO> voList = new ArrayList<TestResultVO>();
-		HashMap<String, Object> map = new HashMap<String, Object>();
-		for (TestResult testResult : list) {
-			TestResultVO vo = new TestResultVO(testResult);
-			String id = testResult.getCaseId();
-			int caseId = Integer.parseInt(id);
-			TestCase testCase = testCaseRepository.getOne(caseId);
-			if (testCase == null || testCase.equals("")) {
-				throw new BizException("执行结果中不再在案例的id为" + caseId + "的案例");
-			}
-			vo.setCaseName(testCase.getName());
-			voList.add(vo);
-		}
-		for (TestResultVO vo : voList) {
-			// baseEntity
-			map.put("id", vo.getId());
-			map.put("createTime", vo.getCreateTime());
-			map.put("createUser", vo.getCreateUser());
-			map.put("editTime", vo.getEditTime());
-			map.put("editUser", vo.getEditUser());
-			// testresultvo
-			map.put("testRoundId", vo.getTestRoundId());
-			map.put("targetCount", vo.getTargetCount());
-			map.put("sourceCount", vo.getSourceCount());
-			map.put("execState", vo.getExecState());
-			map.put("startTime", vo.getStartTime());
-			map.put("endTime", vo.getEditTime());
-			map.put("result", vo.getResult());
-			map.put("sameRow", vo.getSameRow());
-			map.put("notSameRow", vo.getNotSameRow());
-			map.put("notSameData", vo.getNotSameData());
-			map.put("targetSql", vo.getTargetSql());
-			map.put("sourceSql", vo.getSourceSql());
-			map.put("sourceCol", vo.getSourceCol());
-			map.put("targetCol", vo.getTargetCol());
-			map.put("sourceKey", vo.getSourceKey());
-			map.put("targetKey", vo.getTargetKey());
-			map.put("targetData", vo.getTargetData());
-			map.put("sourceData", vo.getSourceData());
-			map.put("caseName", vo.getCaseName());
-		}
+	public List<Map<String, Object>> findTestCaseStatus(Integer caseId) {
+		return repository.findTestCaseStatus(caseId);
+	}
+
+	@Override
+	public void exportMigrationResult(String testResultIds, HttpServletResponse res) {
+		// 查找数据
+		List<TestResult> list = findByTestRoundIds(testResultIds);
+		// 封装数据
+		List<TestResultVO> voList = convertToVoList(list);
+		// 创建表格并写入
 		HSSFWorkbook workbook = new HSSFWorkbook();
-		String sheetName = "testResultItem";
+		String sheetName = "testResult";
 		HSSFSheet sheet = workbook.createSheet(sheetName);
-		// title row
-		HSSFRow header = sheet.createRow(0);
-		header.createCell(0).setCellValue("id");
-		header.createCell(1).setCellValue("轮次的id");
-		header.createCell(2).setCellValue("目标数据总量");
-		header.createCell(3).setCellValue("源数据总量");
-		header.createCell(4).setCellValue("执行状态");
-		header.createCell(5).setCellValue("结束时间");
-		header.createCell(6).setCellValue("开始时间");
-		header.createCell(7).setCellValue("结果");
-		header.createCell(8).setCellValue("相同数据行数");
-		header.createCell(9).setCellValue("不同数据行数");
-		header.createCell(10).setCellValue("不同数据值数量");
-		header.createCell(11).setCellValue("目标查询语句");
-		header.createCell(12).setCellValue("源查询语句");
-		header.createCell(13).setCellValue("源列名");
-		header.createCell(14).setCellValue("目标列名");
-		header.createCell(15).setCellValue("源key");
-		header.createCell(16).setCellValue("目标key");
-		header.createCell(17).setCellValue("目标数据源");
-		header.createCell(18).setCellValue("源数据源");
-		header.createCell(19).setCellValue("案例名称");
-		header.createCell(20).setCellValue("创建人");
-		header.createCell(21).setCellValue("修改人");
-		header.createCell(22).setCellValue("创建时间");
-		header.createCell(23).setCellValue("修改时间");
-		// row content
+		// 设置表头内容
+		setHeaderContent(sheet);
+		// 设置表格内容
+		createTableContent(sheet, voList);
+		// 导出
+		export(workbook, res);
+		// 导出
+
+	}
+
+	private void export(HSSFWorkbook workbook, HttpServletResponse res) {
+		String fileName = "testResult" + ".xls";
+		res.reset();
+		res.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+		// 允许跨域请求
+		res.setHeader("Access-Control-Allow-Origin", "*");
+		try {
+			OutputStream os = res.getOutputStream();
+			res.addHeader("Content-Disposition",
+					"attachment;fileName=" + java.net.URLEncoder.encode(fileName, "UTF-8"));
+			workbook.write(os);
+			os.flush();
+			os.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void createTableContent(HSSFSheet sheet, List<TestResultVO> voList) {
+		SimpleDateFormat sdf=new SimpleDateFormat("yyyy-mm-dd  HH:mm:ss");
 		int rowIndex = 1;
 		for (TestResultVO vo : voList) {
 			HSSFRow contentRow = sheet.createRow(rowIndex++);
@@ -334,7 +311,7 @@ public class TestResultServiceImpl implements ITestReusltService {
 			} else {
 				contentRow.createCell(0).setCellValue("null");
 			}
-			if (StringUtils.isNotBlank(vo.getTestRoundId().toString())) {
+			if (vo.getTestRoundId() != null && vo.getTestRoundId() > 0) {
 				contentRow.createCell(1).setCellValue(vo.getTestRoundId());
 			} else {
 				contentRow.createCell(1).setCellValue("null");
@@ -355,12 +332,13 @@ public class TestResultServiceImpl implements ITestReusltService {
 				contentRow.createCell(4).setCellValue("null");
 			}
 			if (StringUtils.isNotBlank(vo.getEndTime().toString())) {
-				contentRow.createCell(5).setCellValue(vo.getEndTime().toString());
+				System.out.println();
+				contentRow.createCell(5).setCellValue(vo.getEndTime().toString().substring(0, vo.getEndTime().toString().length()-2));
 			} else {
 				contentRow.createCell(5).setCellValue("null");
 			}
 			if (StringUtils.isNotBlank(vo.getStartTime().toString())) {
-				contentRow.createCell(6).setCellValue(vo.getStartTime().toString());
+				contentRow.createCell(6).setCellValue(vo.getStartTime().toString().substring(0, vo.getEndTime().toString().length()-2));
 			} else {
 				contentRow.createCell(6).setCellValue("null");
 			}
@@ -374,7 +352,7 @@ public class TestResultServiceImpl implements ITestReusltService {
 			} else {
 				contentRow.createCell(8).setCellValue("null");
 			}
-			if (StringUtils.isNotBlank(vo.getNotSameRow().toString())) {
+			if (vo.getNotSameRow() != null && vo.getNotSameRow() > 0) {
 				contentRow.createCell(9).setCellValue(vo.getNotSameRow().toString());
 			} else {
 				contentRow.createCell(9).setCellValue("null");
@@ -384,101 +362,128 @@ public class TestResultServiceImpl implements ITestReusltService {
 			} else {
 				contentRow.createCell(10).setCellValue("null");
 			}
-			if (StringUtils.isNotBlank(vo.getTargetSql().toString())) {
+			if (vo.getTargetSql() != null && !vo.getTargetSql().equals("")) {
 				contentRow.createCell(11).setCellValue(vo.getTargetSql());
 			} else {
 				contentRow.createCell(11).setCellValue("null");
 			}
-			if (StringUtils.isNotBlank(vo.getSourceSql().toString())) {
+			if (vo.getSourceSql() != null && !vo.getSourceSql().equals("")) {
 				contentRow.createCell(12).setCellValue(vo.getSourceSql().toString());
 			} else {
 				contentRow.createCell(12).setCellValue("null");
 			}
-			if (StringUtils.isNotBlank(vo.getSourceCol().toString())) {
-				contentRow.createCell(13).setCellValue(vo.getSourceCol().toString());
+//			if (StringUtils.isNotBlank(vo.getSourceCol().toString())) {
+//				contentRow.createCell(13).setCellValue(vo.getSourceCol().toString());
+//			} else {
+//				contentRow.createCell(13).setCellValue("null");
+//			}
+//			if (StringUtils.isNotBlank(vo.getTargetCol().toString())) {
+//				contentRow.createCell(14).setCellValue(vo.getTargetCol().toString());
+//			} else {
+//				contentRow.createCell(14).setCellValue("null");
+//			}
+			if (StringUtils.isNotBlank(vo.getSourceKey().toString())) {
+				contentRow.createCell(13).setCellValue(vo.getSourceKey().toString());
 			} else {
 				contentRow.createCell(13).setCellValue("null");
 			}
-			if (StringUtils.isNotBlank(vo.getTargetCol().toString())) {
-				contentRow.createCell(14).setCellValue(vo.getTargetCol().toString());
+			if (StringUtils.isNotBlank(vo.getTargetKey().toString())) {
+				contentRow.createCell(14).setCellValue(vo.getTargetKey().toString());
 			} else {
 				contentRow.createCell(14).setCellValue("null");
 			}
-			if (StringUtils.isNotBlank(vo.getSourceKey().toString())) {
-				contentRow.createCell(15).setCellValue(vo.getSourceKey().toString());
+			if (StringUtils.isNotBlank(vo.getTargetData().toString())) {
+				contentRow.createCell(15).setCellValue(vo.getTargetData().toString());
 			} else {
 				contentRow.createCell(15).setCellValue("null");
 			}
-			if (StringUtils.isNotBlank(vo.getTargetKey().toString())) {
-				contentRow.createCell(16).setCellValue(vo.getTargetKey().toString());
+			if (StringUtils.isNotBlank(vo.getSourceData().toString())) {
+				contentRow.createCell(16).setCellValue(vo.getSourceData().toString());
 			} else {
 				contentRow.createCell(16).setCellValue("null");
 			}
-			if (StringUtils.isNotBlank(vo.getTargetData().toString())) {
-				contentRow.createCell(17).setCellValue(vo.getTargetData().toString());
+			if (vo != null && !vo.equals("")) {
+				Integer id = vo.getId();
+				TestResult testResult = repository.findById(id).get();
+				String caseId = testResult.getCaseId();
+				TestCase testCase = testCaseRepository.getOne(Integer.parseInt(caseId));
+				contentRow.createCell(17).setCellValue(testCase.getName());
 			} else {
 				contentRow.createCell(17).setCellValue("null");
 			}
-			if (StringUtils.isNotBlank(vo.getSourceData().toString())) {
-				contentRow.createCell(18).setCellValue(vo.getSourceData().toString());
+			if (vo.getCreateUser() != null) {
+				contentRow.createCell(18).setCellValue(vo.getCreateUser());
 			} else {
 				contentRow.createCell(18).setCellValue("null");
-			}
-			if (StringUtils.isNotBlank(vo.getCaseName())) {
-				contentRow.createCell(19).setCellValue(vo.getCaseName());
-			} else {
-				contentRow.createCell(19).setCellValue("null");
-			}
-			if (vo.getCreateUser() != null) {
-				contentRow.createCell(20).setCellValue(vo.getCreateUser());
-			} else {
-				contentRow.createCell(20).setCellValue("null");
 
 			}
 			if (vo.getEditUser() != null) {
-				contentRow.createCell(21).setCellValue(vo.getEditUser());
+				contentRow.createCell(19).setCellValue(vo.getEditUser());
 			} else {
-				contentRow.createCell(21).setCellValue("null");
+				contentRow.createCell(19).setCellValue("null");
 
 			}
 			if (StringUtils.isNotBlank(vo.getCreateTime().toString())) {
-				contentRow.createCell(22).setCellValue(vo.getCreateTime().toString());
+				contentRow.createCell(20).setCellValue(vo.getCreateTime().toString().substring(0, vo.getEndTime().toString().length()-2));
 			} else {
-				contentRow.createCell(22).setCellValue("null");
+				contentRow.createCell(20).setCellValue("null");
 			}
 			if (StringUtils.isNotBlank(vo.getEditTime().toString())) {
-				contentRow.createCell(23).setCellValue(vo.getEditTime().toString());
+				contentRow.createCell(21).setCellValue(vo.getEditTime().toString().substring(0, vo.getEndTime().toString().length()-2));
 			} else {
-				contentRow.createCell(23).setCellValue("null");
-			}
-
-			String fileName = sheetName + ".xls";
-//			res.reset(); // 非常重要
-			res.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-			res.setHeader("Access-Control-Allow-Origin", "*");// 允许跨域请求
-
-			try {
-				OutputStream out = res.getOutputStream();
-				res.addHeader("Content-Disposition",
-						"attachment;filename=" + java.net.URLEncoder.encode(fileName, "UTF-8"));
-				workbook.write(out);
-				out.flush();
-				out.close();
-			} catch (Exception e) {
-				e.printStackTrace();
+				contentRow.createCell(21).setCellValue("null");
 			}
 		}
 	}
 
-	public TestResult findEndTimeByCaseId(Integer caseId) {
-		TestResult testResult = repository.findEndTimeByCaseId(caseId);
-		return testResult;
-	}
-	@Override
-	public List<Map<String, Object>> findTestCaseStatus(Integer caseId) {
-		// TODO Auto-generated method stub
-		return repository.findTestCaseStatus(caseId);
+	private void setHeaderContent(HSSFSheet sheet) {
+		HSSFRow header = sheet.createRow(0);
+		header.createCell(0).setCellValue("id");
+		header.createCell(1).setCellValue("轮次的id");
+		header.createCell(2).setCellValue("目标数据总量");
+		header.createCell(3).setCellValue("源数据总量");
+		header.createCell(4).setCellValue("执行状态");
+		header.createCell(5).setCellValue("结束时间");
+		header.createCell(6).setCellValue("开始时间");
+		header.createCell(7).setCellValue("结果");
+		header.createCell(8).setCellValue("相同数据行数");
+		header.createCell(9).setCellValue("不同数据行数");
+		header.createCell(10).setCellValue("不同数据值数量");
+		header.createCell(11).setCellValue("目标查询语句");
+		header.createCell(12).setCellValue("源查询语句");
+		header.createCell(13).setCellValue("源key");
+		header.createCell(14).setCellValue("目标key");
+		header.createCell(15).setCellValue("目标数据源");
+		header.createCell(16).setCellValue("源数据源");
+		header.createCell(17).setCellValue("案例名称");
+		header.createCell(18).setCellValue("创建人");
+		header.createCell(19).setCellValue("修改人");
+		header.createCell(20).setCellValue("创建时间");
+		header.createCell(21).setCellValue("修改时间");
 	}
 
+	private List<TestResultVO> convertToVoList(List<TestResult> list) {
+		List<TestResultVO> voList = new ArrayList<TestResultVO>();
+		for (TestResult testResult : list) {
+			TestResultVO vo = new TestResultVO(testResult);
+			voList.add(vo);
+		}
+		return voList;
+	}
+
+	private List<TestResult> findByTestRoundIds(String testResultIds) {
+		List<TestResult> list = new ArrayList<TestResult>();
+		if (StringUtils.isNotBlank(testResultIds)) {
+			String[] ids = testResultIds.split(",");
+			for (String testResultId : ids) {
+				int id = Integer.parseInt(testResultId);
+				TestResult testResult = repository.getOne(id);
+				list.add(testResult);
+			}
+		} else {
+			list = repository.findAll();
+		}
+		return list;
+	}
 
 }

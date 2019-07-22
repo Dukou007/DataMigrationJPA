@@ -2,7 +2,6 @@ package com.jettech.controller;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import javax.websocket.server.PathParam;
 
@@ -21,10 +20,10 @@ import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.jettech.EnumDatabaseType;
 import com.jettech.entity.DataSource;
 import com.jettech.service.IDataSourceService;
+import com.jettech.service.IMetaDataManageService;
 import com.jettech.vo.DataSourceVO;
 import com.jettech.vo.ResultVO;
 import com.jettech.vo.StatusCode;
-import com.jettech.vo.TestDatabaseVO;
 
 /**
  * 数据源的对外接口层
@@ -40,6 +39,8 @@ public class DataSourceController {
 
 	@Autowired
 	private IDataSourceService dataSourceService;
+	@Autowired
+	private IMetaDataManageService metaDataManageService;
 
 	/**
 	 * 获得所有的数据源,无参数
@@ -152,16 +153,16 @@ public class DataSourceController {
 			DataSource ds = new DataSource();
 			BeanUtils.copyProperties(dsVO, ds);
 			ds.setId(null);
-			String type=dsVO.getDatabaseType();
-			if(type.equals("Mysql")) {
-			    ds.setDatabaseType(EnumDatabaseType.Mysql);
-			}else if(type.equals("Oracle")){				
+			String type = dsVO.getDatabaseType();
+			if (type.equals("Mysql")) {
+				ds.setDatabaseType(EnumDatabaseType.Mysql);
+			} else if (type.equals("Oracle")) {
 				ds.setDatabaseType(EnumDatabaseType.Oracle);
-			}else if(type.equals("DB2")){				
+			} else if (type.equals("DB2")) {
 				ds.setDatabaseType(EnumDatabaseType.DB2);
-			}else if(type.equals("Informix")){				
+			} else if (type.equals("Informix")) {
 				ds.setDatabaseType(EnumDatabaseType.Informix);
-			}else if(type.equals("SyBase")){				
+			} else if (type.equals("SyBase")) {
 				ds.setDatabaseType(EnumDatabaseType.SyBase);
 			}
 			dataSourceService.save(ds);
@@ -191,19 +192,19 @@ public class DataSourceController {
 		try {
 			DataSource ds = new DataSource();
 			BeanUtils.copyProperties(dsvo, ds);
-			String type=dsvo.getDatabaseType();
-			if(type.equals("Mysql")) {
-			    ds.setDatabaseType(EnumDatabaseType.Mysql);
-			}else if(type.equals("Oracle")){				
+			String type = dsvo.getDatabaseType();
+			if (type.equals("Mysql")) {
+				ds.setDatabaseType(EnumDatabaseType.Mysql);
+			} else if (type.equals("Oracle")) {
 				ds.setDatabaseType(EnumDatabaseType.Oracle);
-			}else if(type.equals("DB2")){				
+			} else if (type.equals("DB2")) {
 				ds.setDatabaseType(EnumDatabaseType.DB2);
-			}else if(type.equals("Informix")){				
+			} else if (type.equals("Informix")) {
 				ds.setDatabaseType(EnumDatabaseType.Informix);
-			}else if(type.equals("SyBase")){				
+			} else if (type.equals("SyBase")) {
 				ds.setDatabaseType(EnumDatabaseType.SyBase);
 			}
-			dataSourceService.save(ds);
+			metaDataManageService.updateOneDatasource(ds);
 			result.put("result", "success");
 			result.put("state", "1");
 			log.info("updateDataSource success:" + ds.getName());
@@ -221,7 +222,7 @@ public class DataSourceController {
 	 * @param map,包含key=dataSourceId的参数
 	 * @return
 	 */
-	
+
 	@ResponseBody
 	@RequestMapping(value = "/deleteDataSource", produces = {
 	        "application/json;charset=UTF-8" }, method = RequestMethod.POST)
@@ -230,33 +231,36 @@ public class DataSourceController {
 		try {
 			DataSource e = dataSourceService.findById(dataSourceId);
 			if (e != null) {
-				dataSourceService.delOneDatasource(e.getId());;
-				result.put("result", "success");
-				result.put("state", "1");
+				result = dataSourceService.delOneDatasource(e.getId());
+				;
 			} else {
 				result.put("state", "0");
 				result.put("result", "not found DataSource by id:" + dataSourceId);
 			}
 		} catch (Exception e) {
 			result.put("state", "0");
+			result.put("result", "deleteDataSource error" + e);
 			log.error("deleteDataSource error.", e);
 		}
 
 		return result.toJSONString();
 	}
+
 	/**
 	 * 数据源的复制
+	 * 
 	 * @param testDatabaseVO
 	 * @return
 	 */
 	@ResponseBody
 	@RequestMapping(method = RequestMethod.POST, value = "/copyDataSource")
-	public ResultVO copyDataSource(@PathParam(value = "id") Integer id,@PathParam(value = "name") String name) {
+	public ResultVO copyDataSource(@PathParam(value = "id") Integer id, @PathParam(value = "name") String name) {
 		return dataSourceService.copyDataSource(id, name);
-	} 
-	
+	}
+
 	/**
 	 * 根据数据库类型返回驱动
+	 * 
 	 * @param id
 	 * @param name
 	 * @return
@@ -268,66 +272,81 @@ public class DataSourceController {
 	}
 
 	/**
-	 * 查询所有的支持数据库的类型  20190326
+	 * 查询所有的支持数据库的类型 20190326
+	 * 
 	 * @return
 	 */
 	@RequestMapping(value = "/getAllDataSourceType", produces = {
-			"application/json;charset=UTF-8" }, method = RequestMethod.GET)
+	        "application/json;charset=UTF-8" }, method = RequestMethod.GET)
 	public List<String> getAllDataSourceType() {
 		return dataSourceService.selectDataSourceType();
 	}
+
 	/**
 	 * 同步源下面所有的库表字段
+	 * 
 	 * @param map
 	 * @return
 	 */
 	@ResponseBody
-    @RequestMapping(value="/setOneMetaData",produces = { "application/json;charset=UTF-8" })
-    public  ResultVO setOneMetaData(@PathParam(value = "dataSourceId") Integer dataSourceId){
-        try {
-		   String message= dataSourceService.GetMetaData(dataSourceId);
-		   if(!message.equals("")){
-			   return new ResultVO(false, StatusCode.ERROR, message);
-		   }else{
-			   return new ResultVO(true, StatusCode.OK, "同步成功");
-		   }
-	    }catch(Exception e) {
-	    	log.info("同步失败"+e);
-		    return new ResultVO(false, StatusCode.ERROR, "同步失败");
+	@RequestMapping(value = "/setOneMetaData", produces = { "application/json;charset=UTF-8" })
+	public ResultVO setOneMetaData(@PathParam(value = "dataSourceId") Integer dataSourceId) {
+		try {
+			String message = dataSourceService.GetMetaData(dataSourceId);
+			if (!message.equals("")) {
+				return new ResultVO(false, StatusCode.ERROR, message);
+			} else {
+				log.info("同步成功");
+				return new ResultVO(true, StatusCode.OK, "同步成功");
+			}
+		} catch (Exception e) {
+			log.info("同步失败" + e, e);
+			return new ResultVO(false, StatusCode.ERROR, "同步失败");
 
-	    }
-	     
+		}
+
 	}
+
 	/**
-	 *测试新添加的数据源的连通性
+	 * 测试新添加的数据源的连通性
+	 * 
 	 * @return
 	 */
 	@ResponseBody
-    @RequestMapping(value="/TestDBLinkDataSource",produces = { "application/json;charset=UTF-8" },method = RequestMethod.POST)
-    public  String TestDBLinkDataSource(@RequestBody  DataSourceVO dsVO){
+	@RequestMapping(value = "/TestDBLinkDataSource", produces = {
+	        "application/json;charset=UTF-8" }, method = RequestMethod.POST)
+	public String TestDBLinkDataSource(@RequestBody DataSourceVO dsVO) {
 		JSONObject result = new JSONObject();
-        try {
-        	
-        	DataSource ds = new DataSource();
+		try {
+
+			DataSource ds = new DataSource();
 			BeanUtils.copyProperties(dsVO, ds);
-			String type=dsVO.getDatabaseType();
-			if(type.equals("Mysql")) {
-			    ds.setDatabaseType(EnumDatabaseType.Mysql);
-			}else if(type.equals("Oracle")){				
+			String type = dsVO.getDatabaseType();
+			if (type.equals("Mysql")) {
+				ds.setDatabaseType(EnumDatabaseType.Mysql);
+			} else if (type.equals("Oracle")) {
 				ds.setDatabaseType(EnumDatabaseType.Oracle);
-			}else if(type.equals("DB2")){				
+			} else if (type.equals("DB2")) {
 				ds.setDatabaseType(EnumDatabaseType.DB2);
-			}else if(type.equals("Informix")){				
+			} else if (type.equals("Informix")) {
 				ds.setDatabaseType(EnumDatabaseType.Informix);
-			}else if(type.equals("SyBase")){				
+			} else if (type.equals("SyBase")) {
 				ds.setDatabaseType(EnumDatabaseType.SyBase);
 			}
-	        boolean re=dataSourceService.GetDBLink(ds);
-	        result.put("result", String.valueOf(re));
-	    }catch(Exception e) {
-	     e.getLocalizedMessage();
-	    }
-        
-        return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue,SerializerFeature.WriteDateUseDateFormat);
+			boolean re = dataSourceService.GetDBLink(ds);
+			result.put("result", String.valueOf(re));
+		} catch (Exception e) {
+			e.getLocalizedMessage();
+		}
+
+		return JSONObject.toJSONString(result, SerializerFeature.WriteMapNullValue,
+		        SerializerFeature.WriteDateUseDateFormat);
 	}
+
+	@ResponseBody
+	@RequestMapping(value = "/getUrl", produces = { "application/json;charset=UTF-8" }, method = RequestMethod.POST)
+	public String getUrl(@RequestBody DataSourceVO dsVO) {
+		return dataSourceService.getUrl(dsVO);
+	}
+
 }

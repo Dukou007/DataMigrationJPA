@@ -26,7 +26,7 @@ import com.jettech.util.StringUtil;
  *
  */
 public class MySqlAdapter extends AbstractAdapter {
-
+	public static final String DEFAULT_DRIVER = "com.mysql.cj.jdbc.Driver";
 	private Logger logger = LoggerFactory.getLogger(MySqlAdapter.class);
 
 	/**
@@ -180,7 +180,7 @@ public class MySqlAdapter extends AbstractAdapter {
 				errorMSG = "length=============="+rs.getString("CHARACTER_MAXIMUM_LENGTH")+"=tableName:"+rs.getString("TABLE_NAME")+"=columnNmae:"+rs.getString("COLUMN_NAME");
 //				logger.info("length:"+rs.getInt("CHARACTER_MAXIMUM_LENGTH"));
 				if(StringUtils.isNotBlank(rs.getString("CHARACTER_MAXIMUM_LENGTH"))){
-					fieldobj.setDataLength(Integer.valueOf(rs.getString("CHARACTER_MAXIMUM_LENGTH")));
+					fieldobj.setDataLength(Integer.parseInt(rs.getString("CHARACTER_MAXIMUM_LENGTH")));
 				}else{
 					fieldobj.setDataLength(0);
 				}
@@ -223,6 +223,11 @@ public class MySqlAdapter extends AbstractAdapter {
 			e.printStackTrace();
 		}
 		return tableobj;
+	}
+
+	@Override
+	public Integer getTableCount(String sourceTableName, Connection conn, String schema) {
+		return null;
 	}
 
 }

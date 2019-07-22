@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jettech.entity.DataTable;
-import com.jettech.entity.DataSchema;
 import com.jettech.service.ITestTableService;
 import com.jettech.vo.ResultVO;
 import com.jettech.vo.StatusCode;
@@ -115,6 +114,7 @@ public class DataTableController {
 		    return new ResultVO(false, StatusCode.ERROR, "同步失败");
 
 	    }
+          log.info("同步成功");
 	      return new ResultVO(true, StatusCode.OK, "同步成功");
 	}
 	

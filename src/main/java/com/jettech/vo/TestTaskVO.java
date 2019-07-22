@@ -43,10 +43,11 @@ public class TestTaskVO extends BaseVO {
 			TestTask e = (TestTask) entity;
 			this.productId = e.getTestSuite().getProduct().getId();
 			this.testSuiteId = e.getTestSuite().getId();
-//			this.name = e.getName();
-//			this.cron = e.getCron();
-//			this.threadNum = e.getThreadNum();
-//			this.actived = e.isActived();
+			this.testSuiteName = e.getTestSuite().getName();
+			this.name = e.getName();
+			this.cron = e.getCron();
+			this.threadNum = e.getThreadNum();
+			this.actived = e.isActived();
 		}
 	}
 
@@ -61,7 +62,15 @@ public class TestTaskVO extends BaseVO {
 		this.actived = e.isActived();
 		this.testSuiteName = e.getTestSuite().getName();
 		this.status = e.isStatus();
-		this.testCaseNum = testCaseNum;
+		if(	e.getTestSuite().getType() == 1 ){
+			if(e.getTestSuite() != null){
+				this.testCaseNum = e.getTestSuite().getQualityTestCases().size();
+			}else {
+				this.testCaseNum = 0;
+			}
+		}else if(e.getTestSuite().getType() == 0 ){
+			this.testCaseNum = testCaseNum;
+		}
 	}
 
 	public Integer getProductId() {

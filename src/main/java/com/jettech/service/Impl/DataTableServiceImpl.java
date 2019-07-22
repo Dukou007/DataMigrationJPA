@@ -3,13 +3,10 @@
  */
 package com.jettech.service.Impl;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.transaction.Transactional;
 
@@ -21,13 +18,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import com.jettech.EnumOptType;
-import com.jettech.db.adapter.AbstractAdapter;
 import com.jettech.entity.DataField;
 import com.jettech.entity.DataSchema;
 import com.jettech.entity.DataSource;
 import com.jettech.entity.DataTable;
-import com.jettech.entity.MetaHistoryItem;
 import com.jettech.repostory.DataFieldRepository;
 import com.jettech.repostory.DataTableRepository;
 import com.jettech.service.IDataSourceService;
@@ -132,7 +126,9 @@ public class DataTableServiceImpl implements ITestTableService {
 	@Override
 	public ResultVO copyDataTable(int id, String name) {
 		DataTable dataTable = testTableRepository.findById(id).get();
-		DataTable exitsdataTable = testTableRepository.findByName(name);
+		DataSchema dataSchema=dataTable.getDataSchema();
+		int schemaId=dataSchema.getId();
+		DataTable exitsdataTable = testTableRepository.findByNameAndDbid(name,schemaId);
 		if (exitsdataTable != null) {
 			return new ResultVO(false, StatusCode.ERROR, "名称重复");
 		}
@@ -144,6 +140,7 @@ public class DataTableServiceImpl implements ITestTableService {
 		copyDataTable.setEditUser(null);
 		copyDataTable.setName(name);
 		copyDataTable.setId(null);
+		copyDataTable.setDataSchema(dataSchema);
 		copyDataTable = testTableRepository.save(copyDataTable);
 		List<DataField> exitsdataFields = dataTable.getDataFields();
 		if (exitsdataFields.size() != 0) {
@@ -198,6 +195,15 @@ public class DataTableServiceImpl implements ITestTableService {
 		List<DataTable> list = testTableRepository.findTablesBySchemaID(schemaID,tableName);
 		return list;
 	}
+	@Override
+	public DataTable findByName(String tableName) {
+		DataTable dataTable = testTableRepository.findByName(tableName);
+		return dataTable;
+	}
 
+	@Override
+	public List<DataTable> findBySchemaId(Integer id) {
+		return testTableRepository.findBySchemaId(id);
+	}
 	
 }

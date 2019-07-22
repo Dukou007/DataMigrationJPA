@@ -2,6 +2,9 @@ package com.jettech.entity;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.Index;
+import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 
 import org.springframework.stereotype.Component;
 
@@ -12,7 +15,7 @@ import org.springframework.stereotype.Component;
  *
  */
 @Entity
-@Component
+@Table(name = "test_result_item", indexes={ @Index(name="result_id", unique=false, columnList="testResultId")})
 public class TestResultItem extends BaseEntity {
 
 	/**

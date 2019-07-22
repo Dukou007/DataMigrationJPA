@@ -8,6 +8,11 @@ import javax.persistence.Table;
 
 import com.jettech.EnumOptType;
 
+/**
+ * 元数据更改历史记录明细
+ * @author tan
+ *
+ */
 @Entity
 @Table(name = "meta_history_item")
 public class MetaHistoryItem extends BaseEntity{

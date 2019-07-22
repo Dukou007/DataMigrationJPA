@@ -236,34 +236,6 @@ public class MetaDataController {
         return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue,SerializerFeature.WriteDateUseDateFormat);
 	}
 	/**
-	 * 元数据管理
-	 * @param String datasources
-	 * @return
-	 */
-	/*@ResponseBody
-    @RequestMapping(value="/setMetaDataByIds",produces = { "application/text;charset=UTF-8" })
-    public  String setMetaDataByIds(@RequestBody String dataSourceIds){
-		JSONObject result = new JSONObject();
-        try {
-        	System.out.println(dataSourceIds);
-        	dataSourceIds=dataSourceIds.replace("\"", "");
-        	String[] arr= dataSourceIds.split(",");
-        	for(String str :arr){
-        		metaDataManageService.GetMetaData(Integer.parseInt(str));
-        	}
-	        result.put("result", "success");
-	    //    ObjectMapper mapper = new ObjectMapper();
-        //    return mapper.writeValueAsString(result);
-	    }catch(Exception e) {
-	     e.getLocalizedMessage();
-	  //   result.put("result", "error");
-	  //   return JSON.toJSONString(result);
-	    }
-        
-     //   return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue);  
-        return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue,SerializerFeature.WriteDateUseDateFormat);
-	}*/
-	/**
 	 * 拼接sql语句插入数据库
 	 * @param SqlVo sqlvo
 	 * @return
@@ -275,14 +247,9 @@ public class MetaDataController {
         try {
 	        metaDataManageService.GetSql(sqlvo);
 	        result.put("result", "success");
-	    //    ObjectMapper mapper = new ObjectMapper();
-        //    return mapper.writeValueAsString(result);
 	    }catch(Exception e) {
 	     e.getLocalizedMessage();
-	  //   result.put("result", "error");
-	 //    return JSON.toJSONString(result);
 	    }
-      //  return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue);  
         return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue,SerializerFeature.WriteDateUseDateFormat);
 	}
 	
@@ -301,15 +268,10 @@ public class MetaDataController {
 			BeanUtils.copyProperties(mVo, mr);
         	SqlVo arr= metaDataManageService.parseSql(mr);
 	        result.put("result", arr);
-	     //   ObjectMapper mapper = new ObjectMapper();
-         //   return mapper.writeValueAsString(result);
 	    }catch(Exception e) {
 	     e.getLocalizedMessage();
-	  //   result.put("result", "error");
-	  //   return JSON.toJSONString(result);
 	    }
         
-     //   return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue);  
         return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue,SerializerFeature.WriteDateUseDateFormat);
 	}
 
@@ -353,25 +315,15 @@ public class MetaDataController {
 		List<TestDatabaseVO> arrvolist=new ArrayList<>();
 		List<DataSchema> arr=new ArrayList<>();
         try {
-        //	int id=td.getDataSource().getId();        	
 	        arr= metaDataManageService.getAllDb(Integer.parseInt(map.get("dataSourceId")+""));
 	        for(int i=0;i<arr.size();i++) {
 	        	TestDatabaseVO testDatabaseVO = new TestDatabaseVO(arr.get(i));
 	        	arrvolist.add(testDatabaseVO);
 	        }
 	        result.put("result", arrvolist);
-	     //   ObjectMapper mapper = new ObjectMapper();
-         //   return mapper.writeValueAsString(result);
 	    }catch(Exception e) {
 	     e.getLocalizedMessage();
-	   //  result.put("result", "error");
-	   //  return JSON.toJSONString(result);
 	    }
-//        SimplePropertyPreFilter filter = new SimplePropertyPreFilter(	            
-//        		DataSource.class, "id","name");		
-//        String json = JSON.toJSONString(arr,filter,SerializerFeature.DisableCircularReferenceDetect);
-	//	return json;
-     //   return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue);  
         return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue,SerializerFeature.WriteDateUseDateFormat);
 	}
 	
@@ -394,18 +346,9 @@ public class MetaDataController {
 	        	arrvolist.add(testTableVO);
 	        }
 	        result.put("result", arrvolist);
-	    //    ObjectMapper mapper = new ObjectMapper();
-       //     return mapper.writeValueAsString(result);
 	    }catch(Exception e) {
 	     e.getLocalizedMessage();
-	 //    result.put("result", "error");
-	 //    return JSON.toJSONString(result);
 	    }
-//        SimplePropertyPreFilter filter = new SimplePropertyPreFilter(	            
-//        		TestDatabase.class, "id","name");		
-//        String json = JSON.toJSONString(arr,filter,SerializerFeature.DisableCircularReferenceDetect);
-//		return json;
- //       return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue);  
         return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue,SerializerFeature.WriteDateUseDateFormat);
 	}
 	/**
@@ -426,33 +369,9 @@ public class MetaDataController {
 	        	arrvolist.add(testFieldVO);
 	        }
 	        result.put("result", arrvolist);
-//	        ObjectMapper objectMapper = new ObjectMapper();		
-	        //序列化的时候序列对象的所有属性		
-	      //  objectMapper.setSerializationInclusion(Include.ALWAYS);		
-	        //取消时间的转化格式,默认是时间戳,可以取消,同时需要设置要表现的时间格式		
-	     //   objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);		
-	//        objectMapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));		
-
-
-//
-//            DeserializationConfig cfg = mapper.getDeserializationConfig();
-//            SerializationConfig s=mapper.getSerializationConfig();
-//            s.setSerializationInclusion(Inclusion.NON_NULL);
-//            cfg.withDateFormat(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));
-//            mapper.setSerializationConfig(s);
-         //   mapper = mapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));
-
-  //      return objectMapper.writeValueAsString(result);
 	    }catch(Exception e) {
 	     e.getLocalizedMessage();
-	//     result.put("result", "error");
-//	     return JSON.toJSONString(result);
 	    }
-//        SimplePropertyPreFilter filter = new SimplePropertyPreFilter(	            
-//        		TestTable.class, "id","name");		
-//        String json = JSON.toJSONString(arr,filter,SerializerFeature.DisableCircularReferenceDetect);
-//		return json;
-        
         return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue,SerializerFeature.WriteDateUseDateFormat);
 
        
@@ -614,21 +533,19 @@ public class MetaDataController {
 	 */
 	@ResponseBody
     @RequestMapping(value="/setOneDict",produces = { "application/json;charset=UTF-8" })
-    public  String setOneDict(@RequestBody  Map map){
+    public  String setOneDict(@RequestParam("file") MultipartFile file){
 		JSONObject result = new JSONObject();
         try {
-		    metaDataManageService.uploadDictExcel(String.valueOf(map.get("filePath")));
+		    metaDataManageService.uploadDictExcel(file);
+		    result.put("message", "导入成功");
 	        result.put("result", "success");
-	   //     ObjectMapper mapper = new ObjectMapper();
-      //      return mapper.writeValueAsString(result);
 	    }catch(Exception e) {
-	    	System.out.println(e.getMessage());
+	    	log.info(e.getMessage());
 	       e.getLocalizedMessage();
+		    result.put("message", "导入失败");
 	     result.put("result", "error");
-	  //   return JSON.toJSONString(result);
 	    }
         
-       // return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue);  
         return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue,SerializerFeature.WriteDateUseDateFormat);
 	}
 	
@@ -695,15 +612,10 @@ public class MetaDataController {
         try {
 		    metaDataManageService.compareDictAndModel(Integer.parseInt(map.get("db1Id")+""),Integer.parseInt(map.get("db2Id")+""));
 	        result.put("result", "success");
-	   //     ObjectMapper mapper = new ObjectMapper();
-      //      return mapper.writeValueAsString(result);
 	    }catch(Exception e) {
 	     e.getLocalizedMessage();
-	   //  result.put("result", "error");
-	  //   return JSON.toJSONString(result);
 	    }
         
-       // return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue);  
         return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue,SerializerFeature.WriteDateUseDateFormat);
 	}
 	
@@ -724,15 +636,9 @@ public class MetaDataController {
 				compareThread.start();
 			    
 			    result.put("result", "success");
-		   //     ObjectMapper mapper = new ObjectMapper();
-	      //      return mapper.writeValueAsString(result);
 		    }catch(Exception e) {
 		     e.getLocalizedMessage();
-		   //  result.put("result", "error");
-		  //   return JSON.toJSONString(result);
 		    }
-	        
-	       // return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue);  
 	        return JSONObject.toJSONString(result,SerializerFeature.WriteMapNullValue,SerializerFeature.WriteDateUseDateFormat);
 		}
 		/**

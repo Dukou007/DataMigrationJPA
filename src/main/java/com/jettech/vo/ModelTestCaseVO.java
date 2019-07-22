@@ -3,7 +3,6 @@ package com.jettech.vo;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.jettech.entity.BaseEntity;
 import com.jettech.entity.ModelTestCase;
-import com.jettech.entity.TestCase;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ModelTestCaseVO extends BaseVO {
@@ -20,8 +19,8 @@ public class ModelTestCaseVO extends BaseVO {
 	private Integer maxResultRows;
 	private Integer sourceDataSourceID;// 源查询数据源ID
 	private Integer targetDataSourceID;// 目标查询数据源ID
-	private Integer pageSize = 0;
-	private Boolean usePage = false;// 默认不分页
+	private Integer pageSize;
+	private Boolean usePage ;// 默认不分页
 	private Integer testSuiteID;// 测试集ID
   
 	private CaseModelSetVO caseModelSetVO;
@@ -40,14 +39,6 @@ public class ModelTestCaseVO extends BaseVO {
 				this.name = e.getName();
 			}
 		}
-	}
-
-	public Boolean getSQLCase() {
-		return isSQLCase;
-	}
-
-	public void setSQLCase(Boolean SQLCase) {
-		isSQLCase = SQLCase;
 	}
 
 	public ModelTestCaseVO(String name, String expertValue, String version, Boolean isSQLCase, Integer maxResultRows) {

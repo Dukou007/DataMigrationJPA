@@ -3,13 +3,11 @@ package com.jettech.controller;
 import java.io.File;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.alibaba.fastjson.JSONObject;
-import com.jettech.entity.CompFields;
 import com.jettech.service.IKeyMapperService;
 
 @RestController

@@ -1,5 +1,6 @@
 package com.jettech.controller;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -26,7 +27,6 @@ import com.jettech.service.ITestResultItemService;
 import com.jettech.service.ITestReusltService;
 import com.jettech.service.ModelTestCaseService;
 import com.jettech.service.ProductService;
-import com.jettech.service.ITestCaseService;
 import com.jettech.service.TestRoundService;
 import com.jettech.service.TestSuiteService;
 import com.jettech.vo.ModelTestResultVO;
@@ -92,8 +92,7 @@ public class ModelTestResultController {
 		Page<ModelTestResult>testResultList=null;
 		Specification<ModelTestResult> specification = new Specification<ModelTestResult>() {
 			@Override
-			public Predicate toPredicate(Root<ModelTestResult> root, CriteriaQuery<?> query,
-					CriteriaBuilder criteriaBuilder) {
+			public Predicate toPredicate(Root<ModelTestResult> root, CriteriaQuery<?> query,CriteriaBuilder criteriaBuilder) {
 				ArrayList<Predicate> predicateList = new ArrayList<Predicate>();
 				if(org.apache.commons.lang.StringUtils.isNotBlank(startTime)) {
 					predicateList.add(
@@ -111,10 +110,12 @@ public class ModelTestResultController {
 		};
 		
 		testResultList=this.repository.findAll(specification,pageable);
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		ArrayList<ModelTestResultVO> testResultVOList = new ArrayList<ModelTestResultVO>();
 		for (ModelTestResult testResult : testResultList) {
 			ModelTestResultVO testResultVO = new ModelTestResultVO(testResult);
 			testResultVO.setCaseName(testCaseService.findById(Integer.valueOf(caseId)).getName());
+			sdf.format(testResult.getStartTime());
 			testResultVOList.add(testResultVO);
 		}
 		HashMap<String, Object> map = new HashMap<String,Object>();

@@ -1,6 +1,8 @@
 package com.jettech.service;
 
 import com.jettech.entity.QualityTestResult;
+import com.jettech.entity.TestResult;
+import com.jettech.vo.ResultVO;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -28,4 +30,12 @@ public interface IQualityTestResultService extends IService<QualityTestResult, I
 	Page<QualityTestResult> findByCaseIdAndResult(Integer testCaseId, Boolean result, Pageable pageable);
 
 	void exportEvidence(String testResultIds,HttpServletResponse res);
+
+	ResultVO findByTestRIdAndName(Integer testRoundId,String name,int pageNum,int pageSize);
+
+	Page<QualityTestResult> findTestResultByQualityCaseIDAndStartTimeAndEndTime(Integer testCaseId, String startTime,
+			String endTime, Pageable pageable);
+
+
+
 }

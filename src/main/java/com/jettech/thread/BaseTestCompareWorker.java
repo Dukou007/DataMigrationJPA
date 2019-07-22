@@ -18,8 +18,9 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 	public BaseTestCompareWorker(BlockingQueue<TestResultItem> itemQueue) {
 		super(itemQueue);
 	}
+
 	protected CompareResult doCompareToFile(Map<String, List<Object>> sourceMap, QueryModel sourceQuery,
-			Map<String, List<Object>> targetMap, QueryFileModel targetQuery, BlockingQueue<TestResultItem> itemQueue) {
+	        Map<String, List<Object>> targetMap, QueryFileModel targetQuery, BlockingQueue<TestResultItem> itemQueue) {
 
 		// Map<String, List<Object>> sourceMap = sourceData.getMap();
 		// TestQueryService testQueryService =
@@ -85,7 +86,7 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 								// 其它类型转换为字符串比较
 								if (!sourceValue.toString().trim().equals(targetValue.toString().trim())) {
 									itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
-											"not same value"));
+									        "not same value"));
 									notSameData++;
 								} else {
 									sameDataInRow++;
@@ -97,12 +98,12 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 						} else if (sourceValue == null && targetValue != null) {
 							// 源数据null,目标数据非null
 							itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
-									"sourceValue is null"));
+							        "sourceValue is null"));
 							notSameData++;
 						} else if (targetValue == null && sourceValue != null) {
 							// 源数据非null,目标数据null
 							itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
-									"targetValue is null"));
+							        "targetValue is null"));
 							notSameData++;
 						}
 					} else {
@@ -110,8 +111,8 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 						itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, "target not column"));
 					}
 				}
-				
-				//一行数据行比较后，行内字段值相同数量和字段数量相同==>相同行数+1
+
+				// 一行数据行比较后，行内字段值相同数量和字段数量相同==>相同行数+1
 				if (sameDataInRow == targetQuery.getQueryColumns().size()) {
 					sameRow++;
 				} else {
@@ -129,12 +130,13 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 			}
 		}
 		logger.info(caseName + " compare end sameRow:" + sameRow + " notSameRow:" + notSameRow + " notSameData:"
-				+ notSameData);
+		        + notSameData);
 		CompareResult result = new CompareResult(sameRow, notSameData, notSameRow);
 		return result;
 	}
+
 	protected CompareResult doCompare(Map<String, List<Object>> sourceMap, QueryModel sourceQuery,
-			Map<String, List<Object>> targetMap, QueryModel targetQuery, BlockingQueue<TestResultItem> itemQueue) {
+	        Map<String, List<Object>> targetMap, QueryModel targetQuery, BlockingQueue<TestResultItem> itemQueue) {
 
 		// Map<String, List<Object>> sourceMap = sourceData.getMap();
 		// TestQueryService testQueryService =
@@ -154,14 +156,13 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 		}
 
 		long sameRow = 0;// 相同行数
+		long notSameRow = 0;// 不同行数
 		long notSameData = 0;// 不同的数据值的统计，每个行和列的不同的合计
 		int sameDataInRow = 0;// 行内数据相同的统计
-		long notSameRow = 0;// 不同行数
 		// long notExistDataInDest = 0;
 		// long notExistInSource = 0;
 		// long notExistKeyInDest = 0;
 		// long currentRow = 0;
-
 		// 循环数据页面（或者全部）中的源数据的所有keyValue,判断目标是否有相同的kyeValue
 		// 不包含，写结果明细
 		// 包含，判断是否每一列的数据相同
@@ -169,9 +170,10 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 		// sourceMap.entrySet().iterator();
 		for (String keyValue : sourceMap.keySet()) {
 			sameDataInRow = 0;
+			List<Object> sourceValues = sourceMap.get(keyValue);
+			List<Object> targetValues = null;
 			if (targetMap.containsKey(keyValue)) {
-				List<Object> sourceValues = sourceMap.get(keyValue);
-				List<Object> targetValues = targetMap.get(keyValue);
+				targetValues = targetMap.get(keyValue);
 				// int sameDataInRow = 0;
 				// 当使用简易模式(不设置比较的字段)时,以下需要特殊处理
 
@@ -191,6 +193,12 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 							if (numberType.containsKey(dataType.toUpperCase())) {
 								// 如果时候数值类型,转换为decimal比较
 								boolean cpDecimal = compareDecimal(keyValue, fieldName, sourceValue, targetValue);
+								// 可能导致案例结果明细内容重复
+								/*
+								 * itemQueue.add(createItem(keyValue,
+								 * sourceField.getName(), sourceValue,
+								 * targetValue, "not same value"));
+								 */
 								if (cpDecimal) {
 									sameDataInRow++;
 								} else {
@@ -200,7 +208,7 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 								// 其它类型转换为字符串比较
 								if (!sourceValue.toString().trim().equals(targetValue.toString().trim())) {
 									itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
-											"not same value"));
+									        "not same value"));
 									notSameData++;
 								} else {
 									sameDataInRow++;
@@ -210,47 +218,63 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 							// 目标数据和源数据都null
 							sameDataInRow++;
 						} else if (sourceValue == null && targetValue != null) {
-							// 源数据null,目标数据非null
-							itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
-									"sourceValue is null"));
-							notSameData++;
+							// 上饶对Decimal的特殊处理，迁移时Null值设置为0
+							if (dataType.toUpperCase().equals(NumberUtil.DECIMAL)) {
+								if (targetValue.toString().trim().equals("0")) {
+									sameDataInRow++;
+								} else {
+									itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
+									        "not same value"));
+									notSameData++;
+								}
+							} else {
+								// 源数据null,目标数据非null
+								itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
+								        "sourceValue is null"));
+								notSameData++;
+							}
 						} else if (targetValue == null && sourceValue != null) {
 							// 源数据非null,目标数据null
 							itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
-									"targetValue is null"));
+							        "targetValue is null"));
 							notSameData++;
 						}
 					} else {
 						// 目标表的列数量不与源相同
 						itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, "target not column"));
 					}
-				}
-				// 行内数量和字段数量相同==>相同行数+1
+				} // 循环每个字段
+				  // 行内数量和字段数量相同==>相同行数+1
 				if (sameDataInRow == targetQuery.getTestFields().size()) {
 					sameRow++;
 				} else {
 					notSameRow++;
 				}
+
 			} else {
 				// 目标表无此KeyValue
 				itemQueue.add(createItem(keyValue, "target not keyvalue"));
 				notSameRow++;
 			}
+			if (sourceValues != null && sourceValues.size() > 0)
+				sourceValues.clear();
+			if (targetValues != null && targetValues.size() > 0)
+				targetValues.clear();
 
 			if (maxItemRows != null && maxItemRows > 0 && notSameData >= maxItemRows) {
 				logger.info(caseName + "测试被中断,结果明细的数量:" + notSameData + " 超过了最大结果数量限制:" + maxItemRows);
 				break;
 			}
-		}
+		} // 循环每个Key
 		logger.info(caseName + " compare end sameRow:" + sameRow + " notSameRow:" + notSameRow + " notSameData:"
-				+ notSameData);
+		        + notSameData);
 		CompareResult result = new CompareResult(sameRow, notSameData, notSameRow);
 		return result;
 	}
 
 	// 从右到左比较
 	protected CompareResult doRightCompare(Map<String, List<Object>> sourceMap, QueryModel sourceQuery,
-			Map<String, List<Object>> targetMap, QueryModel targetQuery, BlockingQueue<TestResultItem> itemQueue) {
+	        Map<String, List<Object>> targetMap, QueryModel targetQuery, BlockingQueue<TestResultItem> itemQueue) {
 		Integer maxItemRows = null;
 		Integer itemCount = 0;
 		if (testCase.getMaxResultRows() != null && testCase.getMaxResultRows() > 0) {
@@ -302,7 +326,7 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 								// 其它类型转换为字符串比较
 								if (!sourceValue.toString().trim().equals(targetValue.toString().trim())) {
 									itemQueue.add(createItem(keyValue, targetField.getName(), sourceValue, targetValue,
-											"not same value"));
+									        "not same value"));
 									notSameData++;
 								} else {
 									sameDataInRow++;
@@ -314,12 +338,12 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 						} else if (sourceValue == null && targetValue != null) {
 							// 源数据null,目标数据非null
 							itemQueue.add(createItem(keyValue, targetField.getName(), sourceValue, targetValue,
-									"sourceValue is null"));
+							        "sourceValue is null"));
 							notSameData++;
 						} else if (targetValue == null && sourceValue != null) {
 							// 源数据非null,目标数据null
 							itemQueue.add(createItem(keyValue, targetField.getName(), sourceValue, targetValue,
-									"targetValue is null"));
+							        "targetValue is null"));
 							notSameData++;
 						}
 					} else {
@@ -345,14 +369,14 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 			}
 		}
 		logger.info(caseName + " compare end sameRow:" + sameRow + " notSameRow:" + notSameRow + " notSameData:"
-				+ notSameData);
+		        + notSameData);
 		CompareResult result = new CompareResult(sameRow, notSameData, notSameRow);
 		return result;
 	}
 
 	// 双向比较
 	protected CompareResult doTwoWayCompare(Map<String, List<Object>> sourceMap, QueryModel sourceQuery,
-			Map<String, List<Object>> targetMap, QueryModel targetQuery, BlockingQueue<TestResultItem> itemQueue) {
+	        Map<String, List<Object>> targetMap, QueryModel targetQuery, BlockingQueue<TestResultItem> itemQueue) {
 		// Map<String, List<Object>> sourceMap = sourceData.getMap();
 		// TestQueryService testQueryService =
 		// SpringUtils.getBean(TestQueryServiceImpl.class);
@@ -374,8 +398,8 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 		long notSameData = 0;// 不同的数据值的统计，每个行和列的不同的合计
 		int sameDataInRow = 0;// 行内数据相同的统计
 		long notSameRow = 0;// 不同行数
-		//先从左到右进行比较,将比较过key的放入集合中
-		Map<String,Object> compared=new HashMap<>();//存放已经比较过的key
+		// 先从左到右进行比较,将比较过key的放入集合中
+		Map<String, Object> compared = new HashMap<>();// 存放已经比较过的key
 		for (String keyValue : sourceMap.keySet()) {
 			sameDataInRow = 0;
 			if (targetMap.containsKey(keyValue)) {
@@ -410,7 +434,7 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 								// 其它类型转换为字符串比较
 								if (!sourceValue.toString().trim().equals(targetValue.toString().trim())) {
 									itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
-											"not same value"));
+									        "not same value"));
 									notSameData++;
 								} else {
 									sameDataInRow++;
@@ -422,12 +446,12 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 						} else if (sourceValue == null && targetValue != null) {
 							// 源数据null,目标数据非null
 							itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
-									"sourceValue is null"));
+							        "sourceValue is null"));
 							notSameData++;
 						} else if (targetValue == null && sourceValue != null) {
 							// 源数据非null,目标数据null
 							itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
-									"targetValue is null"));
+							        "targetValue is null"));
 							notSameData++;
 						}
 					} else {
@@ -452,11 +476,11 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 				break;
 			}
 		}
-		//从右到左进行比较
+		// 从右到左进行比较
 		for (String keyValue : targetMap.keySet()) {
 			sameDataInRow = 0;
-			if(compared.containsKey(keyValue)) {
-				//已经比较过跳过循环
+			if (compared.containsKey(keyValue)) {
+				// 已经比较过跳过循环
 				continue;
 			}
 			if (sourceMap.containsKey(keyValue)) {
@@ -488,7 +512,7 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 								// 其它类型转换为字符串比较
 								if (!sourceValue.toString().trim().equals(targetValue.toString().trim())) {
 									itemQueue.add(createItem(keyValue, targetField.getName(), sourceValue, targetValue,
-											"not same value"));
+									        "not same value"));
 									notSameData++;
 								} else {
 									sameDataInRow++;
@@ -500,12 +524,12 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 						} else if (sourceValue == null && targetValue != null) {
 							// 源数据null,目标数据非null
 							itemQueue.add(createItem(keyValue, targetField.getName(), sourceValue, targetValue,
-									"sourceValue is null"));
+							        "sourceValue is null"));
 							notSameData++;
 						} else if (targetValue == null && sourceValue != null) {
 							// 源数据非null,目标数据null
 							itemQueue.add(createItem(keyValue, targetField.getName(), sourceValue, targetValue,
-									"targetValue is null"));
+							        "targetValue is null"));
 							notSameData++;
 						}
 					} else {
@@ -531,7 +555,7 @@ public class BaseTestCompareWorker extends BaseTestWorker {
 			}
 		}
 		logger.info(caseName + " compare end sameRow:" + sameRow + " notSameRow:" + notSameRow + " notSameData:"
-				+ notSameData);
+		        + notSameData);
 		CompareResult result = new CompareResult(sameRow, notSameData, notSameRow);
 		return result;
 	}

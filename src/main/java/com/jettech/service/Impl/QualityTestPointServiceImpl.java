@@ -1249,8 +1249,15 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 				String fieldID = fieldStr.split("___")[0].trim();
 				DataField df = testFieldService.findById(Integer.valueOf(fieldID));//字段
 				String fieldName = df.getName();//字段名
-				
-				Integer qualitySuiteId = Integer.parseInt(fieldStr.split("___")[1]);
+
+				//值为空时跳出
+				Integer qualitySuiteId = 0;
+				try {
+					qualitySuiteId = Integer.parseInt(fieldStr.split("___")[1]);
+				}catch (Exception e){
+					log.info("没有选择规则集"+e);
+					continue;
+				}
 				QualitySuite qualitySuite = qualitySuiteRepository.findById(qualitySuiteId).get();//规则集
 	//			String andOr = qualitySuite.getAndOr();//规则及下sql拼接符and/or
 				List<QualityRule> qualityRules = qualitySuite.getQualityRules();//获取规则集下所有规则
@@ -1263,12 +1270,19 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 				String sqlStr = "SELECT * FROM "+dbName+"."+talbeName;
 				String whereSql = " WHERE ";
 				log.info("从前端获取到的字段："+fieldName+",规则集："+qualitySuiteId);
+				//浮点数选择SQL
+				String floatSql = " where LOCATE('.'," + fieldName  +") > 0  " ;
+                //日期格式的SQL    CHECK_POINT_TIME_AND_DATE
+                String checkPointDateSql = "where ";
+				String andOr = "or";
+
 				for(QualityRule qr:qualityRules){
 					String ruleStr = qr.getName();
-					String whereNullSql = (StringUtils.isNotBlank(qr.getAndOr())?qr.getAndOr():" ")+" "+fieldName+" "+ruleStr;
+					String whereNullSql = (StringUtils.isNotBlank(qr.getAndOr())?qr.getAndOr():" ")+" "+fieldName+" "+ruleStr+" ";
 					String whereRangeSql = (StringUtils.isNotBlank(qr.getAndOr())?qr.getAndOr():" ")+" "+fieldName+" "+ruleStr+" "+qr.getDefaultValue();
 					String whereLengthSql = (StringUtils.isNotBlank(qr.getAndOr())?qr.getAndOr():" ")+" "+"LENGTH("+fieldName+") "+ruleStr+" "+qr.getDefaultValue();
 					String whereCodeInOrNotSql = (StringUtils.isNotBlank(qr.getAndOr())?qr.getAndOr():" ")+" "+fieldName+" "+ruleStr+" "+" ("+qr.getDefaultValue()+")";
+
 					switch(qr.getRuleType().getCode()){
 						case "_IS_NULL"://空值 is null
 							whereSql += " "+whereNullSql;
@@ -1280,7 +1294,6 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 							whereSql += " "+whereRangeSql;
 							break;
 						case "_RANGE_GREAT_EQUALS"://范围大于等于>=
-							
 							whereSql += " "+whereRangeSql;
 							break;
 						case "_RANGE_SMALL"://范围小于<
@@ -1289,7 +1302,7 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 						case "_RANGE_SMALL_EQUALS"://范围小于等于<=
 							whereSql += " "+whereRangeSql;
 							break;
-						case "_RANGE__EQUALS"://范围等于=
+						case "_RANGE_EQUALS"://范围等于=
 							whereSql += " "+whereRangeSql;
 							break;
 						case "_LENGTH_GREAT"://长度大于>
@@ -1306,6 +1319,9 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 							break;
 						case "_LENGTH_EQUALS"://长度等于=
 							whereSql += " "+whereLengthSql;
+							break;
+						case "_LENGTH_NOT_EQUALS": //长度不等于 //
+							whereSql +=whereLengthSql;
 							break;
 						case "_CODE_IN"://码值包含in
 							whereSql += " "+whereCodeInOrNotSql;
@@ -1331,10 +1347,86 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 							break;
 						case "_CHAIN_RUPTURE"://数仓拉链表断链
 							//select * from biao a left join biao b on a.name=b.name and a.end_dt=b.start_dt
-							sqlStr = "SELECT * FROM "+dbName+"."+talbeName+" A LEFT JOIN "+dbName+"."+talbeName+" B ON A.ID=B.ID AND A."+fieldName+" "+ruleStr+" "+qr.getDefaultValue();;
+							//sqlStr = "SELECT * FROM "+dbName+"."+talbeName+" A LEFT JOIN "+dbName+"."+talbeName+" B ON A.ID=B.ID AND A."+fieldName+" "+ruleStr+" "+qr.getDefaultValue();
+							String strQr[] = qr.getDefaultValue().split("/");
+
+							sqlStr = "SELECT * FROM "+dbName+"."+talbeName+" A LEFT JOIN "+dbName+"."+talbeName+" B ON A."+ strQr[0] +" = B."+ strQr[0] +" AND A."+fieldName+" "+ruleStr+" "+strQr[1];
 							whereSql = "";
 							break;
-							
+						case "_IS_PRIMARY_KEY"://是否主键查询
+				//			sqlStr = "select * from \"" + dbName + "\"." + talbeName;
+				//			whereSql += "\"" + fieldName + "\" in ( select \"" +
+				//					fieldName + "\" from \"" + dbName + "\"." + talbeName + " GROUP BY \"" +
+				//					fieldName + "\" HAVING COUNT (\"" + fieldName + "\") " + ruleStr + " " + qr.getDefaultValue() + " AND \"" + fieldName + "\" IS NOT NULL )";
+							sqlStr = "select * from " + dbName + "." + talbeName;
+							whereSql += " " + fieldName + " in ( select " +
+									fieldName + " from " + dbName + "." + talbeName + " GROUP BY " +
+									fieldName + " HAVING COUNT (" + fieldName + ") " + ruleStr + " " + qr.getDefaultValue() + " AND " + fieldName + " IS NOT NULL )";
+
+						//	sqlStr = "select column_name from INFORMATION_SCHEMA.`KEY_COLUMN_USAGE` where ";
+					//		whereSql = "table_name = "+ "'"+talbeName+"'"+" and TABLE_SCHEMA = " + "'"+dbName + "'"+" AND constraint_name = 'PRIMARY' "+"and column_name = " + "'"+fieldName + "'";
+							break;
+						case "_CHECK_FLOAT_LENGTH": //浮点范围长度选择
+						//	floatSql =  " where LOCATE('.'," + fieldName  +") "+ ruleStr + " " + qr.getDefaultValue() ;
+						//	whereSql =  floatSql;
+							/*String strs[] = qr.getDefaultValue().split("/");
+							sqlStr = "SELECT * FROM \""+dbName+"\"."+talbeName;
+							whereSql = " where (LENGTH (SUBSTR ( \"" + fieldName + "\",(INSTR( \"" + fieldName + "\",'.') + 1 ) ) ) + INSTR(\"" + fieldName + "\",'.')) = " + strs[0] + " AND LENGTH (" +
+									"SUBSTR (\"" + fieldName +"\",(INSTR( \"" + fieldName + "\",'.') + 1) )) = " + strs[1];*/
+							String strs[] = qr.getDefaultValue().split("/");
+							sqlStr = "SELECT * FROM "+dbName+"."+talbeName;
+					//		whereSql = " where (LENGTH (SUBSTR ( " + fieldName + ",(INSTR( " + fieldName + ",'.') + 1 ) ) ) + INSTR(" + fieldName + ",'.')) = " + strs[0] + " AND LENGTH (" +
+					//				"SUBSTR (" + fieldName +",(INSTR( " + fieldName + ",'.') + 1) )) = " + strs[1];
+							whereSql = " WHERE ( ( select DATA_SCALE from (select a.owner r0,a.table_name r1,a.column_name r2,a.comments r3" +
+									" from all_col_comments a),(select t.owner r4,t.table_name r5,t.column_name  r6 ,t.* from all_tab_columns t) " +
+									" where r4=r0 and r5=r1 and r6=r2 and owner = '" + dbName + "' and TABLE_NAME= '" + talbeName + "' AND r2 = '"+ fieldName +"') " +
+									" + LENGTH(to_char("+ fieldName +",'FM9999999999999999999999999')) ) = " + strs[0] + " " +
+									"AND (select DATA_SCALE from (select a.owner r0,a.table_name r1,a.column_name r2,a.comments r3" +
+									" from all_col_comments a),(select t.owner r4,t.table_name r5,t.column_name  r6 ,t.* from all_tab_columns t)" +
+									" where r4=r0 and r5=r1 and r6=r2" +
+									" and owner = '" + dbName + "' and TABLE_NAME= '" + talbeName + "' AND r2 = '"+ fieldName +"' " +
+									") = " + strs[1] ;
+						//	whereSql = " WHERE ( ( select DATA_SCALE from user_tab_columns " +
+						//			" where TABLE_NAME= '" + talbeName + "' AND column_name = '"+ fieldName +"') " +
+						//			" + LENGTH(to_char("+ fieldName +",'FM9999999999999999999999999')) ) = " + strs[0] + " " +
+						//			"AND (select DATA_SCALE from user_tab_columns" +
+						//			" where TABLE_NAME= '" + talbeName + "' AND column_name = '"+ fieldName +"' " +
+						//			") = " + strs[1] ;
+
+
+							//	whereSql +=  CheckFloatSql;
+							break;
+						case "_CHECK_FLOAT":// 浮点数范围检测
+							floatSql += " AND LENGTH(SUBSTRING_INDEX(" + fieldName +",'.' ,- 1)) "+ ruleStr + qr.getDefaultValue();
+							whereSql =  floatSql;
+						//	whereSql +=  CheckFloatSql;
+							break;
+						case "_IS_NOT_NULL"://非空
+						//	sqlStr ="select * from "+dbName+"."+talbeName;
+						//	whereSql=" where "+(StringUtils.isNotBlank(qr.getAndOr())?qr.getAndOr():" ")+fieldName+" "+ruleStr;
+							whereSql +=" "+(StringUtils.isNotBlank(qr.getAndOr())?qr.getAndOr()+" ":" ")+fieldName+" "+ruleStr;
+							break;
+						case "_UNIQUE"://唯一性
+							sqlStr ="select * from "+dbName+"."+talbeName+" group by concat(" + fieldName + ")";
+							whereSql=ruleStr;
+						break;
+						case "_CHECK_POINT_DATE":// 日期格式校验 CHECK_POINT_TIME_AND_DATE
+
+							whereSql  += " " + andOr +
+										" from_unixtime(unix_timestamp(" + fieldName +"),"+"'"+ qr.getDefaultValue()+"') <> "+ fieldName;
+							andOr = "and";
+							break;
+						case "_CHECK_POINT_TIME":// 时间格式校验
+							whereSql  += " " + andOr +
+									" from_unixtime(unix_timestamp( " + fieldName +" ),"+"'"+ qr.getDefaultValue()+"') <> "+ fieldName;
+							andOr = "and";
+							break;
+						case "_DECIMAL_CHOICE"://获取相应小数位数
+							String strL[] = qr.getDefaultValue().split("/");
+							sqlStr = "SELECT id,CAST("+fieldName+" AS decimal( "+Integer.parseInt(strL[0])+ ","+Integer.parseInt(strL[1])+" )) as " + fieldName + " from "+dbName+"."+talbeName;
+							whereSql = "";
+							break;
+
 					}
 				}
 				
@@ -1342,6 +1434,10 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 				log.info("组装后的SQL=======================:"+sqlStr+whereSql);
 				qualityTestQuery.setSqlText(sqlStr+whereSql);
 				qualityTestQuery.setDataSource(ds);
+				qualityTestQuery.setDataSchema(dataSchema);
+				qualityTestQuery.setDataTable(dt);
+				qualityTestQuery.setDataField(df);
+				qualityTestQuery.setQualitySuite(qualitySuite);
 				qualityTestQuery.setName("数据源:"+ds.getName()+"->schema:"+dataSchema.getName()+"->表:"+dt.getName()+"->字段:"+df.getName()+"->规则集:"+qualitySuite.getName()+",sql脚本生成");
 				qualityTestQueryService.save(qualityTestQuery);//生成SQL脚本
 				
@@ -1354,7 +1450,7 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 				IQualityTestCaseService.save(qualityTestCase);//生成测试案例
 				
 				int qtcID = qualityTestCase.getId();
-				String num = "";
+				String num ="";
 				if(qtcID > 0){
 					if(String.valueOf(qtcID).length() == 1){
 						num = "000"+qtcID;
@@ -1367,7 +1463,7 @@ public class QualityTestPointServiceImpl implements IQualityTestPointService {
 					}
 				}
 				//更新案例编号
-				qualityTestCase.setCaseCode("SIT-SJJX-"+dt.getName().toUpperCase()+"-"+num);
+				qualityTestCase.setCaseCode("SIT-SJJS-"+dataSchema.getName()+"."+dt.getName()+"-"+num);
 				IQualityTestCaseService.save(qualityTestCase);
 			}
 		}

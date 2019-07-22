@@ -83,7 +83,7 @@ public class DbModel extends BaseModel {
 
 	// 其他方法
 	public String getPrintInfo() {
-		return String.format("dbtype:%s,driver:%s,url:%s,username:%s,password:%s", this.dbtype, this.driver, this.url,
+		return String.format("dbtype:[%s],driver:[%s],url:[%s],username:[%s],password:[%s]", this.dbtype, this.driver, this.url,
 		        this.username, this.password);
 	}
 

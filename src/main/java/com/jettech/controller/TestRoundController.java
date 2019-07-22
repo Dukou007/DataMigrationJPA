@@ -5,7 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
+import javax.servlet.http.HttpServletResponse;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,12 +21,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jettech.entity.Product;
+import com.jettech.entity.QualityTestCase;
 import com.jettech.entity.TestCase;
 import com.jettech.entity.TestResult;
 import com.jettech.entity.TestResultItem;
 import com.jettech.entity.TestRound;
 import com.jettech.entity.TestSuite;
-import com.jettech.repostory.TestRoundRepository;
+import com.jettech.service.IQualityTestCaseService;
 import com.jettech.service.ITestCaseService;
 import com.jettech.service.ITestResultItemService;
 import com.jettech.service.ITestReusltService;
@@ -34,6 +36,7 @@ import com.jettech.service.TestRoundService;
 import com.jettech.service.TestSuiteCaseService;
 import com.jettech.service.TestSuiteService;
 import com.jettech.vo.PageResult;
+import com.jettech.vo.QualityTestCaseVO;
 import com.jettech.vo.ResultVO;
 import com.jettech.vo.StatusCode;
 import com.jettech.vo.TestCaseVO;
@@ -66,18 +69,20 @@ public class TestRoundController {
 
 	@Autowired
 	ITestCaseService testCaseService;
+	
+	@Autowired
+	IQualityTestCaseService IQualityTestCaseService;
 
 	@Autowired
 	ITestResultItemService testResultItemService;
 
-	@Autowired
-	private TestRoundRepository repository;
 
 	@Autowired
 	private TestSuiteCaseService testSuiteCaseService;
 
 	@SuppressWarnings("unused")
-	private static Logger log = LoggerFactory.getLogger(TestRoundController.class);
+	private static Logger log = LoggerFactory
+			.getLogger(TestRoundController.class);
 
 	/**
 	 * @description:根据测试集ID查询轮次结果，并按照时间desc排列
@@ -90,19 +95,23 @@ public class TestRoundController {
 	 */
 	@ResponseBody
 	@RequestMapping(value = "findAllRoundBytestSuiteID", method = RequestMethod.GET)
-	@ApiOperation(value = "根据测试集ID查询轮次结果，并按照时间desc排列", notes = "参数:" + "测试集名称:suiteName;" + "测试状态:state;"
-			+ "开始时间:startTime;" + "结束时间:endTime;" + "案例数量:caseCount;" + "失败数量:failCount;" + "通过数量:successCount;")
+	@ApiOperation(value = "根据测试集ID查询轮次结果，并按照时间desc排列", notes = "参数:"
+			+ "测试集名称:suiteName;" + "测试状态:state;" + "开始时间:startTime;"
+			+ "结束时间:endTime;" + "案例数量:caseCount;" + "失败数量:failCount;"
+			+ "通过数量:successCount;")
 	@ApiImplicitParams({
 			@ApiImplicitParam(paramType = "query", name = "testSuiteID", value = "测试集名称", required = true, dataType = "Long"),
 			@ApiImplicitParam(paramType = "query", name = "pageNum", value = "页码值", required = false, dataType = "Long"),
 			@ApiImplicitParam(paramType = "query", name = "pageSize", value = "每页条数", required = false, dataType = "Long") })
-	public ResultVO findAllRoundBytestSuiteID(@RequestParam Integer testSuiteID,
+	public ResultVO findAllRoundBytestSuiteID(
+			@RequestParam Integer testSuiteID,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
 		HashMap<String, Object> map = new HashMap<String, Object>();
-		PageRequest pageable = PageRequest.of(pageNum - 1, pageSize);
+		Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
 		try {
-			Page<TestRound> roundList = testRoundService.findAllRoundBytestSuiteID(testSuiteID, pageable);
+			Page<TestRound> roundList = testRoundService
+					.findAllRoundBytestSuiteID(testSuiteID, pageable);
 			ArrayList<TestRoundVO> testRoundVOList = new ArrayList<TestRoundVO>();
 			for (TestRound testRound : roundList) {
 				TestRoundVO testRoundVO = new TestRoundVO(testRound);
@@ -131,10 +140,11 @@ public class TestRoundController {
 	 * @author:zhou_xiaolong in 2019年3月1日下午12:18:21
 	 */
 	@ResponseBody
-	@RequestMapping(value = "/findTestRoundOrderByTestSuiteIDAndStarTimeAndEndTime", method = RequestMethod.GET, produces = {
-			"application/json;charset=utf-8" })
-	@ApiOperation(value = "根据测试集ID、开始时间和结束时间查找轮次结果", notes = "参数:" + "测试集名称:suiteName;" + "测试状态:state;"
-			+ "开始时间:startTime;" + "结束时间:endTime;" + "案例数量:caseCount;" + "失败数量:failCount;" + "通过数量:successCount;")
+	@RequestMapping(value = "/findTestRoundOrderByTestSuiteIDAndStarTimeAndEndTime", method = RequestMethod.GET, produces = { "application/json;charset=utf-8" })
+	@ApiOperation(value = "根据测试集ID、开始时间和结束时间查找轮次结果", notes = "参数:"
+			+ "测试集名称:suiteName;" + "测试状态:state;" + "开始时间:startTime;"
+			+ "结束时间:endTime;" + "案例数量:caseCount;" + "失败数量:failCount;"
+			+ "通过数量:successCount;")
 	@ApiImplicitParams({
 			@ApiImplicitParam(paramType = "query", name = "testSuiteID", value = "案例集ID", required = true, dataType = "String"),
 			@ApiImplicitParam(paramType = "query", name = "startTime", value = "开始时间", required = false, dataType = "String"),
@@ -149,16 +159,16 @@ public class TestRoundController {
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
 		HashMap<String, Object> map = new HashMap<String, Object>();
 		Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
-		Page<TestRound>testRoundList=null;
+		Page<TestRound> testRoundList = null;
 		try {
-			if(startTime==endTime) {
-				testRoundList=testRoundService.findBySuiteIdAndStartTimeAndEndTime(testSuiteID,startTime,pageable);
-			}else {
-				testRoundList=testRoundService.findBySuiteIdAndStartTimeAndEndTime(testSuiteID,startTime,endTime,pageable);
-				
-			}
-		ArrayList<TestRoundVO> testRoundVOList = new ArrayList<TestRoundVO>();	
-		for (TestRound testRound : testRoundList) {
+//			startTime = startTime + " 00:00:00";
+//			endTime = endTime + " 23:59:59";
+			testRoundList = testRoundService
+					.findBySuiteIdAndStartTimeAndEndTime(testSuiteID,
+							startTime, endTime, pageable);
+
+			ArrayList<TestRoundVO> testRoundVOList = new ArrayList<TestRoundVO>();
+			for (TestRound testRound : testRoundList) {
 				TestRoundVO testRoundVO = new TestRoundVO(testRound);
 				testRoundVOList.add(testRoundVO);
 			}
@@ -182,14 +192,15 @@ public class TestRoundController {
 	 * @return
 	 */
 	@ResponseBody
-	@RequestMapping(value = "/CaseAmount/{parentId}", produces = {
-			"application/json;charset=UTF-8" }, method = RequestMethod.GET)
-	public ResultVO getParentCaseAmountByParentId(@PathVariable("parentId") Integer parentId) {
+	@RequestMapping(value = "/CaseAmount/{parentId}", produces = { "application/json;charset=UTF-8" }, method = RequestMethod.GET)
+	public ResultVO getParentCaseAmountByParentId(
+			@PathVariable("parentId") Integer parentId) {
 		Product product = productService.findById(parentId);
 		List<TestSuite> testSuite = product.getTestSuites();
 		int Amount = 0;
 		for (TestSuite s : testSuite) {
-			Integer[] caseIds = testSuiteCaseService.findCaseIdsBysuiteId(s.getId());
+			Integer[] caseIds = testSuiteCaseService.findCaseIdsBysuiteId(s
+					.getId());
 			ArrayList<TestCase> list = new ArrayList<TestCase>();
 			for (Integer caseId : caseIds) {
 				TestCase testCase = testCaseService.findById(caseId);
@@ -201,7 +212,8 @@ public class TestRoundController {
 		List<TestRoundVO> arryList = new ArrayList<TestRoundVO>();
 		for (TestSuite s : testSuite) {
 			Integer testSuiteId = s.getId();
-			List<TestRound> rounds = testRoundService.findBySuiteId(testSuiteId);
+			List<TestRound> rounds = testRoundService
+					.findBySuiteId(testSuiteId);
 			for (TestRound testRound : rounds) {
 				TestRoundVO a = new TestRoundVO(testRound);
 				arryList.add(a);
@@ -213,15 +225,6 @@ public class TestRoundController {
 		return new ResultVO(true, StatusCode.OK, "查询成功", map);
 	}
 
-	/*
-	 * @ResponseBody
-	 * 
-	 * @RequestMapping(method = RequestMethod.POST, value =
-	 * "selectResultList/{caseId}") public ResultVO
-	 * selectResultListById(@PathVariable("caseId") int caseId) { List<TestResult>
-	 * testResultList = testRuleService.findResultListByCaseId(caseId); return new
-	 * ResultVO(true, StatusCode.OK, "查询成功", testResultList); }
-	 */
 
 	/**
 	 * 根据test_round_id查询所有结果集并进行分页
@@ -233,14 +236,18 @@ public class TestRoundController {
 	 */
 	@ResponseBody
 	@RequestMapping(method = RequestMethod.POST, value = "selectResultLi/{testRoundId}/{pageNum}/{pageSize}")
-	public ResultVO selectResultLi(@PathVariable("testRoundId") int testRoundId, @PathVariable("pageNum") int pageNum,
+	public ResultVO selectResultLi(
+			@PathVariable("testRoundId") int testRoundId,
+			@PathVariable("pageNum") int pageNum,
 			@PathVariable("pageSize") int pageSize) {
 		TestResult testR = new TestResult();
 		testR.setTestRoundId(testRoundId);
 		// 1.根据条件查询标签
-		Page<TestResult> labels = testReusltService.findPage(testR, pageNum, pageSize);
+		Page<TestResult> labels = testReusltService.findPage(testR, pageNum,
+				pageSize);
 		// 2.创建分页的封装结果集
-		PageResult<TestResult> pageResult = new PageResult<>(labels.getTotalElements(), labels.getContent());
+		PageResult<TestResult> pageResult = new PageResult<>(
+				labels.getTotalElements(), labels.getContent());
 		// 2.创建返回值并返回
 		return new ResultVO(true, StatusCode.OK, "查询成功", pageResult);
 	}
@@ -252,8 +259,7 @@ public class TestRoundController {
 	 * @param suiteName
 	 * @return
 	 */
-	@RequestMapping(value = "/TestRound/suiteName", produces = {
-			"application/json;charset=UTF-8" }, method = RequestMethod.GET)
+	@RequestMapping(value = "/TestRound/suiteName", produces = { "application/json;charset=UTF-8" }, method = RequestMethod.GET)
 	public ResultVO selectTestRoundVO(
 			@RequestParam(value = "suiteName", defaultValue = "", required = false) String suiteName,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) int pageNum,
@@ -261,7 +267,8 @@ public class TestRoundController {
 
 		Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
 		try {
-			Page<TestRound> testRounds = testRoundService.findTestRoundBySuiteName(suiteName, pageable);
+			Page<TestRound> testRounds = testRoundService
+					.findTestRoundBySuiteName(suiteName, pageable);
 			ArrayList<TestRoundVO> roundList = new ArrayList<TestRoundVO>();
 			for (TestRound testRound : testRounds) {
 				TestRoundVO testRoundVO = new TestRoundVO(testRound);
@@ -285,25 +292,27 @@ public class TestRoundController {
 	 * @param suiteId
 	 * @return
 	 */
-	@RequestMapping(value = "/TestCase/{suiteId}", produces = {
-			"application/json;charset=UTF-8" }, method = RequestMethod.GET)
-	public ResultVO selectTestCaseBySuiteId(@PathVariable("suiteId") Integer suiteId,
+	@RequestMapping(value = "/TestCase/{suiteId}", produces = { "application/json;charset=UTF-8" }, method = RequestMethod.GET)
+	public ResultVO selectQualityTestCaseBySuiteId(
+			@PathVariable("suiteId") Integer suiteId,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) int pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) int pageSize) {
 
 		// 添加分页方法 20190122
 		// Pageable pageable = PageRequest.of(pageNum-1, pageSize);
 		PageRequest pageable = PageRequest.of(pageNum - 1, pageSize);
-		Page<TestCase> testCaseList = testCaseService.findBySuiteId(suiteId, pageable);
-		List<TestCaseVO> testCaseVOList = new ArrayList<TestCaseVO>();
-		for (TestCase testCase : testCaseList) {
-			TestCaseVO testCaseVO = new TestCaseVO(testCase);
-			testCaseVOList.add(testCaseVO);
+		//Page<QualityTestCase> qualityTestCaseList = IQualityTestCaseService.findCaseBySuiteId(suiteId,pageable);
+		Page<QualityTestCase> qualityTestCaseList = IQualityTestCaseService.findCaseByTestRoundId(suiteId,pageable);
+		List<QualityTestCaseVO> qualityTestCaseVOList = new ArrayList<QualityTestCaseVO>();
+		
+		for (QualityTestCase qualityTestCase : qualityTestCaseList) {
+			QualityTestCaseVO qualityTestCaseCaseVO = new QualityTestCaseVO(qualityTestCase);
+			qualityTestCaseVOList.add(qualityTestCaseCaseVO);
 		}
 		Map<String, Object> map = new HashMap<String, Object>();
-		map.put("totalElements", testCaseList.getTotalElements());
-		map.put("totalPages", testCaseList.getTotalPages());
-		map.put("list", testCaseVOList);
+		map.put("totalElements", qualityTestCaseList.getTotalElements());
+		map.put("totalPages", qualityTestCaseList.getTotalPages());
+		map.put("list", qualityTestCaseVOList);
 		return new ResultVO(true, StatusCode.OK, "查询成功", map);
 
 	}
@@ -316,15 +325,15 @@ public class TestRoundController {
 	 * @param pageSize
 	 * @return
 	 */
-	@RequestMapping(value = "/TestCase/suiteName", produces = {
-			"application/json;charset=UTF-8" }, method = RequestMethod.GET)
+	@RequestMapping(value = "/TestCase/suiteName", produces = { "application/json;charset=UTF-8" }, method = RequestMethod.GET)
 	public ResultVO selectTestCaseBySuiteName(
 			@RequestParam(value = "suiteName", defaultValue = "", required = false) String suiteName,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) int pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) int pageSize) {
 		if (suiteName.equals("")) {
 			PageRequest pageRequest = PageRequest.of(pageNum - 1, pageSize);
-			Page<TestCase> testCase = testCaseService.findAllByPage(pageRequest);
+			Page<TestCase> testCase = testCaseService
+					.findAllByPage(pageRequest);
 			List<TestCaseVO> caseList = new ArrayList<TestCaseVO>();
 			for (TestCase testCases : testCase) {
 				TestCaseVO testCaseVO = new TestCaseVO(testCases);
@@ -337,7 +346,8 @@ public class TestRoundController {
 			return new ResultVO(true, StatusCode.OK, "查询成功", map);
 		}
 		PageRequest pageable = PageRequest.of(pageNum - 1, pageSize);
-		Page<TestCase> testCaseList = testCaseService.findBySuiteName(suiteName, pageable);
+		Page<TestCase> testCaseList = testCaseService.findBySuiteName(
+				suiteName, pageable);
 		List<TestCaseVO> testCaseVOList = new ArrayList<TestCaseVO>();
 		for (TestCase testCase : testCaseList) {
 			TestCaseVO testCaseVO = new TestCaseVO(testCase);
@@ -358,13 +368,14 @@ public class TestRoundController {
 	 * @param pageSize
 	 * @return
 	 */
-	@RequestMapping(value = "/TestQuery/{caseId}", produces = {
-			"application/json;charset=UTF-8" }, method = RequestMethod.GET)
-	public ResultVO selectTestQueryByCaseId(@PathVariable("caseId") String caseId,
+	@RequestMapping(value = "/TestQuery/{caseId}", produces = { "application/json;charset=UTF-8" }, method = RequestMethod.GET)
+	public ResultVO selectTestQueryByCaseId(
+			@PathVariable("caseId") String caseId,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) int pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) int pageSize) {
 		PageRequest pageable = PageRequest.of(pageNum - 1, pageSize);
-		Page<TestResult> result = testRuleService.findResultListByCaseId(caseId, pageable);
+		Page<TestResult> result = testRuleService.findResultListByCaseId(
+				caseId, pageable);
 		return new ResultVO(true, StatusCode.OK, "查询成功", result);
 	}
 
@@ -376,17 +387,33 @@ public class TestRoundController {
 	 * @param pageSize
 	 * @return
 	 */
-	@RequestMapping(value = "/TestResultItem/{testResultId}", produces = {
-			"application/json;charset=UTF-8" }, method = RequestMethod.GET)
-	public ResultVO selectTestResultItemBytestResultId(@PathVariable("testResultId") Integer testResultId,
+	@RequestMapping(value = "/TestResultItem/{testResultId}", produces = { "application/json;charset=UTF-8" }, method = RequestMethod.GET)
+	public ResultVO selectTestResultItemBytestResultId(
+			@PathVariable("testResultId") Integer testResultId,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) int pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) int pageSize) {
 		PageRequest pageable = PageRequest.of(pageNum - 1, pageSize);
 		// Page<TestResultItem> TestResultItemList =
 		// testResultItemService.getTestResultItemByTestResultId(testResultId,pageable);
-		Page<TestResultItem> TestResultItemList = testResultItemService.findTestResultItemByTestResultID(testResultId,
-				"", pageable);
+		Page<TestResultItem> TestResultItemList = testResultItemService
+				.findTestResultItemByTestResultID(testResultId, "", pageable);
 		return new ResultVO(true, StatusCode.OK, "查询成功", TestResultItemList);
+	}
+
+	/**
+	 * 导出本轮次执行结果报告
+	 * 
+	 * @param testSuiteId
+	 * @param testRoundId
+	 */
+	@RequestMapping(value = "/export", produces = { "application/json;charset=UTF-8" }, method = RequestMethod.GET)
+	public String export(
+			@RequestParam(value = "testSuiteId", required = true) int testSuiteId,
+			@RequestParam(value = "testRoundId", required = true) int testRoundId,
+			HttpServletResponse response) {
+		return testRoundService.exportQualityReport(testRoundId, testSuiteId,
+				response);
+
 	}
 
 }

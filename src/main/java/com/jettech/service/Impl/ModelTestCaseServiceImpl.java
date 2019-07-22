@@ -1,6 +1,7 @@
 package com.jettech.service.Impl;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,9 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
 import com.jettech.BizException;
-import com.jettech.domain.CaseModel;
 import com.jettech.domain.ModelCaseModel;
 import com.jettech.entity.CaseModelSet;
 import com.jettech.entity.CaseModelSetDetails;
@@ -28,7 +27,6 @@ import com.jettech.entity.DataTable;
 import com.jettech.entity.DataSource;
 import com.jettech.entity.ModelTestCase;
 import com.jettech.entity.Product;
-import com.jettech.entity.TestCase;
 import com.jettech.entity.DataSchema;
 import com.jettech.entity.TestQuery;
 import com.jettech.entity.TestSuite;
@@ -115,6 +113,8 @@ public class ModelTestCaseServiceImpl implements ModelTestCaseService {
 		List<CaseModelSetDetails> findByCaseModelSet = caseModelSetDetailsRepository.findByCaseModelSet(findByModelTestCase);
 		if(findByCaseModelSet.size()>0) {
 			caseModelSetDetailsRepository.deleteAll(findByCaseModelSet);
+		}
+		if(findByModelTestCase!=null){
 			caseModelSetRepository.delete(findByModelTestCase);
 		}
 		String name = testCase.getName();
@@ -729,6 +729,7 @@ public class ModelTestCaseServiceImpl implements ModelTestCaseService {
 	public void updateTestCase(ModelTestCaseVO testCaseVO) throws BizException {
 		// 保存案例
 		ModelTestCase testCase = new ModelTestCase();
+		testCaseVO.setEditTime(new Date());
 		BeanUtils.copyProperties(testCaseVO, testCase);
 		String testCaseName=testCaseVO.getName();
 		if (testCaseName == null || testCaseName.trim().length() == 0) {

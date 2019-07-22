@@ -8,6 +8,8 @@ import org.springframework.data.domain.Pageable;
 import java.util.Date;
 import java.util.List;
 
+import javax.servlet.http.HttpServletResponse;
+
 public interface TestRoundService extends IService<TestRound, Integer> {
 
     List<TestRound> findBySuiteId(int SuiteId);
@@ -16,7 +18,7 @@ public interface TestRoundService extends IService<TestRound, Integer> {
 
 	Page<TestRound> findAllRoundBytestResultID(Integer testResultID, PageRequest pageable);
 
-	Page<TestRound> findAllRoundBytestSuiteID(Integer testSuiteID, PageRequest pageable);
+	Page<TestRound> findAllRoundBytestSuiteID(Integer testSuiteID, Pageable pageable);
 
     TestRound selectTestRoundByTestSuiteId(Integer testSuiteId);
 
@@ -27,6 +29,7 @@ public interface TestRoundService extends IService<TestRound, Integer> {
 	Page<TestRound> findBySuiteIdAndStartTimeAndEndTime(String testSuiteID, String startTime, String endTime,
 			Pageable pageable);
 
-	Page<TestRound> findBySuiteIdAndStartTimeAndEndTime(String testSuiteID, String startTime, Pageable pageable);
+
+	String exportQualityReport(Integer testRoundId, Integer testSuiteId,HttpServletResponse response);
 
 }

@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.transaction.Transactional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +66,7 @@ public class QualitySuiteController {
 	 */
 	@ResponseBody
 	@RequestMapping(method = RequestMethod.GET, value = "/delete/{id}")
+	@Transactional
 	public ResultVO delete(@PathVariable("id") int id) {
 		return qualitySuiteService.delete(id);
 	}

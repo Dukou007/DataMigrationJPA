@@ -1,5 +1,6 @@
 package com.jettech.repostory;
 
+import java.util.Date;
 import java.util.List;
 
 import javax.transaction.Transactional;
@@ -17,6 +18,8 @@ import com.jettech.vo.TestDatabaseVO;
 public interface DataSchemaRepository extends JpaRepository<DataSchema, Integer> {
 	  @Query("select d from DataSchema d where d.name = ?1")
 	  DataSchema findByName(String name);
+	  @Query("select d from DataSchema d where d.name = ?1 and d.isDict = true")
+	  DataSchema findByNameAndIsDict(String name);
 	  @Query(value = "select * from test_database where name = ?1 and data_source_id=?2",nativeQuery = true)
 	  DataSchema findByNameAndDataSourceId(String name,Integer data_source_id);
 	  @Query(value = "select * from test_database where name = ?1 and data_source_id is null",nativeQuery = true)
@@ -36,10 +39,15 @@ public interface DataSchemaRepository extends JpaRepository<DataSchema, Integer>
 	  int  update(int version,int id);	
 	  @Modifying
 	  @Transactional
-	  @Query(value="UPDATE test_database t SET t.version=?1, t.is_dict=?3, t.name=?4 ,t.data_source_id=?5 WHERE t.id=?2",nativeQuery = true)
-	  int  update(int version,int id,Boolean is_dict,String name ,int data_source_id);	
+	  @Query(value="UPDATE test_database t SET t.version=?1, t.is_dict=?3, t.name=?4 ,t.data_source_id=?5,t.edit_time=?6 WHERE t.id=?2",nativeQuery = true)
+	  int  update(int version,int id,Boolean is_dict,String name ,int data_source_id,Date editTime);	
 	  
-	  @Query(value = "select * from test_database  where data_source_id=?1 and name=?2",nativeQuery = true)
+	  @Query(value = "select * from test_database  where data_source_id=?1 and if(?2 is null or ?2 = '',1=1,name like concat('%',?2,'%'))",nativeQuery = true)
 	  List<DataSchema> findSchemasByDataSourceID(int dataSourceID,String schemaName);
+	  @Query(value = "select * from test_database  where data_source_id=?1 and name=?2",nativeQuery = true)
+	  DataSchema findSchemasByDataSourceIdAndName(int dataSourceID,String schemaName);
+	  
+	  @Query(value = "select * from test_database  where data_source_id=?1 and if(?2 is null or ?2 = '',1=1,name like concat('%',?2,'%'))",nativeQuery = true)
+	  DataSchema findSchemasBydsIDAndDefaultName(Integer id, String defaultSchema);
 	  
 }

@@ -40,6 +40,11 @@ public class PageDataWorker extends BaseDataWorker implements Runnable {
 		}
 	}
 
+	public PageDataWorker() {
+		super();
+	}
+
+
 	TestQuery sourceQuery;
 
 	public PageDataWorker(BlockingQueue<BaseData> queue, QueryModel testQuery, Integer pageSize,
@@ -192,7 +197,26 @@ public class PageDataWorker extends BaseDataWorker implements Runnable {
 		// 查找字符串中是否有匹配正则表达式的字符/字符串
 		if (!matcher.find()) {
 			// 未找到排序子句,增加排序子句
-			sql += " order by " + pageText;
+			switch (query.getDataSource().getDbtype()) {
+			case Oracle:
+				StringBuilder pageTex=new StringBuilder();
+				if(pageText.contains(",")){//如果多个key给每个key增加双引号
+					String[] pageTs=pageText.split(",");
+					for(int i=0;i<pageTs.length;i++){
+						pageTex.append("\"" + pageTs[i]+"\"");
+						if(i<pageTs.length-1){
+							pageTex.append(",");
+						}
+					}
+					sql += " order by " + pageTex.toString();
+					break;
+				}
+				sql += " order by \"" + pageText+"\"";
+				break;
+			default:
+				sql += " order by " + pageText;
+			}
+			
 		}
 
 		switch (query.getDataSource().getDbtype()) {
@@ -218,6 +242,8 @@ public class PageDataWorker extends BaseDataWorker implements Runnable {
 		case DB2:
 			break;
 		case Informix:
+			//select skip 2 first 10 * from Table(multiset(select * FROM AA10TEMP order by AA10BKNO)) t;
+			sql ="select skip "+ ((pageIndex - 1) * pageSize + 1)+" first "+ pageSize+ " * from Table(Multiset("+sql +")) t";
 			break;
 		default:
 			throw new Exception("not support databasetype:" + this.testQuery.getDataSource().getDbtype().getName());
@@ -238,22 +264,40 @@ public class PageDataWorker extends BaseDataWorker implements Runnable {
 
 		Integer maxNullKeyCount = testQuery.getMaxNullKeyCount();
 		Integer maxDuplKeyCount = testQuery.getMaxDuplicatedKeyCount();
-
+		
 		while (rs.next()) {
 			List<Object> data = new ArrayList<Object>();
 			String keyValue = "";
+			StringBuffer buffer = new StringBuffer();
 			for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
 				data.add(rs.getObject(i));
 				//System.out.println("===================:"+ rs.getObject(i).toString().trim());
 				String columnName = rs.getMetaData().getColumnLabel(i).toUpperCase();
+				String colType = rs.getMetaData().getColumnTypeName(i).trim().toUpperCase();
 				if (keyMap.containsKey(columnName)) {
 					if (rs.getObject(i) != null) {
-						keyValue += "|" + rs.getObject(i).toString().trim();
+						Object keyData = rs.getObject(i);
+						String dataStr = keyData.toString();
+						if (NumberUtil.getNumberType().containsKey(colType)) {
+							String valueStr = dataStr.trim();
+							if (valueStr.contains(".")) {
+								valueStr = valueStr.replaceAll("0+?$", "");// 去掉多余的0
+								valueStr = valueStr.replaceAll("[.]$", "");// 如最后一位是.则去掉
+							}
+							keyValue += "|" + valueStr;
+							if (!valueStr.equals(dataStr)) {
+								buffer.append("[" + dataStr + "]to[" + valueStr + "],");
+							}
+						} else {
+							keyValue += "|" + dataStr.trim();
+						}
 					} else {
 						keyValue += "|[NULL]";
 					}
 				}
 			}
+//			if (buffer.length() > 0)
+//				logger.debug("convert:" + buffer.toString());
 			if(keyValue==null || keyValue.trim().length()==0)
 			{
 				logger.info("keyVaue is null or emtpy"+data.toString());

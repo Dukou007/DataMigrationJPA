@@ -24,10 +24,11 @@ public interface DataSchemaService{
 	public String getDatabase(HttpServletResponse response,int id)throws Exception;
 	public String downloadSelect(HttpServletResponse response,List<Integer> ids) throws Exception;
     public ResultVO copyDataSchema(int id,String name);
-    public void SetOneDataSchema(int id);
+    public void SetOneDataSchema(int id) throws Exception;
     public List<DataSchema> getAllDataSchema();
     
     public List<DataSchema> getSchemasByDataSourceID(int dataSourceID,String schemaName);
-    
+    public DataSchema getSchemasByDataSourceIdAndName(int dataSourceID, String schemaName);
     public DataSchema findSchemaByID(int id);
+    public DataSchema findByName(String sourceDataSchemaName);
 }

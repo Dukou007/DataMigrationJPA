@@ -25,7 +25,7 @@ public interface DataFieldRepository extends JpaRepository<DataField, Integer> {
 	List<DataField> findByForeignKey(int test_table_id);
 	
 
-	@Query(value = "select * from test_field  where test_table_id =?1 and if(?2 is null or ?2 = '',1=1,name like concat('%',?2,'%'))", nativeQuery = true)
+	@Query(value = "select * from test_field  where test_table_id =?1 and (deleted=0 or deleted is null) and if(?2 is null or ?2 = '',1=1,name like concat('%',?2,'%'))", nativeQuery = true)
 	List<DataField> findFieldNameByTableID(int test_table_id,String name);
 
 	@Query(value = "select t.* from test_field t,test_table b,test_database c where t.test_table_id =b.id and c.id=b.test_database_id and b.name=?1 and c.name=?2", nativeQuery = true)

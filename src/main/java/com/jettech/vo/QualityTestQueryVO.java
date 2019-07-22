@@ -9,6 +9,10 @@ public class QualityTestQueryVO extends BaseVO {
 	private String name;
 	private Integer dataSourceId;
 	private String dataSourceName;
+	private Integer dataSchemaId;
+	private Integer dataTableId;
+	private Integer dataFieldId;
+	private Integer qualitySuiteId;
 	public String getDataSourceName() {
 		return dataSourceName;
 	}
@@ -16,8 +20,6 @@ public class QualityTestQueryVO extends BaseVO {
 	public void setDataSourceName(String dataSourceName) {
 		this.dataSourceName = dataSourceName;
 	}
-
-	private String testFieldNames;
 	private String sqlText;
 
 	public String getSqlText() {
@@ -26,14 +28,6 @@ public class QualityTestQueryVO extends BaseVO {
 
 	public void setSqlText(String sqlText) {
 		this.sqlText = sqlText;
-	}
-
-	public String getTestFieldNames() {
-		return testFieldNames;
-	}
-
-	public void setTestFieldNames(String testFieldNames) {
-		this.testFieldNames = testFieldNames;
 	}
 
 	public Integer getDataSourceId() {
@@ -51,16 +45,19 @@ public class QualityTestQueryVO extends BaseVO {
 			this.dataSourceId = e.getDataSource().getId();
 			this.dataSourceName=e.getDataSource().getName();
 			this.setId(e.getId());
-			if (e.getDataFields() != null) {
-				this.testFieldNames = "";
-				for (DataField field : e.getDataFields()) {
-					if (field != null && field.getName() != null)
-						this.testFieldNames += "," + field.getName();
-				}
-				if (this.testFieldNames.length() > 0) {
-					this.testFieldNames = this.testFieldNames.substring(1);
-				}
+			if(e.getDataField() != null){
+				this.setDataFieldId(e.getDataField().getId());
 			}
+			if(e.getDataSchema() != null){
+				this.setDataSchemaId(e.getDataSchema().getId());
+			}
+			if(e.getDataTable() != null){
+				this.setDataTableId(e.getDataTable().getId());
+			}
+			if(e.getQualitySuite()!=null){
+				this.setQualitySuiteId(e.getQualitySuite().getId());
+			}
+			
 		}
 	}
 
@@ -73,6 +70,38 @@ public class QualityTestQueryVO extends BaseVO {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public Integer getDataSchemaId() {
+		return dataSchemaId;
+	}
+
+	public void setDataSchemaId(Integer dataSchemaId) {
+		this.dataSchemaId = dataSchemaId;
+	}
+
+	public Integer getDataTableId() {
+		return dataTableId;
+	}
+
+	public void setDataTableId(Integer dataTableId) {
+		this.dataTableId = dataTableId;
+	}
+
+	public Integer getDataFieldId() {
+		return dataFieldId;
+	}
+
+	public void setDataFieldId(Integer dataFieldId) {
+		this.dataFieldId = dataFieldId;
+	}
+
+	public Integer getQualitySuiteId() {
+		return qualitySuiteId;
+	}
+
+	public void setQualitySuiteId(Integer qualitySuiteId) {
+		this.qualitySuiteId = qualitySuiteId;
 	}
 
 

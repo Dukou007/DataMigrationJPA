@@ -1,5 +1,6 @@
 package com.jettech.service.Impl;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.jettech.EnumDatabaseType;
 import com.jettech.EnumOptType;
@@ -101,9 +103,6 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 	private boolean updateDB = false;
 	private boolean updateTable = false;
 
-	
-	
-
 	@Override
 	public void addOneDatasource(DataSource ds) throws SQLException {
 		dataSourceRepository.save(ds);
@@ -118,7 +117,6 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 				ds.getEditUser(), ds.getSid(), ds.getId());
 	}
 
-
 	public void syncSchemaMetaExistTable(AbstractAdapter adapter,
 			Connection conn, DataSource ds, DataSchema testDatabase) {
 		// String dbName = ds.getDefaultSchema();
@@ -130,6 +128,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 		testTableRepository.saveAll(testtableList);
 		syncFields(adapter, conn, testDatabase.getName(), testtableList);
 	}
+
 	private void syncFields(AbstractAdapter adapter, Connection conn,
 			String dbName, List<DataTable> testtableList) {
 		DataSchema db = testDatabaseRepository.findByName(dbName);
@@ -195,7 +194,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 				for (int i = 0; i < testfieldList.size(); i++) {
 					DataField tb1 = testfieldList.get(i);
 					String name1 = tb1.getName();
-					int data_len1 = tb1.getDataLength();
+					Integer data_len1 = tb1.getDataLength();
 					int data_pre1 = tb1.getDataPrecision();
 					String data_type1 = tb1.getDataType();
 					Boolean isForeignKey1 = tb1.getIsForeignKey();
@@ -214,7 +213,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 					for (int p = 0; p < existfieldList.size(); p++) {
 						DataField tb2 = existfieldList.get(p);
 						String name2 = tb2.getName();
-						int data_len2 = tb2.getDataLength();
+						Integer data_len2 = tb2.getDataLength();
 						int data_pre2 = tb2.getDataPrecision();
 						String data_type2 = tb2.getDataType();
 						Boolean isForeignKey2 = tb2.getIsForeignKey();
@@ -317,7 +316,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 						String createUser = tfchange.getCreateUser();
 						Date editTime = new Date();
 						String editUser = tb1.getEditUser();
-						int dataLength = tb1.getDataLength();
+						Integer dataLength = tb1.getDataLength();
 						int dataPrecision = tb1.getDataPrecision();
 						String dataType = tb1.getDataType();
 						String des = tb1.getDes();
@@ -510,7 +509,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 		mainSqlRecordRepository.save(record);
 
 		System.out.println("source_sql=" + ssql + ",targetsql=" + tsql);
-		
+
 	}
 
 	@Override
@@ -540,8 +539,8 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 	}
 
 	@Override
-	public Page<DataSchema> getAllDbByPage(int data_source_id,
-			Pageable pageable) throws SQLException {
+	public Page<DataSchema> getAllDbByPage(int data_source_id, Pageable pageable)
+			throws SQLException {
 		return testDatabaseRepository.findByForeignKeyByPage(data_source_id,
 				pageable);
 
@@ -556,7 +555,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 	}
 
 	@Override
-	public List<DataTable> getAllTable(int test_database_id){
+	public List<DataTable> getAllTable(int test_database_id) {
 		List<DataTable> tableList = testTableRepository
 				.findByForeignKey(test_database_id);
 		return tableList;
@@ -809,105 +808,123 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 		return sqlvo;
 	}
 
-	
 	@Override
-	//@Transactional
-	public void uploadDictExcel(String filePath){
+	// @Transactional
+	public void uploadDictExcel(MultipartFile file) throws Exception {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		DataSchema db = new DataSchema();
-		int lastIndex = filePath.lastIndexOf("\\");
-		String name = filePath.substring(lastIndex + 1);
-		String dbName = name.split("\\.")[0];
+		// 文件名
+		String fileName = file.getOriginalFilename();
+		System.out.println("文件名： " + fileName);
+		String suffixName = fileName.substring(0,fileName.lastIndexOf("."));
+		String dbName =suffixName;
 		db.setName(dbName);
 		Boolean flag = new Boolean("true");
 		db.setIsDict(flag);
+		DataSchema tdb = testDatabaseRepository.findByNameAndIsDict(dbName);
+		if (tdb != null) {
+			throw new Exception("同名称的数据字典已经存在不能导入");
+		}
 		testDatabaseRepository.save(db);
-		DataSchema tdb = testDatabaseRepository.findByName(dbName);
-
-		Workbook workbook = ExcelUtil.getWorkBook(filePath);
-		
-		if (workbook != null) {
-			for (int sheetNum = 0; sheetNum < workbook.getNumberOfSheets(); sheetNum++) {
-				//System.out.println(workbook.getNumberOfSheets());
-				// 获得当前sheet工作表
-				Sheet sheet = workbook.getSheetAt(sheetNum);
-				// 获取sheet表名
-				String tableName = sheet.getSheetName();
-				DataTable table = new DataTable();
-				table.setName(tableName);
-				table.setIsDict(flag);
-				table.setDataSchema(tdb);
-				testTableRepository.save(table);
-
-				/*TestTable tt = testTableRepository.findByNameAndDBName(
-						tableName, dbName);*/
-				// 获得当前sheet的开始行
-				int firstRowNum = sheet.getFirstRowNum();
-				// 获得当前sheet的结束行
-				int lastRowNum = sheet.getLastRowNum();
-				try {
-				for (int rowNum = firstRowNum + 1; rowNum <= lastRowNum; rowNum++) {
-					// 获得当前行
-					Row row = sheet.getRow(rowNum);
-					
-					// 获得当前行的开始列
-					//int firstCellNum = row.getFirstCellNum();
-					// 获得当前行的列数
-					//int lastCellNum = row.getPhysicalNumberOfCells();
-					String l1 = ExcelUtil.getCellValue(row.getCell(0));
-					String l2 = ExcelUtil.getCellValue(row.getCell(1));
-					String l3 = ExcelUtil.getCellValue(row.getCell(2));
-					String l4 = ExcelUtil.getCellValue(row.getCell(3));
-					String l5 = ExcelUtil.getCellValue(row.getCell(4));
-					String l6 = ExcelUtil.getCellValue(row.getCell(5));
-					String l7 = ExcelUtil.getCellValue(row.getCell(6));
-					String l8 = ExcelUtil.getCellValue(row.getCell(7));
-					String l9 = ExcelUtil.getCellValue(row.getCell(8));
-					String l10 = ExcelUtil.getCellValue(row.getCell(9));
-					String l11 = ExcelUtil.getCellValue(row.getCell(10));
-					String l12 = ExcelUtil.getCellValue(row.getCell(11));
-					String l13 = ExcelUtil.getCellValue(row.getCell(12));
-					String l14 = ExcelUtil.getCellValue(row.getCell(13));
-					String l15 = ExcelUtil.getCellValue(row.getCell(14));
-					String l16 = ExcelUtil.getCellValue(row.getCell(15));
-					String l17 = ExcelUtil.getCellValue(row.getCell(16));
-					String l18 = ExcelUtil.getCellValue(row.getCell(17));
+		// 创建文件
+		String filePath=System.getProperty("user.dir");
+		File dest = new File(filePath,fileName);
+		file.transferTo(dest);
+		if (dest.exists()) {
+			logger.info("临时文件:" + dest.getAbsolutePath());
+			Workbook workbook = ExcelUtil.getWorkBook(dest.getAbsolutePath());
+			if (workbook != null) {
+				for (int sheetNum = 0; sheetNum < workbook.getNumberOfSheets(); sheetNum++) {
+					// System.out.println(workbook.getNumberOfSheets());
+					// 获得当前sheet工作表
+					Sheet sheet = workbook.getSheetAt(sheetNum);
+					// 获取sheet表名
+					String tableName = sheet.getSheetName();
+					DataTable table = new DataTable();
+					table.setName(tableName);
+					table.setIsDict(flag);
+					table.setDataSchema(db);
+					testTableRepository.save(table);
 
 					/*
-					 * for(int cellNum = firstCellNum; cellNum
-					 * <lastCellNum;cellNum++){ String
-					 * cellN=ExcelUtil.getCellValue(row.getCell(cellNum)); }
+					 * TestTable tt = testTableRepository.findByNameAndDBName(
+					 * tableName, dbName);
 					 */
+					// 获得当前sheet的开始行
+					int firstRowNum = sheet.getFirstRowNum();
+					// 获得当前sheet的结束行
+					int lastRowNum = sheet.getLastRowNum();
+					try {
+						for (int rowNum = firstRowNum + 1; rowNum <= lastRowNum; rowNum++) {
+							// 获得当前行
+							Row row = sheet.getRow(rowNum);
 
-					
-						DataField tf = new DataField();
-						tf.setId(Integer.valueOf(l1));
-						tf.setCreateTime(sdf.parse(l2));
-						tf.setCreateUser(l3);
-						tf.setEditTime(sdf.parse(l4));
-						tf.setEditUser(l5);
-						tf.setDataLength(Integer.valueOf(l6));
-						tf.setDataPrecision(Integer.valueOf(l7));
-						tf.setDataType(l8);
-						tf.setDeleted(Boolean.getBoolean(l9));
-						tf.setDes(l10);
-						tf.setIsForeignKey(Boolean.getBoolean(l11));
-						tf.setIsIndex(Boolean.getBoolean(l12));
-						tf.setIsNullable(Boolean.getBoolean(l13));
-						tf.setIsPrimaryKey(Boolean.getBoolean(l14));
-						tf.setName(l15);
-						tf.setTalbeName(l16);
-						tf.setVersion(Integer.valueOf(l17));
-						tf.setDataTable(table);
-						testFieldRepository.save(tf);
-					
+							// 获得当前行的开始列
+							// int firstCellNum = row.getFirstCellNum();
+							// 获得当前行的列数
+							// int lastCellNum = row.getPhysicalNumberOfCells();
+							String l1 = ExcelUtil.getCellValue(row.getCell(0));
+							String l2 = ExcelUtil.getCellValue(row.getCell(1));
+							String l3 = ExcelUtil.getCellValue(row.getCell(2));
+							String l4 = ExcelUtil.getCellValue(row.getCell(3));
+							String l5 = ExcelUtil.getCellValue(row.getCell(4));
+							String l6 = ExcelUtil.getCellValue(row.getCell(5));
+							String l7 = ExcelUtil.getCellValue(row.getCell(6));
+							String l8 = ExcelUtil.getCellValue(row.getCell(7));
+							String l9 = ExcelUtil.getCellValue(row.getCell(8));
+							String l10 = ExcelUtil.getCellValue(row.getCell(9));
+							String l11 = ExcelUtil.getCellValue(row.getCell(10));
+							String l12 = ExcelUtil.getCellValue(row.getCell(11));
+							String l13 = ExcelUtil.getCellValue(row.getCell(12));
+							String l14 = ExcelUtil.getCellValue(row.getCell(13));
+							String l15 = ExcelUtil.getCellValue(row.getCell(14));
+							String l16 = ExcelUtil.getCellValue(row.getCell(15));
+							String l17 = ExcelUtil.getCellValue(row.getCell(16));
+							String l18 = ExcelUtil.getCellValue(row.getCell(17));
 
-				}
-				} catch (ParseException e) {
-					e.printStackTrace();
+							/*
+							 * for(int cellNum = firstCellNum; cellNum
+							 * <lastCellNum;cellNum++){ String
+							 * cellN=ExcelUtil.getCellValue(row.getCell(cellNum)); }
+							 */
+
+							DataField tf = new DataField();
+							tf.setId(null);
+							tf.setCreateTime(sdf.parse(l2));
+							tf.setCreateUser(l3);
+							tf.setEditTime(sdf.parse(l4));
+							tf.setEditUser(l5);
+							if(l6.equals("")){
+								tf.setDataLength(0);
+							}else{
+								tf.setDataLength(Integer.parseInt(l6));
+							}
+							tf.setDataPrecision(Integer.valueOf(l7));
+							tf.setDataType(l8);
+							tf.setDeleted(Boolean.getBoolean(l9));
+							tf.setDes(l10);
+							tf.setIsForeignKey(Boolean.getBoolean(l11));
+							tf.setIsIndex(Boolean.getBoolean(l12));
+							tf.setIsNullable(Boolean.getBoolean(l13));
+							tf.setIsPrimaryKey(Boolean.getBoolean(l14));
+							tf.setName(l15);
+							tf.setTalbeName(l16);
+							tf.setVersion(Integer.valueOf(l17));
+							tf.setDataTable(table);
+							testFieldRepository.save(tf);
+
+						}
+					} catch (ParseException e) {
+						e.printStackTrace();
+					}
 				}
 			}
+		} else {
+			logger.info("临时文件不存在:" + dest.getAbsolutePath());
 		}
+		
+
+		
 	}
 
 	public void compareDictAndModel(int db1Id, int db2Id) throws SQLException {
@@ -942,7 +959,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 				// System.out.println("1.table not same ");
 				tableflag = false;
 				TestCase tcase = new TestCase();
-//				tcase.setExpertValue("Dict And Table");
+				// tcase.setExpertValue("Dict And Table");
 				tcase.setName("Dict And Table");
 				TestCase tc = testCaseRepository.save(tcase);
 				TestResult tresult = new TestResult();
@@ -972,7 +989,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 				// System.out.println("2.table not same ");
 				tableflag = false;
 				TestCase tcase = new TestCase();
-//				tcase.setExpertValue("Dict And Table");
+				// tcase.setExpertValue("Dict And Table");
 				tcase.setName("Dict And Table");
 				TestCase tc = testCaseRepository.save(tcase);
 				TestResult tresult = new TestResult();
@@ -995,7 +1012,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 					String name1 = tf1.getName();
 					// System.out.println("3----name1="+name1);
 					String tb1_tablename = tf1.getTalbeName();
-					int data_len1 = tf1.getDataLength();
+					Integer data_len1 = tf1.getDataLength();
 					int data_pre1 = tf1.getDataPrecision();
 					String data_type1 = tf1.getDataType();
 					flag3 = 0;
@@ -1010,7 +1027,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 								DataField tf2 = tfList.get(q);
 								name2 = tf2.getName();
 								// System.out.println("3----name2="+name2);
-								int data_len2 = tf2.getDataLength();
+								Integer data_len2 = tf2.getDataLength();
 								int data_pre2 = tf2.getDataPrecision();
 								String data_type2 = tf2.getDataType();
 								if (name1.equals(name2)) {
@@ -1038,7 +1055,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 						fieldflag = false;
 						// System.out.println("3.field not same ");
 						TestCase tcase = new TestCase();
-//						tcase.setExpertValue("Dict field And field");
+						// tcase.setExpertValue("Dict field And field");
 						tcase.setName("Dict And field");
 						TestCase tc = testCaseRepository.save(tcase);
 						TestResult tresult = new TestResult();
@@ -1054,7 +1071,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 						fieldflag = false;
 						// System.out.println("3.1 field property not same ");
 						TestCase tcase = new TestCase();
-//						tcase.setExpertValue("Dict field And field");
+						// tcase.setExpertValue("Dict field And field");
 						tcase.setName("Dict And field");
 						TestCase tc = testCaseRepository.save(tcase);
 						TestResult tresult = new TestResult();
@@ -1090,7 +1107,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 					String name1 = tf1.getName();
 					// System.out.println("4----name1="+name1);
 					String tb1_tablename = tf1.getTalbeName();
-					int data_len1 = tf1.getDataLength();
+					Integer data_len1 = tf1.getDataLength();
 					int data_pre1 = tf1.getDataPrecision();
 					String data_type1 = tf1.getDataType();
 					flag4 = 0;
@@ -1105,7 +1122,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 								DataField tf2 = tfList.get(q);
 								name2 = tf2.getName();
 								// System.out.println("4----name2="+name2);
-								int data_len2 = tf2.getDataLength();
+								Integer data_len2 = tf2.getDataLength();
 								int data_pre2 = tf2.getDataPrecision();
 								String data_type2 = tf2.getDataType();
 								if (name1.equals(name2)) {
@@ -1124,7 +1141,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 						fieldflag = false;
 						// System.out.println("4.field not same ");
 						TestCase tcase = new TestCase();
-//						tcase.setExpertValue("field And Dict field");
+						// tcase.setExpertValue("field And Dict field");
 						tcase.setName("field And Dict field");
 						TestCase tc = testCaseRepository.save(tcase);
 						TestResult tresult = new TestResult();
@@ -1160,7 +1177,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 			if (fieldflag) {
 				// System.out.println("5 field property  same ");
 				TestCase tcase = new TestCase();
-//				tcase.setExpertValue("field And Dict field");
+				// tcase.setExpertValue("field And Dict field");
 				tcase.setName("field And Dict field");
 				TestCase tc = testCaseRepository.save(tcase);
 				TestResult tresult = new TestResult();
@@ -1174,9 +1191,11 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 			}
 		}
 	}
+
 	@Override
-	public ResultVO GetSqlDBLink(Integer dataSourceId,String sqlText) throws SQLException{
-		ResultVO result=new ResultVO(true, StatusCode.OK, "测试成功");
+	public ResultVO GetSqlDBLink(Integer dataSourceId, String sqlText)
+			throws SQLException {
+		ResultVO result = new ResultVO(true, StatusCode.OK, "测试成功");
 		AbstractAdapter adapter = null;
 		DataSource ds = dataSourceRepository.findById(dataSourceId).get();
 		String schema = ds.getDefaultSchema();
@@ -1193,8 +1212,8 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 		System.out.println("schema=" + schema);
 		System.out.println("dbType=" + dbType);
 
-		String explain="";
-		
+		String explain = "";
+
 		Connection conn = null;
 		try {
 
@@ -1231,7 +1250,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 
 				adapter = new MySqlAdapter();
 				conn = ((MySqlAdapter) adapter).getConnection(db);
-				explain="explain ";
+				explain = "explain ";
 			} else if (dbType.equals(EnumDatabaseType.Oracle)) {
 				if (driver != null && !driver.equals("")) {
 					db.setDriver(driver);
@@ -1255,7 +1274,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 
 				adapter = new OracleAdapter();
 				conn = ((OracleAdapter) adapter).getConnection(db);
-				explain="explain plan for ";
+				explain = "explain plan for ";
 			} else if (dbType.equals(EnumDatabaseType.DB2)) {
 				if (driver != null && !driver.equals("")) {
 					db.setDriver(driver);
@@ -1278,7 +1297,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 
 				adapter = new DB2Adapter();
 				conn = ((DB2Adapter) adapter).getConnection(db);
-				explain="";
+				explain = "";
 			} else if (dbType.equals(EnumDatabaseType.Informix)) {
 				if (driver != null && !driver.equals("")) {
 					db.setDriver(driver);
@@ -1302,7 +1321,7 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 
 				adapter = new InformixAdapter();
 				conn = ((InformixAdapter) adapter).getConnection(db);
-			}else if (dbType.equals(EnumDatabaseType.SyBase)) {
+			} else if (dbType.equals(EnumDatabaseType.SyBase)) {
 				if (driver != null && !driver.equals("")) {
 					db.setDriver(driver);
 				} else {
@@ -1328,16 +1347,20 @@ public class MetaDataManageServiceImpl implements IMetaDataManageService {
 			}
 			if (conn != null) {
 				Statement statement = conn.createStatement();
-				ResultSet rs =  statement.executeQuery(explain +sqlText);
+				ResultSet rs = statement.executeQuery(explain + sqlText);
 				return result;
-			}else {
-				return new ResultVO(false, StatusCode.ERROR, "测试失败,数据源连接失败,请重新配置数据源");
+			} else {
+				return new ResultVO(false, StatusCode.ERROR,
+						"测试失败,数据源连接失败,请重新配置数据源");
 			}
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			return new ResultVO(false, StatusCode.ERROR, "测试失败"+ e.getLocalizedMessage());
+			return new ResultVO(false, StatusCode.ERROR, "测试失败"
+					+ e.getLocalizedMessage());
+		}finally {
+			conn.close();
 		}
 	}
-	
+
 }

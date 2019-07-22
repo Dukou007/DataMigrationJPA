@@ -6,6 +6,7 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -13,6 +14,8 @@ import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.servlet.http.HttpServletResponse;
 
+import com.jettech.EnumExecuteStatus;
+import com.jettech.repostory.TestResultRepository;
 import org.apache.commons.lang.StringUtils;
 import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
@@ -25,26 +28,31 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+
+import com.jettech.entity.QualitySuite;
 import com.jettech.entity.QualityTestCase;
+import com.jettech.entity.QualityTestQuery;
 import com.jettech.entity.QualityTestResult;
-import com.jettech.entity.TestCase;
+
 import com.jettech.repostory.QualityTestCaseRepository;
 import com.jettech.repostory.QualityTestResultRepository;
-import com.jettech.repostory.TestCaseRepository;
 import com.jettech.service.IQualityTestResultService;
 import com.jettech.vo.QualityTestResultVO;
 import com.jettech.vo.ResultVO;
 import com.jettech.vo.StatusCode;
+
 
 @Service
 public class QualityTestResultServiceImpl implements IQualityTestResultService {
 
 	@Autowired
 	private QualityTestResultRepository repository;
-	@Autowired
-	private TestCaseRepository testCaseRepository;
+
 	@Autowired
 	private QualityTestCaseRepository qualityTestCaseRepository;
+
+	@Autowired
+	private TestResultRepository testResultRepository;
 
 	@Override
 	public QualityTestResult saveOne(QualityTestResult entity) {
@@ -88,7 +96,8 @@ public class QualityTestResultServiceImpl implements IQualityTestResultService {
 	}
 
 	@Override
-	public Page<QualityTestResult> findPage(QualityTestResult qualityTestResult, int pageNum, int pageSize) {
+	public Page<QualityTestResult> findPage(
+			QualityTestResult qualityTestResult, int pageNum, int pageSize) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -104,21 +113,27 @@ public class QualityTestResultServiceImpl implements IQualityTestResultService {
 	}
 
 	@Override
-	public Page<QualityTestResult> findByCaseIdAndResult(Integer testCaseId, Boolean result, Pageable pageable) {
+	public Page<QualityTestResult> findByCaseIdAndResult(Integer testCaseId,
+			Boolean result, Pageable pageable) {
 		Page<QualityTestResult> list = null;
 		Specification<QualityTestResult> specification = new Specification<QualityTestResult>() {
 
 			@Override
-			public Predicate toPredicate(Root<QualityTestResult> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
+			public Predicate toPredicate(Root<QualityTestResult> root,
+					CriteriaQuery<?> query, CriteriaBuilder cb) {
 				ArrayList<Predicate> predicateList = new ArrayList<Predicate>();
 				if (StringUtils.isNotBlank(testCaseId.toString())) {
-					predicateList.add(cb.equal(root.get("testCaseId").as(Integer.class), testCaseId));
+					predicateList.add(cb.equal(
+							root.get("testCaseId").as(Integer.class),
+							testCaseId));
 				}
 				if (StringUtils.isNotBlank(result.toString())) {
-					predicateList.add(cb.equal(root.get("result").as(Boolean.class), result));
+					predicateList.add(cb.equal(
+							root.get("result").as(Boolean.class), result));
 				}
 
-				return cb.and(predicateList.toArray(new Predicate[predicateList.size()]));
+				return cb.and(predicateList.toArray(new Predicate[predicateList
+						.size()]));
 			}
 		};
 		list = this.repository.findAll(specification, pageable);
@@ -134,19 +149,7 @@ public class QualityTestResultServiceImpl implements IQualityTestResultService {
 			QualityTestResultVO vo = new QualityTestResultVO(qualityTestResult);
 			voList.add(vo);
 		}
-		// 2 封装数据
-		/*
-		 * HashMap<String, Object> map = new HashMap<String, Object>(); for
-		 * (QualityTestResultVO qtr : voList) { int i = 1; Integer caseId =
-		 * qtr.getTestCaseId(); TestCase testCase =
-		 * testCaseRepository.findById(caseId).get(); map.put("序号", qtr.getId());
-		 * map.put("测试用例编号", "SIT-SJJX" + testCase.getName() + i++); map.put("测试意图",
-		 * qtr.getTestPurpose()); map.put("预期结果", qtr.getPurposeValue());
-		 * map.put("实际结果", qtr.getResult()); map.put("是否通过", qtr.getResult());
-		 * map.put("执行SQL", qtr.getSqlText()); }
-		 */
 		// 3导出数据
-
 		// 建表 设置表格式
 		HSSFWorkbook workbook = new HSSFWorkbook();
 		String sheetName = "证迹表";
@@ -181,30 +184,44 @@ public class QualityTestResultServiceImpl implements IQualityTestResultService {
 		// 存放内容
 		header.createCell(0).setCellValue("序号");
 		header.createCell(1).setCellValue("测试用例编号");
-		header.createCell(2).setCellValue("测试意图");
-		header.createCell(3).setCellValue("预期结果");
-		header.createCell(4).setCellValue("实际结果");
-		header.createCell(5).setCellValue("是否通过");
-		header.createCell(6).setCellValue("执行SQL");
-		
-		
+		header.createCell(2).setCellValue("字段");
+		header.createCell(3).setCellValue("规则集");
+		header.createCell(4).setCellValue("预期结果");
+		header.createCell(5).setCellValue("实际结果");
+		header.createCell(6).setCellValue("是否通过");
+		header.createCell(7).setCellValue("执行SQL");
+
 		int rowIndex = 1;
-		int i=1;
-		NumberFormat f=new DecimalFormat("0000");
-		for (int e=0;e<voList.size();e++) {
-		// daichuli 
-			
-			Integer caseId = voList.get(e).getTestCaseId();
-			QualityTestCase testCase = qualityTestCaseRepository.findById(caseId).get();
+		int i = 1;
+		NumberFormat f = new DecimalFormat("0000");
+		for (int e = 0; e < voList.size(); e++) {
+			QualityTestResultVO qualityTestResultVO=voList.get(e);
+			Integer caseId = qualityTestResultVO.getTestCaseId();
+			QualityTestCase testCase = qualityTestCaseRepository.findById(
+					caseId).get();
+			QualityTestQuery qualityTestQuery = testCase.getQualityTestQuery();
+			String fieldName = qualityTestQuery.getDataField().getName();
 			HSSFRow rowItem = sheet.createRow(rowIndex++);
 			rowItem.createCell(0).setCellValue(i++ + "");
-			rowItem.createCell(1).setCellValue("SIT-SJJX" + testCase.getName() + f.format(e));
-			rowItem.createCell(2).setCellValue(voList.get(e).getTestPurpose());
-			rowItem.createCell(3).setCellValue(voList.get(e).getPurposeValue());
-			// to be finished
-			rowItem.createCell(4).setCellValue(voList.get(e).getItemCount());
-			rowItem.createCell(5).setCellValue(voList.get(e).getResult());
-			rowItem.createCell(6).setCellValue(voList.get(e).getSqlText());
+			rowItem.createCell(1).setCellValue(testCase.getCaseCode());
+			rowItem.createCell(2).setCellValue(fieldName);
+			QualitySuite qualitySuite = qualityTestQuery.getQualitySuite();
+			if (qualitySuite != null) {
+				rowItem.createCell(3).setCellValue(qualitySuite.getName());
+			} else {
+				rowItem.createCell(3).setCellValue("");
+			}
+			rowItem.createCell(4).setCellValue("0");
+			//实际结果
+			int sqlCount=qualityTestResultVO.getFalseItemCount();//sql通过值
+			if(sqlCount==0){//如果实际结果是0 是否通过应该是true,否则为false
+				rowItem.createCell(5).setCellValue(0);
+			}else{
+				rowItem.createCell(5).setCellValue(sqlCount);
+			}
+			Boolean result=qualityTestResultVO.getResult();
+			rowItem.createCell(6).setCellValue(result);
+			rowItem.createCell(7).setCellValue(qualityTestResultVO.getSqlText());
 
 		}
 
@@ -214,8 +231,8 @@ public class QualityTestResultServiceImpl implements IQualityTestResultService {
 		res.setHeader("Access-Control-Allow-Origin", "*");// 允许跨域请求
 		try {
 			OutputStream out = res.getOutputStream();
-			res.addHeader("Content-Disposition",
-					"attachment;filename=" + java.net.URLEncoder.encode(fileName, "UTF-8"));
+			res.addHeader("Content-Disposition", "attachment;filename="
+					+ java.net.URLEncoder.encode(fileName, "UTF-8"));
 			workbook.write(out);
 			out.flush();
 			out.close();
@@ -226,9 +243,6 @@ public class QualityTestResultServiceImpl implements IQualityTestResultService {
 
 	}
 
-	
-
-
 	private List<QualityTestResult> findBytestResultIds(String testResultIds) {
 		List<QualityTestResult> list = new ArrayList<QualityTestResult>();
 		if (StringUtils.isNotBlank(testResultIds)) {
@@ -238,10 +252,65 @@ public class QualityTestResultServiceImpl implements IQualityTestResultService {
 				QualityTestResult testResult = repository.findById(id).get();
 				list.add(testResult);
 			}
-		} else {
-			list = repository.findAll();
 		}
 		return list;
 	}
+
+	@Override
+	public ResultVO findByTestRIdAndName(Integer testRoundId,
+			String name,int pageNum,int pageSize) {
+		Map<String,Object> resultmap = new HashMap<String,Object>();
+		PageRequest pageable = PageRequest.of(pageNum - 1, pageSize);
+        try {     	
+    		Page<QualityTestResult> qualityTestResults=repository.findByRidAndName(testRoundId, name, pageable);
+    		ArrayList<QualityTestResultVO> voList = new ArrayList<QualityTestResultVO>();
+    		for (QualityTestResult qualityTestResult : qualityTestResults) {
+    			QualityTestResultVO vo = new QualityTestResultVO(qualityTestResult);
+    			voList.add(vo);
+    		}
+	        resultmap.put("totalElements",qualityTestResults.getTotalElements());
+	        resultmap.put("totalPages",qualityTestResults.getTotalPages());
+	        resultmap.put("list",voList);
+	    }catch(Exception e) {
+	     e.getLocalizedMessage();
+	    }
+        return new ResultVO(true, StatusCode.OK, "查询成功", resultmap);
+	}
+
+	@Override
+	public Page<QualityTestResult> findTestResultByQualityCaseIDAndStartTimeAndEndTime(Integer testCaseId,
+			String startTime, String endTime, Pageable pageable) {
+		Page<QualityTestResult>testResultList=null;
+		Specification<QualityTestResult> specification = new Specification<QualityTestResult>() {
+			/**
+			 * 
+			 */
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public Predicate toPredicate(Root<QualityTestResult> root, CriteriaQuery<?> query,
+					CriteriaBuilder criteriaBuilder) {
+				ArrayList<Predicate> predicateList = new ArrayList<Predicate>();
+				if(StringUtils.isNotBlank(startTime)) {
+					predicateList.add(
+							criteriaBuilder.greaterThanOrEqualTo(root.get("startTime").as(String.class),startTime));
+				}
+				if(StringUtils.isNotBlank(endTime)) {
+					predicateList.add(criteriaBuilder.lessThanOrEqualTo(root.get("endTime").as(String.class), endTime));
+				}
+				if(StringUtils.isNotBlank(testCaseId.toString())) {
+					predicateList.add(criteriaBuilder.equal(root.get("testCaseId").as(Integer.class), testCaseId));
+				}
+				query.where(criteriaBuilder.and(predicateList.toArray(new Predicate[predicateList.size()])));
+				query.orderBy(criteriaBuilder.desc(root.get("startTime").as(String.class)));
+				return query.getRestriction();
+			}
+		};
+		testResultList = this.repository.findAll(specification, pageable);
+		return testResultList;
+	}
+
+
+
 
 }

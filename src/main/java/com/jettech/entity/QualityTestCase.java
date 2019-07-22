@@ -1,6 +1,7 @@
 package com.jettech.entity;
 
 import javax.persistence.*;
+
 import java.util.List;
 
 @Entity
@@ -14,13 +15,12 @@ public class QualityTestCase extends BaseEntity {
 	private String version; // 版本
 	private Boolean isSQLCase;
 	private Integer maxResultRows;
-	//private Integer pageSize = 0;
+	private Integer pageSize = 0;
 	private Boolean usePage = false;// 默认不分页
 //	private TestSuite testSuite;
 	private QualityTestQuery qualityTestQuery;
 	//多对多案例对测试集
 	private List<TestSuite> testSuites;
-	
 	private String caseCode;//案例编号
 
 //	@ManyToOne
@@ -102,7 +102,7 @@ public class QualityTestCase extends BaseEntity {
 		this.qualityTestQuery = qualityTestQuery;
 	}
 
-	@ManyToMany(mappedBy = "qualityTestCases")
+	@ManyToMany(mappedBy = "qualityTestCases"  ,fetch = FetchType.EAGER)
 	public List<TestSuite> getTestSuites() {
 		return testSuites;
 	}
@@ -120,4 +120,17 @@ public class QualityTestCase extends BaseEntity {
 	public void setCaseCode(String caseCode) {
 		this.caseCode = caseCode;
 	}
+
+
+	public Integer getPageSize() {
+		return pageSize;
+	}
+
+
+	public void setPageSize(Integer pageSize) {
+		this.pageSize = pageSize;
+	}
+
+
+	
 }

@@ -3,6 +3,7 @@ package com.jettech.domain;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jettech.EnumExecuteStatus;
 import com.jettech.EnumTestCaseType;
 import com.jettech.entity.BaseEntity;
 import com.jettech.entity.TestCase;
@@ -28,6 +29,9 @@ public class QueryModel extends BaseModel {
 	private List<RuleModel> testRules = new ArrayList<>();
 
 	private List<DataField> queryColumns;
+
+	private EnumExecuteStatus execState;
+	private Integer queryErrCount = 0;
 
 	public QueryModel(TestQuery testQuery) throws Exception {
 		// super.parse(testQuery);
@@ -193,4 +197,21 @@ public class QueryModel extends BaseModel {
 	public void setTestCaseType(EnumTestCaseType testCaseType) {
 		this.testCaseType = testCaseType;
 	}
+
+	public EnumExecuteStatus getExecState() {
+		return execState;
+	}
+
+	public void setExecState(EnumExecuteStatus execState) {
+		this.execState = execState;
+	}
+
+	public Integer getQueryErrCount() {
+		return queryErrCount;
+	}
+
+	public void setQueryErrCount(Integer queryErrCount) {
+		this.queryErrCount = queryErrCount;
+	}
+
 }

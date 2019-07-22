@@ -25,8 +25,8 @@ public class ModelTestCase extends BaseEntity {
 	private String version; // 版本
 	private Boolean isSQLCase;
 	private Integer maxResultRows;
-	private Integer pageSize = 0;
-	private Boolean usePage = false;// 默认不分页
+	private Integer pageSize ;
+	private Boolean usePage ;// 默认不分页
 
 	private TestSuite testSuite;
 	private EnumPageType pageType ; // 分页类型

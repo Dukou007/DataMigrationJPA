@@ -10,4 +10,6 @@ public interface TestSuiteCaseService extends IService<TestSuiteCase, Integer>{
 
 	TestSuiteCase findByCaseIdAndSuiteId(Integer caseId, Integer suiteId);
 
+	void deleteByCaseId(int id);
+
 }

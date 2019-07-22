@@ -11,11 +11,7 @@ import org.springframework.stereotype.Service;
 
 import com.jettech.entity.ModelTestResult;
 import com.jettech.entity.ModelTestResultItem;
-import com.jettech.entity.TestResult;
-import com.jettech.entity.TestResultItem;
 import com.jettech.repostory.ModelTestResultRepository;
-import com.jettech.repostory.TestResultRepository;
-import com.jettech.service.ITestReusltService;
 import com.jettech.service.ModelTestResultService;
 
 @Service

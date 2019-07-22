@@ -42,8 +42,9 @@ public class TestRoundVO extends BaseVO {
 				}
 				DateFormat df=new SimpleDateFormat("yyyy-MM-dd HH-mm:ss");
 				this.startTime=df.format(e.getStartTime());
-				this.endTime=df.format(e.getEndTime());
-			
+				if(e.getEndTime()!=null){
+					this.endTime=df.format(e.getEndTime());
+				}
 		}
 	}
 

@@ -3,6 +3,7 @@ package com.jettech.controller;
 import com.jettech.service.IQualityRuleService;
 import com.jettech.vo.QualityRuleVO;
 import com.jettech.vo.ResultVO;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,11 +35,14 @@ public class QualityRuleController {
 	 * 删除操作
 	 * 
 	 * @param id
+	 * @throws Exception 
 	 */
 	@ResponseBody
 	@RequestMapping(method = RequestMethod.GET, value = "/delete/{id}")
-	public ResultVO delete(@PathVariable("id") int id) {
-		return qualityRuleService.delete(id);
+	public ResultVO delete(@PathVariable("id") int id) throws Exception {
+		ResultVO rs = qualityRuleService.delete(id);
+			return rs;
+		
 	}
 
 

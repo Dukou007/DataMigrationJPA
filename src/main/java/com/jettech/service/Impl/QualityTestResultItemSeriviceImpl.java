@@ -138,6 +138,10 @@ public class QualityTestResultItemSeriviceImpl implements QualityTestResultItemS
 			return list;
 	}
 
-	
+	@Override
+	public Page<QualityTestResultItem> findByTestIdAndSign(Integer testResultId, int sign, Pageable pageable) {
+		return  quantityTestResultItemRepository.findByTestResultIdAndSign(testResultId,sign,pageable);
+	}
+
 
 }

@@ -14,6 +14,8 @@ public class QualityTestResultItemVO extends BaseVO{
 	private String selectValue;
 	private String result;
 	private String columnName;
+	private String idNumber;
+	private int sign;   //取正反标记 0为反  1为正
 	/*public Integer getTestResultId() {
 		return testResultId;
 	}
@@ -86,5 +88,21 @@ public class QualityTestResultItemVO extends BaseVO{
 
 	public void setColumnName(String columnName) {
 		this.columnName = columnName;
+	}
+
+	public String getIdNumber() {
+		return idNumber;
+	}
+
+	public void setIdNumber(String idNumber) {
+		this.idNumber = idNumber;
+	}
+
+	public int getSign() {
+		return sign;
+	}
+
+	public void setSign(int sign) {
+		this.sign = sign;
 	}
 }

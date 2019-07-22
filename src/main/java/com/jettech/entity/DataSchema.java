@@ -27,6 +27,8 @@ public class DataSchema extends BaseEntity {
 	private static final long serialVersionUID = -9052587204507061506L;
 
 	private String name;
+	
+	private String schemaName;
 	//是否是数据字典
 	private Boolean isDict;
 
@@ -89,6 +91,14 @@ public class DataSchema extends BaseEntity {
 
 	public void setModelType(EnumDataModelType modelType) {
 		this.modelType = modelType;
+	}
+
+	public String getSchemaName() {
+		return schemaName;
+	}
+
+	public void setSchemaName(String schemaName) {
+		this.schemaName = schemaName;
 	}
 
 }

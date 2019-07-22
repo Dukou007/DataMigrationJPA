@@ -76,9 +76,13 @@ public class WebSocketService {
      * @param message 消息内容
      * @throws IOException
      */
-    public static void sendMsgToAll(String message) throws IOException {
+    public static void sendMsgToAll(String message) {
     	for ( WebSocketService item : wsClientMap ){  
-            item.session.getBasicRemote().sendText(message);
+            try {
+				item.session.getBasicRemote().sendText(message);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
     	}
     	logger.info("成功群送一条消息:" + wsClientMap.size());
     }

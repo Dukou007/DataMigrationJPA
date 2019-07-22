@@ -10,6 +10,8 @@ import com.jettech.entity.DataTable;
  *	@Description: 该类的功能描述
  *  @date: 2019年2月3日 上午11:21:06 
  */
+
+//废弃接口
 public interface DataTableService extends IService<DataTable, Integer> {
 
 }

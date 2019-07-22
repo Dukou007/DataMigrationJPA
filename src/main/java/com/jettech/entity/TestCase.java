@@ -49,6 +49,10 @@ public class TestCase extends BaseEntity {
 	private TestQuery sourceQuery;// 源查询
 	private TestQuery targetQuery;// 目标查询
 	private TestFileQuery testFileQuery;// 目标文件查询
+	
+    private String transactionName;//交易名称
+    private String sceneName;//场景 名称
+    private String testIntent;//测试意图
 
 	@OneToOne(optional = true)
 	@JoinColumn(name = "target_file_query_id")
@@ -194,60 +198,57 @@ public class TestCase extends BaseEntity {
 		this.maxWaitSecond = maxWaitSecond;
 	}
 
+	public String getTransactionName() {
+		return transactionName;
+	}
+
+	public void setTransactionName(String transactionName) {
+		this.transactionName = transactionName;
+	}
+
+	public String getSceneName() {
+		return sceneName;
+	}
+
+	public void setSceneName(String sceneName) {
+		this.sceneName = sceneName;
+	}
+
+	public String getTestIntent() {
+		return testIntent;
+	}
+
+	public void setTestIntent(String testIntent) {
+		this.testIntent = testIntent;
+	}
+
 	// public String getSourceDataSourceName() {
 	// return sourceDataSourceName;
 	// }
-	//
-	//
-	//
 	// public void setSourceDataSourceName(String sourceDataSourceName) {
 	// this.sourceDataSourceName = sourceDataSourceName;
 	// }
-	//
-	//
-	//
 	// public String getTargetDataSourceName() {
 	// return targetDataSourceName;
 	// }
-	//
-	//
-	//
+
 	// public void setTargetDataSourceName(String targetDataSourceName) {
 	// this.targetDataSourceName = targetDataSourceName;
 	// }
-	//
-	//
-	//
-	//
-	//
-	//
+
 	// public Integer getSourceDataSourceID() {
 	// return sourceDataSourceID;
 	// }
-	//
-	//
-	//
-	//
-	//
-	//
+
 	// public void setSourceDataSourceID(Integer sourceDataSourceID) {
 	// this.sourceDataSourceID = sourceDataSourceID;
 	// }
 	//
-	//
-	//
-	//
-	//
-	//
+
 	// public Integer getTargetDataSourceID() {
 	// return targetDataSourceID;
 	// }
-	//
-	//
-	//
-	//
-	//
-	//
+
 	// public void setTargetDataSourceID(Integer targetDataSourceID) {
 	// this.targetDataSourceID = targetDataSourceID;
 	// }

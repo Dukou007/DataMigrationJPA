@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -16,13 +15,10 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -33,7 +29,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jettech.entity.ModelTestCase;
-import com.jettech.entity.TestSuite;
 import com.jettech.service.ModelTestCaseService;
 import com.jettech.service.TestSuiteService;
 import com.jettech.vo.CaseModelSetDetailsVO;
@@ -196,7 +191,6 @@ public class ModelTestCaseController {
 
 		String testSuiteName = request.getParameter("testSuiteName");
 		System.out.println("测试集：" + testSuiteName);
-		TestSuite testSuite = testSuiteService.getByName(testSuiteName, productName);
 
 		// 文件名
 		String fileName = file.getOriginalFilename();
@@ -215,8 +209,8 @@ public class ModelTestCaseController {
 
 		Map<String, String> map = new HashMap<>();
 		map.put("filePath", dest.getAbsolutePath());
-		// map.put("productName", productName);
-		// map.put("testSuiteName", testSuiteName);
+		map.put("productName", productName);
+		map.put("testSuiteName", testSuiteName);
 		try {
 			// 将流写入本地文件
 			file.transferTo(dest);
@@ -310,7 +304,7 @@ public class ModelTestCaseController {
 			return new ResultVO(true, StatusCode.OK, "修改成功");
 		} catch (Exception e) {
 			log.error("修改模型案例:" + JSONObject.toJSONString(testCaseVO).toString() + "异常", e);
-			return new ResultVO(false, StatusCode.ERROR, "修改失败"+e.getLocalizedMessage());
+			return new ResultVO(false, StatusCode.ERROR, e.getLocalizedMessage());
 		}
 
 	}

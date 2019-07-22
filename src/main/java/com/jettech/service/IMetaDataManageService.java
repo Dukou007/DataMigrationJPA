@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.jettech.db.adapter.AbstractAdapter;
 import com.jettech.entity.DataTable;
@@ -30,7 +31,7 @@ public interface IMetaDataManageService{
 	public Page<DataTable> getSelTableByPage(int test_database_id,String tableName,Pageable pageable) throws SQLException;
 	public List<DataField> getAllField(int test_table_id) throws SQLException;
 	public Page<DataField> getAllFieldByPage(int test_table_id,Pageable pageable) throws SQLException ;
-	public void uploadDictExcel(String filePath);
+	public void uploadDictExcel(MultipartFile file) throws Exception;
 	public ResultVO GetSqlDBLink(Integer dataSourceId,String sqlTest) throws SQLException;
 	public void compareDictAndModel(int db1,int db2) throws SQLException;
     public void GetSql(SqlVo sqlvo) throws SQLException;

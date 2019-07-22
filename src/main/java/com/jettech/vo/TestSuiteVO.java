@@ -13,12 +13,16 @@ public class TestSuiteVO extends BaseVO {
 	private String name;
 
 	private Integer productID;
-	
+
 	private Integer testCaseNumber;
-	
+
 	private String productName;
-	
-	private int type;//集合类型，0迁移，1质量
+	// 一个测试集内的最大并发数量
+	private Integer maxConcurrency;
+
+
+	private int type;// 集合类型，0迁移，1质量
+
 	public TestSuiteVO() {
 	}
 
@@ -27,15 +31,15 @@ public class TestSuiteVO extends BaseVO {
 		if (entity != null) {
 			TestSuite testSuite = (TestSuite) entity;
 			this.name = testSuite.getName();
-			if(testSuite.getType() == 0){
+			if (testSuite.getType() == 0) {
 
-			}else if(testSuite.getType() == 1){
+			} else if (testSuite.getType() == 1) {
 				this.testCaseNumber = testSuite.getQualityTestCases().size();
 			}
 			if (testSuite.getProduct() != null)
 				this.productID = testSuite.getProduct().getId();
-				this.productName=testSuite.getProduct().getName();
-				this.type=testSuite.getType();
+			this.productName = testSuite.getProduct().getName();
+			this.type = testSuite.getType();
 		}
 	}
 
@@ -89,6 +93,15 @@ public class TestSuiteVO extends BaseVO {
 
 	public void setType(int type) {
 		this.type = type;
+	}
+
+
+	public Integer getMaxConcurrency() {
+		return maxConcurrency;
+	}
+
+	public void setMaxConcurrency(Integer maxConcurrency) {
+		this.maxConcurrency = maxConcurrency;
 	}
 
 }

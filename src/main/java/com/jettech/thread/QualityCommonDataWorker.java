@@ -14,7 +14,6 @@ import com.jettech.db.adapter.AbstractAdapter;
 import com.jettech.db.adapter.AdapterFactory;
 import com.jettech.domain.FieldModel;
 import com.jettech.domain.QualityQueryModel;
-import com.jettech.domain.QueryModel;
 import com.jettech.domain.DataField;
 
 /**
@@ -23,6 +22,7 @@ import com.jettech.domain.DataField;
  * @author tan
  *
  */
+@Deprecated
 public class QualityCommonDataWorker extends QualityBaseDataWorker implements Runnable {
 
 	public QualityCommonDataWorker(BlockingQueue<QualityBaseData> queue, QualityQueryModel testQuery) throws Exception {

@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.jettech.entity.Product;
 import com.jettech.entity.QualityTestCase;
 import com.jettech.entity.TestCase;
 import com.jettech.entity.TestSuite;
@@ -67,6 +66,7 @@ public class TestSuiteController {
 			return new ResultVO(true, StatusCode.OK, "开始执行");
 		} catch (Exception e) {
 			e.getLocalizedMessage();
+			log.error("执行案例集失败：",e);
 			return new ResultVO(false, StatusCode.ERROR, "执行失败");
 		}
 
@@ -111,16 +111,23 @@ public class TestSuiteController {
 	}
 
 	/**
+	 * 右移
+	 * 
 	 * @Description: 给未分类的TestCase加入到已存在的TestSuite中
 	 * @tips:
 	 * 
 	 * @author:zhou_xiaolong in 2019年2月23日下午6:52:06
+	 * @throws Exception
 	 */
 	@SuppressWarnings("unused")
 	@RequestMapping(value = "/changeTestCasePosition", method = RequestMethod.POST)
 	public ResultVO changeTestCasePosition(@RequestParam(value = "testCaseIDs") String testCaseIDs,
-			@RequestParam(value = "testSuiteID") Integer testSuiteID) {
+			@RequestParam(value = "testSuiteID") Integer testSuiteID) throws Exception {
 		try {
+			// 判空
+			if (testCaseIDs == null || testCaseIDs.equals("")) {
+				return new ResultVO(false, StatusCode.ERROR, "请输入合法参数");
+			}
 			testCaseService.changeTestCasePosition(testSuiteID, testCaseIDs);
 			return new ResultVO(true, StatusCode.OK, "转移进入测试集成功");
 		} catch (BeansException e) {
@@ -131,7 +138,7 @@ public class TestSuiteController {
 	}
 
 	/**
-	 * @Description: 回归到待处理状态
+	 * @Description: 左移
 	 * @Tips: null;
 	 * @State: being used
 	 * @author:zhou_xiaolong in 2019年2月24日下午8:46:58
@@ -147,19 +154,20 @@ public class TestSuiteController {
 				for (String id : ids) {
 					int caseId = Integer.parseInt(id);
 					TestCase testCase = testCaseService.findById(caseId);
-					if(testCase==null||testCase.equals("")) {
-						return new ResultVO(false, StatusCode.ERROR, "不存在案例的ID为："+caseId+"的案例");
+					if (testCase == null || testCase.equals("")) {
+						return new ResultVO(false, StatusCode.ERROR, "不存在案例的ID为：" + caseId + "的案例");
 					}
 				}
 			}
 			// 将案例的案例集ID置为空
 			testCaseService.backDisorder(testCaseIDS, suiteId);
-			return new ResultVO(true, StatusCode.OK, "转移进入测试集成功");
+			
 		} catch (BeansException e) {
+			log.error("转移失败" , e);
 			e.printStackTrace();
 			return new ResultVO(false, StatusCode.OK, "转移进入测试集失败");
 		}
-
+		return new ResultVO(true, StatusCode.OK, "转移进入测试集成功");
 	}
 
 	/**
@@ -185,10 +193,10 @@ public class TestSuiteController {
 				TestSuiteVO vo = new TestSuiteVO();
 				BeanUtils.copyProperties(testSuite, vo);
 				Integer suiteId = testSuite.getId();
-				if(type == 0){
+				if (type == 0) {
 					Integer count = testSuiteCaseService.CountCase(suiteId);
 					vo.setTestCaseNumber(count);
-				}else if(type == 1){
+				} else if (type == 1) {
 					Integer count = testSuite.getQualityTestCases().size();
 					vo.setTestCaseNumber(count);
 				}
@@ -206,6 +214,7 @@ public class TestSuiteController {
 			resultmap.put("list", testSuiteVOs);
 			return new ResultVO(true, StatusCode.OK, "查询成功", resultmap);
 		} catch (Exception e) {
+			log.error("根据测试集名称查询失败信息为：", e);
 			e.getLocalizedMessage();
 			return new ResultVO(false, StatusCode.ERROR, "查询失败");
 		}
@@ -245,6 +254,7 @@ public class TestSuiteController {
 			}
 			return new ResultVO(true, StatusCode.OK, "查询成功", resultMap);
 		} catch (BeansException e) {
+			log.error("通过产品ID查询失败信息为：", e);
 			e.printStackTrace();
 			return new ResultVO(false, StatusCode.ERROR, "查询失败");
 		}
@@ -259,10 +269,16 @@ public class TestSuiteController {
 	@ResponseBody
 	@RequestMapping(value = "/addTestSuite", produces = {
 			"application/json;charset=UTF-8" }, method = RequestMethod.POST)
-	@ApiOperation(value = "新增测试集", notes = "新增测试机，处理productID")
+	@ApiOperation(value = "新增测试集", notes = "新增测试集，处理productID")
 	@ApiImplicitParam(paramType = "TestSuiteVO", name = "testSuiteVO", value = "testSuiteVO实体", required = true, dataType = "TestSuiteVO")
 	public ResultVO addTestSuite(@RequestBody TestSuiteVO testSuiteVO) {
 		try {
+			if(StringUtils.isBlank(testSuiteVO.getName())) {
+				return new ResultVO(false, StatusCode.ERROR, "请输入合理的被测系统名称");
+			}
+			if(testSuiteVO.getMaxConcurrency()<0) {
+				return new ResultVO(false, StatusCode.ERROR, "最大并发数量不可小于零");
+			}
 			List<TestSuite> testSuiteList = testSuiteService.getBySuiteNameAndProductId(testSuiteVO.getName(),
 					testSuiteVO.getProductID());
 			if (testSuiteList != null && testSuiteList.size() > 0) {
@@ -272,6 +288,7 @@ public class TestSuiteController {
 				return new ResultVO(true, StatusCode.OK, "新增成功");
 			}
 		} catch (Exception e) {
+			log.error("新增失败信息为：", e);
 			e.printStackTrace();
 			return new ResultVO(false, StatusCode.ERROR, "新增失败");
 		}
@@ -286,21 +303,7 @@ public class TestSuiteController {
 	@ResponseBody
 	@RequestMapping(value = "/updateTestSuite/{testSuiteID}", method = RequestMethod.PUT)
 	public ResultVO updateTestSuite(@PathVariable Integer testSuiteID, @RequestBody TestSuiteVO testSuiteVO) {
-		try {
-			TestSuite testSuite = testSuiteService.findById(testSuiteVO.getId());
-			if (testSuite == null) {
-				return new ResultVO(false, StatusCode.ERROR, "要修改的案例集不存在");
-			}
-			BeanUtils.copyProperties(testSuiteVO, testSuite);
-			Product product = new Product();
-			product.setId(testSuiteVO.getProductID());
-			testSuite.setProduct(product);
-			testSuiteService.save(testSuite);
-			return new ResultVO(true, StatusCode.OK, "更新成功");
-		} catch (Exception e) {
-			e.printStackTrace();
-			return new ResultVO(false, StatusCode.ERROR, "更新失败");
-		}
+		return testSuiteService.updateTestSuite(testSuiteVO);
 	}
 
 	/**
@@ -310,19 +313,19 @@ public class TestSuiteController {
 	 * @author:zhou_xiaolong in 2019年2月25日上午1:38:17
 	 */
 	@ResponseBody
-	@RequestMapping(value = "/deleteTestSuite", method = RequestMethod.GET)
+	@RequestMapping(value = "/deleteTestSuite", method = RequestMethod.POST)
 	public ResultVO deleteTestSuite(@RequestParam String ids) {
 		try {
-			if(StringUtils.isNotBlank(ids)) {
+			if (StringUtils.isNotBlank(ids)) {
 				testSuiteService.delete(ids);
 				return new ResultVO(true, StatusCode.OK, "删除成功");
-			}else {
+			} else {
 				return new ResultVO(false, StatusCode.ERROR, "请输入合法参数");
 			}
 		} catch (Exception e) {
 			log.error("", e);
 			e.printStackTrace();
-			return new ResultVO(false, StatusCode.ERROR, "删除失败");
+			return new ResultVO(false, StatusCode.ERROR, "删除失败" + e.getLocalizedMessage());
 		}
 	}
 
@@ -363,30 +366,6 @@ public class TestSuiteController {
 
 	}
 
-	/**
-	 * @Description: 根据产品ID查询对应的测试集不分页
-	 * @tips: null;
-	 * @author: zhou_xiaolong in 2019年3月21日上午10:32:14
-	 * @param productId
-	 * @return
-	 *//*
-		 * @RequestMapping(value="/findTestSuiteByProductId",method=RequestMethod.GET)
-		 * public ResultVO findTestSuiteByProductId(Integer productId) { HashMap<String,
-		 * Object> map = new HashMap<String,Object>(); try { List<TestSuite>
-		 * testSuiteList = testSuiteService.findByProductId(productId);
-		 * ArrayList<TestSuiteVO> list = new ArrayList<TestSuiteVO>(); for (TestSuite
-		 * testSuite : testSuiteList) { TestSuiteVO testSuiteVO = new
-		 * TestSuiteVO(testSuite);
-		 * List<TestCase>testCaseList=testCaseService.findAllById(testSuite.getId());
-		 * if(testCaseList==null) { testSuiteVO.setTestCaseNumber(0); }else {
-		 * testSuiteVO.setTestCaseNumber(testCaseList.size()); } list.add(testSuiteVO);
-		 * } map.put("list", list); return new ResultVO(true, StatusCode.OK, "查询成功",
-		 * map); } catch (Exception e) { log.error("根据产品的ID查询测试集报错为：",e);
-		 * e.printStackTrace(); return new ResultVO(false, StatusCode.ERROR, "查询失败"); }
-		 * 
-		 * 
-		 * }
-		 */
 
 	// 质量测试集执行方法修改 20190321
 	@ResponseBody
@@ -399,6 +378,7 @@ public class TestSuiteController {
 			return new ResultVO(true, StatusCode.OK, "开始执行");
 		} catch (Exception e) {
 			e.getLocalizedMessage();
+			log.error("执行失败信息为：", e);
 			return new ResultVO(false, StatusCode.ERROR, "执行失败");
 		}
 
@@ -447,22 +427,23 @@ public class TestSuiteController {
 			testSuiteService.doFalseQualityTestSuite(qualityTestCases, testSuite);
 			return new ResultVO(true, StatusCode.OK, "开始执行");
 		} catch (Exception e) {
+			log.error("执行失败信息为：", e);
 			e.getLocalizedMessage();
 			return new ResultVO(false, StatusCode.ERROR, "执行失败");
 		}
 
-
 	}
 
-
-	/**根据产品的ID查找和类型查找
+	/**
+	 * 根据产品的ID查找和类型查找
+	 * 
 	 * @param productId
 	 * @return
 	 */
 	@RequestMapping(value = "/findByProductIdAndType", method = RequestMethod.GET)
-	public ResultVO findByProductId(@RequestParam Integer productId,@RequestParam Integer type) {
+	public ResultVO findByProductId(@RequestParam Integer productId, @RequestParam Integer type) {
 		try {
-			List<TestSuiteVO> testSuiteList = testSuiteService.findByProductIdAndType(productId,type);
+			List<TestSuiteVO> testSuiteList = testSuiteService.findByProductIdAndType(productId, type);
 			return new ResultVO(true, StatusCode.OK, "查询成功", testSuiteList);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -470,9 +451,5 @@ public class TestSuiteController {
 			return new ResultVO(false, StatusCode.ERROR, "查询失败");
 		}
 	}
-
-
-
-
 
 }

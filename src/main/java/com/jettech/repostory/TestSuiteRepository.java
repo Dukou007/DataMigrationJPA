@@ -77,4 +77,5 @@ public interface TestSuiteRepository extends JpaRepository<TestSuite, Integer> {
 	Page<TestSuite> findByNameAndTypeByPage(String name,int type, Pageable pageable);
 
 	List<TestSuite> findByProductIdAndType(Integer productId,Integer type);
+
 }

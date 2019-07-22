@@ -6,9 +6,11 @@ import javax.persistence.Column;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.jettech.EnumExecuteStatus;
 import com.jettech.entity.BaseEntity;
 import com.jettech.entity.QualityTestResult;
+import org.springframework.format.annotation.DateTimeFormat;
 
 public class QualityTestResultVO extends BaseVO{
 
@@ -17,9 +19,15 @@ public class QualityTestResultVO extends BaseVO{
 	private Integer dataCount;
 	// 明细结果数据量
 	private Integer itemCount;
+	//明细结果取反数据量
+	private Integer falseItemCount;
 	// target执行状态
 	private EnumExecuteStatus execState = EnumExecuteStatus.Ready;
+	@DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	private Date startTime;
+	@DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	private Date endTime;
 	private Boolean result;
 	// source查询语句
@@ -163,5 +171,13 @@ public class QualityTestResultVO extends BaseVO{
 
 	public void setPurposeValue(String purposeValue) {
 		this.purposeValue = purposeValue;
+	}
+
+	public Integer getFalseItemCount() {
+		return falseItemCount;
+	}
+
+	public void setFalseItemCount(Integer falseItemCount) {
+		this.falseItemCount = falseItemCount;
 	}
 }

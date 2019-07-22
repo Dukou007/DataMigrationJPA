@@ -15,13 +15,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jettech.entity.ModelTestResultItem;
-import com.jettech.entity.TestResultItem;
-import com.jettech.repostory.TestResultItemRepository;
 import com.jettech.service.ModelTestResultItemService;
 import com.jettech.vo.ModelTestResultItemVO;
 import com.jettech.vo.ResultVO;
 import com.jettech.vo.StatusCode;
-import com.jettech.vo.TestResultItemVO;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;

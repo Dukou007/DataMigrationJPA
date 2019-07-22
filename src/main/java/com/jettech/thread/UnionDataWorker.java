@@ -3,7 +3,11 @@ package com.jettech.thread;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -18,6 +22,7 @@ import com.jettech.domain.CaseModel;
 import com.jettech.domain.CompareCaseModel;
 import com.jettech.domain.FieldModel;
 import com.jettech.domain.QueryModel;
+import com.jettech.util.DateUtil;
 import com.jettech.domain.DataField;
 
 import ca.krasnay.sqlbuilder.SelectBuilder;
@@ -35,10 +40,15 @@ public class UnionDataWorker extends PageDataWorker implements Runnable {
 		super(queue, querySource, pageSize);
 	}
 
+	public UnionDataWorker() {
+		super();
+	}
+
 	QueryModel targetQuery;
 	protected Map<String, FieldModel> targetKeyMap;
 	private CaseModel testCase;
 	private EnumPageType pageType;
+	protected int allTarDataCount = 0;	//目标表数据量
 
 	/**
 	 * 构造一个通过源数据的队列来获取目标数据的执行器
@@ -64,10 +74,13 @@ public class UnionDataWorker extends PageDataWorker implements Runnable {
 
 	@Override
 	public void run() {
-		logger.info("启动生产者线程！");
+		String info = "testCase[" + testCase.getName() + "]dataSource[" + dataSource.getName() + "],query["
+		        + testQuery.getName() + "]";
+		logger.info(info + ",启动生产者线程！");
 		Connection sourceConn = null;
 		AbstractAdapter sourceAdapter = null;
 		String sourceDbInfo = getDbInfo(dataSource);
+
 		try {
 			// 获取数据库连接
 			sourceAdapter = AdapterFactory.create(dataSource.getDatabaseType());
@@ -147,14 +160,29 @@ public class UnionDataWorker extends PageDataWorker implements Runnable {
 				}
 				logger.info("Source SQL:" + sourceSQL);
 				// pStmt = sourceConn.prepareStatement(soruceSQL);
-				Statement pStmt = sourceConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-				        ResultSet.CONCUR_READ_ONLY);
-
-				// 使用setMaxRows,absolute进行分页存在大数据量表时，内存占用过大的问题
-				// ORACLE JDBC对于翻页支持非常不友好，
-				// 因为它会在rs.absoulte之前就会把setMaxRow后的查询结果集全部载入应用服务器内存，在数据量较大时会导致内存溢出。
-				// pStmt.setMaxRows(maxIndex);
-				ResultSet rs = pStmt.executeQuery(sourceSQL);
+				// Statement pStmt =
+				// sourceConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+				// ResultSet.CONCUR_READ_ONLY);
+				ResultSet rs = null;
+				try {
+					PreparedStatement pStmt = sourceConn.prepareStatement(sourceSQL);// 将源数据Statement换成PreparedStatement
+					// 使用setMaxRows,absolute进行分页存在大数据量表时，内存占用过大的问题
+					// ORACLE JDBC对于翻页支持非常不友好，
+					// 因为它会在rs.absoulte之前就会把setMaxRow后的查询结果集全部载入应用服务器内存，在数据量较大时会导致内存溢出。
+					// pStmt.setMaxRows(maxIndex);
+					logger.info(info + ",开始执行查询");
+					rs = pStmt.executeQuery();
+					logger.info(info + ",执行查询结束");
+				} catch (SQLSyntaxErrorException e1) {
+					logger.error("源查询格式异常,sourceSQL:[" + sourceSQL + "]", e1);
+					break;
+				} catch (SQLException e2) {
+					logger.error("源查询SQL异常,sourceSQL:[" + sourceSQL + "]", e2);
+					break;
+				} catch (Exception e3) {
+					logger.error("源查询异常,sourceSQL:[" + sourceSQL + "]", e3);
+					break;
+				}
 				// ResultSet rs = pStmt.executeQuery();
 				if (rs == null) {
 					logger.info("查询返回空ResultSet对象,终止数据生产");
@@ -190,8 +218,9 @@ public class UnionDataWorker extends PageDataWorker implements Runnable {
 
 				logger.info(String.format("当前有数据:[%d]组,开始获取数据", queue.size()));
 				// count++;C
+				long start = (new Date()).getTime();
 				Map<String, List<Object>> map = getDataRows(rs, keyMap);
-				logger.info("获取源数据行数::" + map.size());
+				logger.info("获取源数据行数::" + map.size() + ",用时:" + DateUtil.getEclapsedTimesStr(start));
 				if (map.size() == 0) {
 					logger.info("数据已读取完毕");
 					break;
@@ -200,11 +229,12 @@ public class UnionDataWorker extends PageDataWorker implements Runnable {
 					page.setTestQuery(testQuery);
 					page.setMap(map);
 					page.setPageIndex(pageIndex);
-					getMixMaxKey(page, map.keySet());
+				//	getMixMaxKey(page, map.keySet());
 
 					// 读取目标数据
 					Map<String, FieldModel> targetKeyMap = getKeyMap(targetQuery);
-					String targetSQL = getTargetSQL2(page);
+					String targetSQL = getTargetSQL3(page, map);
+					logger.info("TargetSQL："+targetSQL);
 
 					PreparedStatement pStmtTarget = null;
 					pStmtTarget = targetConn.prepareStatement(targetSQL);
@@ -228,6 +258,19 @@ public class UnionDataWorker extends PageDataWorker implements Runnable {
 					break;
 				}
 			}
+			/*
+			 * 暂时还没想好怎么获取目标表的总记录数，先单独获取
+			 * 如果sql语句比较复杂子查询比较多，这个过程可能要稍微消耗些时间
+			 */
+			PreparedStatement tarPS = null;
+			String tarSQL = targetQuery.getSqlText();
+			String tarSQLCount = "select count(*) from ("+tarSQL+") T";
+			tarPS = targetConn.prepareStatement(tarSQLCount);
+			ResultSet tarRS = tarPS.executeQuery();
+			while(tarRS.next()) {
+				 allTarDataCount =  tarRS.getInt(1);
+			}
+			
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			// Thread.currentThread().interrupt();
@@ -263,13 +306,104 @@ public class UnionDataWorker extends PageDataWorker implements Runnable {
 				whereCol = pageText.replace(",", "+");
 				break;
 			case Mysql:
-			case Oracle:
+			case Oracle:// 给多个key加双引号，不然会报错
+				StringBuilder pageTex = new StringBuilder();
+				String[] pageTs = pageText.split(",");
+				for (int i = 0; i < pageTs.length; i++) {
+					pageTex.append("\"" + pageTs[i] + "\"");
+					if (i < pageTs.length - 1) {
+						pageTex.append(",");
+					}
+				}
+				pageText = pageTex.toString();
 			case DB2:
 			default:
 				whereCol = "CONCAT(" + pageText + ")";
 			}
 		} else {
-			whereCol = pageText;
+			switch (databaseType) {
+			case Oracle:
+				whereCol = "\"" + pageText + "\"";
+				break;
+			default:
+				whereCol = pageText;
+			}
+			
+		}
+
+		StringBuilder sqlBuilder = new StringBuilder();
+		sqlBuilder.append("SELECT * FROM (");
+		sqlBuilder.append(targetSQL);
+		sqlBuilder.append(")");
+		// 不同的数据库,子查询的别名方式不同
+		switch (databaseType) {
+		case Mysql:
+			sqlBuilder.append(" AS T");
+			break;
+		case SyBase:
+		case Oracle:
+		case DB2:
+		default:
+			sqlBuilder.append(" T");
+		}
+
+		sqlBuilder.append(" WHERE " + whereCol + " BETWEEN '" + page.getMinKey() + "' AND '" + page.getMaxKey() + "'");
+
+		String result = sqlBuilder.toString();
+		return result;
+	}
+	
+	
+	private String getTargetSQL3(UnionPageData page, Map<String, List<Object>> map) {
+
+		String targetSQL = targetQuery.getSqlText();
+		String pageText = targetQuery.getPageText();
+		// 未定义分页字段/分页字段无效,使用key进行分页
+		if (pageText == null || pageText.trim().length() == 0) {
+			pageText = targetQuery.getKeyText();
+		}
+
+		EnumDatabaseType databaseType = targetQuery.getDataSource().getDatabaseType();
+		String whereCol = "";
+		// SyBase,SqlServer字符串的连接方式不同
+		if (pageText.contains(",")) {
+			// 存在多个分页的列
+			switch (databaseType) {
+			case SyBase:
+				whereCol = pageText.replace(",", "+");
+				break;
+			case Mysql:
+			case Oracle://给多个key加双引号，不然会报错
+				
+				StringBuilder sqlBuilder = new StringBuilder();
+				sqlBuilder.append("SELECT * FROM (").append(targetSQL).append(") T").append(" WHERE ");
+				String[] pageT = pageText.split("\\,");
+				ArrayList<List<String>> keyList = generateKeyList(map.keySet());
+				for (int i = 0; i < pageT.length; i++) {
+					sqlBuilder.append("( \"").append(pageT[i]).append("\"").append(" BETWEEN ");
+					getMixMaxKey2(page, keyList, i);
+					sqlBuilder.append("\'").append(page.getMinKey()).append("\'").append(" AND ");
+					sqlBuilder.append("\'").append(page.getMaxKey()).append("\' )").append(" AND ");
+				}
+				sqlBuilder.append("1=1");
+				
+				String result = sqlBuilder.toString();
+				return result;
+				
+			case DB2:
+			default:
+				whereCol = "CONCAT(" + pageText + ")";
+			}
+		} else {
+			getMixMaxKey(page, map.keySet());
+			switch (databaseType) {
+			case Oracle:
+				whereCol = "\""+pageText+"\"";
+				break;
+			default:
+				whereCol = pageText;
+			}
+			
 		}
 
 		StringBuilder sqlBuilder = new StringBuilder();
@@ -299,15 +433,15 @@ public class UnionDataWorker extends PageDataWorker implements Runnable {
 		// 增加补充查询条件
 		StringBuilder builder = new StringBuilder();
 		String[] destKeys = targetQuery.getKeyText().split(",");
-		// TODO:需要根据不同的数据库，不同的数据类型来构造到目标数据库的分页查询SQL
+		// :需要根据不同的数据库，不同的数据类型来构造到目标数据库的分页查询SQL
 		// 如果是简易模式,这里还不能通过查询获取到key字段的完整定义
 		for (String key : targetKeyMap.keySet()) {
 			FieldModel field = targetKeyMap.get(key);
 			// if (field.getDataType().equals("")) {
 			//
 			// } else {
-			builder.append(" and " + key + " >='" + page.getMinKey() + "'");
-			builder.append(" and " + key + " <='" + page.getMaxKey() + "'");
+			builder.append(" and " + field + " >='" + page.getMinKey() + "'");
+			builder.append(" and " + field + " <='" + page.getMaxKey() + "'");
 			// }
 		}
 
@@ -386,6 +520,7 @@ public class UnionDataWorker extends PageDataWorker implements Runnable {
 		case DB2:
 			break;
 		case Informix:
+			sql = "select skip " + ((pageIndex - 1) * pageSize + 1) + " first " + pageSize + " from (" + sql + ")";
 			break;
 		default:
 			throw new Exception("not support databasetype:" + this.testQuery.getDataSource().getDbtype().getName());

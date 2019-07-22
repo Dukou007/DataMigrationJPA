@@ -24,6 +24,8 @@ public class QualityTestResult extends BaseEntity {
 	private Integer dataCount;
 	// 明细结果数据量
 	private Integer itemCount;
+	//明细结果取反数据量
+	private Integer falseItemCount;
 	// target执行状态
 	private EnumExecuteStatus execState=EnumExecuteStatus.Ready;
 	private Date startTime;
@@ -170,5 +172,13 @@ public class QualityTestResult extends BaseEntity {
 
 	public void setPurposeValue(String purposeValue) {
 		this.purposeValue = purposeValue;
+	}
+
+	public Integer getFalseItemCount() {
+		return falseItemCount;
+	}
+
+	public void setFalseItemCount(Integer falseItemCount) {
+		this.falseItemCount = falseItemCount;
 	}
 }

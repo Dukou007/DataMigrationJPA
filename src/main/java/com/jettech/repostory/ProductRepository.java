@@ -46,7 +46,7 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 	 * @author:zhou_xiaolong in 2019年2月19日下午2:20:19
 	 * @param pageable 
 	 */
-	@Query(value="select * FROM product p WHERE 1=1 AND p.name LIKE CONCAT('%',?1,'%') ",countQuery="select count(*) from product p where 1=1 and p.name like CONCAT('%',?1,'%')",nativeQuery=true)
+	@Query(value="select * FROM product p WHERE p.parent_id is null AND p.name LIKE CONCAT('%',?1,'%') ",countQuery="select count(*) from product p where p.parent_id is null and p.name like CONCAT('%',?1,'%')",nativeQuery=true)
 	Page<Product> findProductByProductName(String productName, Pageable pageable);
 
 	@Transactional(timeout = 30000)
@@ -63,5 +63,9 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 	Product findByProductName(String name);
 
 	List<Product> findByNameLike(String name);
+	@Query(value="select * from  product p join test_suite ts on p.id = ts.product_id join test_suite_case tsc on ts.id =  tsc.suite_id\r\n" + 
+			" join test_case tc on tc.id = tsc.case_id \r\n" + 
+			"where tc.id=?1",nativeQuery = true)
+	List<Product> findProductByCaseId(int caseId);
 
 }

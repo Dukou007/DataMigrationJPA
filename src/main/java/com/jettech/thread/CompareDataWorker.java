@@ -83,12 +83,12 @@ public class CompareDataWorker implements Runnable {
 		boolean fieldNameSameflag = true;
 		for (String keyField : leftFieldMaps.keySet()) {
 			fieldNameIfSameFlag = 0;
-			int left_data_len = leftFieldMaps.get(keyField).getDataLength();
+			Integer left_data_len = leftFieldMaps.get(keyField).getDataLength();
 			int left_data_pre = leftFieldMaps.get(keyField).getDataPrecision();
 			String left_data_type = leftFieldMaps.get(keyField).getDataType();
 			if (rightFieldMaps.containsKey(keyField)) {
 				fieldNameIfSameFlag = 1;
-				int right_data_len = rightFieldMaps.get(keyField).getDataLength();
+				Integer right_data_len = rightFieldMaps.get(keyField).getDataLength();
 				int right_data_pre = rightFieldMaps.get(keyField).getDataPrecision();
 				String right_data_type = rightFieldMaps.get(keyField).getDataType();
 				if (left_data_len != right_data_len || left_data_pre != right_data_pre

@@ -1,6 +1,7 @@
 package com.jettech.service.Impl;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -153,12 +154,18 @@ public class ProductServiceImpl implements ProductService {
 				BeanUtils.copyProperties(productVO, p);
 				parentProduct.getSubProducts().add(p);
 				p.setParent(parentProduct);
+				// 新增时，创建时间为当前时间，修改时间为null
+				p.setCreateTime(new Date());
+				p.setEditTime(null);
 				repository.save(p);
 				repository.saveAndFlush(parentProduct);
 			}
 		} else {
 			// parentProduct
 			BeanUtils.copyProperties(productVO, p);
+			// 新增时，创建时间为当前时间，修改时间为null
+			p.setCreateTime(new Date());
+			p.setEditTime(null);
 			p.setParent(null);
 			repository.save(p);
 		}
@@ -174,16 +181,16 @@ public class ProductServiceImpl implements ProductService {
 			throw new BizException("要更新的案例不存在");
 		} else if (p.getParent() != null && !p.getParent().equals("")) {
 			Product parentProduct = p.getParent();
-			
+			// 修改时，创建时间不变，修改时间为当前时间
 			if(productVO.getCreateTime()==null) {
-				p.setCreateUser(p.getCreateUser());
+				p.setCreateTime(p.getCreateTime());
 			}else {
-				p.setCreateTime(productVO.getCreateTime());
+				p.setCreateTime(p.getCreateTime());
 			}
 			if(productVO.getEditTime()==null) {
-				p.setEditTime(p.getEditTime());
+				p.setEditTime(new Date());
 			}else {
-				p.setEditTime(productVO.getEditTime());
+				p.setEditTime(new Date());
 			}
 			if(productVO.getCreateUser()==null) {
 				p.setCreateUser(p.getCreateUser());
@@ -204,15 +211,16 @@ public class ProductServiceImpl implements ProductService {
 			repository.save(p);
 			repository.saveAndFlush(parentProduct);
 		} else {
+			// 修改时，创建时间不变，修改时间为当前时间
 			if(productVO.getCreateTime()==null) {
-				p.setCreateUser(p.getCreateUser());
+				p.setCreateTime(p.getCreateTime());
 			}else {
-				p.setCreateTime(productVO.getCreateTime());
+				p.setCreateTime(p.getCreateTime());
 			}
 			if(productVO.getEditTime()==null) {
-				p.setEditTime(p.getEditTime());
+				p.setEditTime(new Date());
 			}else {
-				p.setEditTime(productVO.getEditTime());
+				p.setEditTime(new Date());
 			}
 			if(productVO.getCreateUser()==null) {
 				p.setCreateUser(p.getCreateUser());

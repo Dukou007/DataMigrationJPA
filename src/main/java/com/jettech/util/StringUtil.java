@@ -1,5 +1,7 @@
 package com.jettech.util;
 
+import java.util.List;
+
 public class StringUtil {
     
     /**
@@ -53,4 +55,34 @@ public class StringUtil {
 		        System.out.println(isAllMandarin(str2));
 	}
 	
+	/**
+	 * 判断字符串是否全为数字
+	 */
+	public static boolean isNumeric(String str) {
+	        for (int i = str.length(); --i >= 0;) {
+	            if (!Character.isDigit(str.charAt(i))) {
+	                return false;
+	            }
+	        }
+	        return true;
+		}
+
+	/**
+	 * 判断集合中的元素是否全是数字
+	 * @param list
+	 * @return
+	 */
+	public static boolean isNumeric(List<String> list) {
+		boolean numeric = true;
+		for (String string : list) {
+			numeric= isNumeric(string);
+			if(numeric==true) {
+				continue;
+			}
+			return false;
+		}
+
+		return true;
+		
+	}
 }

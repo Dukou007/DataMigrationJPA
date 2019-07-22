@@ -20,14 +20,14 @@ public class TestQueryVO extends BaseVO {
 	private String dataSouceName;
     
 	private String selectText;
-	
-	
+		
 	private Integer dataSourceId;
 	
 	private List<TestRuleVO> testRules;
 
 	private String keyText;
 	private String pageText;
+	private String sqlIntro; //sql注释
 
 	public TestQueryVO(BaseEntity entity) {
 		super(entity);
@@ -170,6 +170,14 @@ public class TestQueryVO extends BaseVO {
 	 */
 	public void setDataSouceName(String dataSouceName) {
 		this.dataSouceName = dataSouceName;
+	}
+
+	public String getSqlIntro() {
+		return sqlIntro;
+	}
+
+	public void setSqlIntro(String sqlIntro) {
+		this.sqlIntro = sqlIntro;
 	}
 
 }

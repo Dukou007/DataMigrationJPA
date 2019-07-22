@@ -28,4 +28,5 @@ public interface QualityTestResultItemRepository
 			)
 	Page<QualityTestResultItem> findTestResultItemByTestResultID(@Param("testResultID")Integer testResultID, Pageable pageable);
 
+	Page<QualityTestResultItem> findByTestResultIdAndSign(@Param("testResultId")Integer testResultId,@Param("sign")int sign, Pageable pageable);
 }

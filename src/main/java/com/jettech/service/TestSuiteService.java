@@ -3,6 +3,7 @@ package com.jettech.service;
 import com.jettech.BizException;
 import com.jettech.entity.QualityTestCase;
 import com.jettech.entity.TestSuite;
+import com.jettech.vo.ResultVO;
 import com.jettech.vo.TestSuiteVO;
 
 import org.springframework.data.domain.Page;
@@ -19,7 +20,7 @@ public interface TestSuiteService extends IService<TestSuite, Integer> {
 	TestSuite getByName(String testSuiteName, String productName);
 
 	Page<TestSuite> getByNameLikeList(String name, Pageable pageable);
-	public void delete(String ids);
+	public void delete(String ids) throws Exception;
 	/**
 	 * 获取一个产品下的所有测试集,包含子产品的
 	 * @param productId
@@ -58,7 +59,7 @@ public interface TestSuiteService extends IService<TestSuite, Integer> {
 	Page<TestSuite> getTestSuiteList(Pageable pageable);
 
 	String doTest(Integer testSuiteID);
-
+	public ResultVO updateTestSuite(TestSuiteVO testSuiteVO);
 	void copyTestSuite(Integer testSuiteId) throws BizException;
 
 	//质量执行测试集方法添加20190321
@@ -73,4 +74,5 @@ public interface TestSuiteService extends IService<TestSuite, Integer> {
 	public String doTaskQualityTestSuite(Integer testSuiteId,int threadNum);
 
 	List<TestSuiteVO> findByProductIdAndType(Integer productId,Integer type);
+
 }

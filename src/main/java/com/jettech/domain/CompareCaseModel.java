@@ -14,6 +14,7 @@ public class CompareCaseModel extends CaseModel {
 	public CompareCaseModel() {
 	}
 
+
 	public CompareCaseModel(TestCase testCase) throws Exception {
 		super(testCase);
 		// super.parse(testCase);//可能由于延迟加载的问题导致属性不能复制

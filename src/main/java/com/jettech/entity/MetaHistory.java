@@ -11,6 +11,11 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
+/**
+ * 元数据更改历史记录
+ * @author tan
+ *
+ */
 @Entity
 @Table(name = "meta_history")
 public class MetaHistory extends BaseEntity {

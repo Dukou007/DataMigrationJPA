@@ -14,5 +14,7 @@ public interface QualityTestResultItemService extends IService<QualityTestResult
 
 	Page<QualityTestResultItem> findTestResultItemByTestResultID(Integer testResultID,/*String result,*/ Pageable pageable);
 
+	Page<QualityTestResultItem> findByTestIdAndSign(Integer testResultId,int sign, Pageable pageable);
+
 
 }

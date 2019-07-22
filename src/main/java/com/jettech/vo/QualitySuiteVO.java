@@ -20,7 +20,9 @@ public class QualitySuiteVO extends BaseVO {
 	private String name;
 	
 	private String qualityRuleIds ;
-	
+
+	private List<String> qualityRuleDes;
+
 	public QualitySuiteVO(BaseEntity entity) {
 		super(entity);
 		QualitySuite e = (QualitySuite) entity;
@@ -34,6 +36,12 @@ public class QualitySuiteVO extends BaseVO {
 			} 
 		}
 		qualityRuleIds=s.toString();
+		List<String> des = new ArrayList<String>();
+		for (QualityRule r : e.getQualityRules()){
+			des.add(r.getDes());
+		}
+		qualityRuleDes = des;
+
 	}
 	
 	public Integer getLeftValue() {
@@ -82,6 +90,13 @@ public class QualitySuiteVO extends BaseVO {
 	public QualitySuiteVO() {
 		super();
 	}
-	
-	
+
+
+	public List<String> getQualityRuleDes() {
+		return qualityRuleDes;
+	}
+
+	public void setQualityRuleDes(List<String> qualityRuleDes) {
+		this.qualityRuleDes = qualityRuleDes;
+	}
 }

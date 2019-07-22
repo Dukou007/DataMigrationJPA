@@ -2,6 +2,8 @@ package com.jettech.service.Impl;
 
 import java.util.List;
 
+import javax.transaction.Transactional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,23 +12,18 @@ import org.springframework.stereotype.Service;
 import com.jettech.entity.TestSuiteCase;
 import com.jettech.repostory.TestSuiteCaseRepository;
 import com.jettech.service.TestSuiteCaseService;
+
 @Service
 public class TestSuiteCaseServiceImpl implements TestSuiteCaseService {
 
-	
-	
 	@Autowired
 	private TestSuiteCaseRepository testSuiteCaseRepository;
-	
-
 
 	@Override
 	public void delete(Integer id) {
 		// TODO Auto-generated method stub
 
 	}
-
-
 
 	@Override
 	public Integer[] findCaseIdsBysuiteId(Integer suiteId) {
@@ -49,7 +46,7 @@ public class TestSuiteCaseServiceImpl implements TestSuiteCaseService {
 	@Override
 	public void save(TestSuiteCase entity) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
@@ -58,29 +55,30 @@ public class TestSuiteCaseServiceImpl implements TestSuiteCaseService {
 		return null;
 	}
 
-
-
 	@Override
 	public Page<TestSuiteCase> findAllByPage(Pageable pageable) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-
-
 	@Override
 	public Integer CountCase(Integer suiteId) {
-		
+
 		return testSuiteCaseRepository.CountCase(suiteId);
 	}
 
-
-
 	@Override
 	public TestSuiteCase findByCaseIdAndSuiteId(Integer caseId, Integer suiteId) {
-		TestSuiteCase tsc=	testSuiteCaseRepository.findByCaseIdAndSuiteId(caseId, suiteId);
+		TestSuiteCase tsc = testSuiteCaseRepository.findByCaseIdAndSuiteId(caseId, suiteId);
 		return tsc;
-		
+
+	}
+
+	@Override
+	@Transactional
+	public void deleteByCaseId(int id) {
+		testSuiteCaseRepository.deleteByCaseId(id);
+
 	}
 
 }

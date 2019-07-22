@@ -31,6 +31,8 @@ public interface DataSourceRepository extends JpaRepository<DataSource, Integer>
 	        Date editTime,String editUser,String sid,int id);
 	
     @Query(value = "select * from data_source  where name  like CONCAT('%',?1,'%') ", countQuery = "select count(*) from data_source  where  name like CONCAT('%',?1,'%') ",nativeQuery = true)
-	Page<DataSource> findAllDSNameByPage(String dataSource,Pageable pageable);
+	Page<DataSource> findAllDSNameByPage(String dataSource,Pageable pageable);  
+    @Query(value ="select d.id from data_source d join test_database t on t.data_source_id = d.id where t.id=?1",nativeQuery = true)
+	Integer findDataSourceId(Integer id);
 
 }

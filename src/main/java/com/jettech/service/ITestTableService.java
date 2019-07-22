@@ -21,4 +21,8 @@ public interface ITestTableService extends IService<DataTable, Integer> {
     public ResultVO copyDataTable(int id,String name);
     public void SetOneDataTable(int id);
     public List<DataTable> getTablesBySchemaID(int schemaID,String tableName);
+    
+    public DataTable findByName(String tableName);
+
+	public List<DataTable> findBySchemaId(Integer id);
 }

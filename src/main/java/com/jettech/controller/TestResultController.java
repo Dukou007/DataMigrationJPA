@@ -1,6 +1,9 @@
 package com.jettech.controller;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 
 import javax.persistence.criteria.CriteriaBuilder;
@@ -8,7 +11,6 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,8 +26,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.jettech.EnumExecuteStatus;
 import com.jettech.entity.TestCase;
 import com.jettech.entity.TestResult;
-import com.jettech.entity.TestRound;
-import com.jettech.repostory.TestResultRepository;
 import com.jettech.service.ITestCaseService;
 import com.jettech.service.ITestResultItemService;
 import com.jettech.service.ITestReusltService;
@@ -67,12 +67,6 @@ public class TestResultController {
 	@SuppressWarnings("unused")
 	@Autowired
 	private TestRoundService testRoundService;
-	
-
-	// @Autowired
-	// private TestResultRepository repository;
-	// @Autowired
-	// private ITestResultService resultService;
 
 	private static Logger log = LoggerFactory.getLogger(TestResultController.class);
 
@@ -261,15 +255,7 @@ public class TestResultController {
 
 	@SuppressWarnings("serial")
 	@RequestMapping(value = "findTestResultByCaseAndStartTimeAndEndTime", method = RequestMethod.GET)
-//	@ApiOperation(value = "testCaseList页---点击执行记录----根据案例的ID查找轮次记录,跳转到testCaseResultList的界面，根据案例ID、开始时间，结束时间来查询测试结果,。", notes = "不输入开始时间和结束时间默认查找所有。")
-//	@ApiImplicitParams({
-//			@ApiImplicitParam(paramType = "query", name = "caseId", value = "案例集ID", required = true, dataType = "String"),
-//			@ApiImplicitParam(paramType = "query", name = "startTime", value = "开始时间", required = false, dataType = "String"),
-//			@ApiImplicitParam(paramType = "query", name = "endTime", value = "结束时间", required = false, dataType = "String"),
-//			@ApiImplicitParam(paramType = "query", name = "pageNum", value = "页码值", required = false, dataType = "Long"),
-//			@ApiImplicitParam(paramType = "query", name = "pageSize", value = "每页条数", required = false, dataType = "Long") })
-	public ResultVO findTestResultByCaseAndStartTimeAndEndTime(
-			@RequestParam String caseId,
+	public ResultVO findTestResultByCaseAndStartTimeAndEndTime(@RequestParam String caseId,
 			@RequestParam(value = "startTime", required = false) String startTime,
 			@RequestParam(value = "endTime", required = false) String endTime,
 			@RequestParam(value = "execState", required = false) EnumExecuteStatus execState,
@@ -277,18 +263,31 @@ public class TestResultController {
 			@RequestParam(value = "targetData", required = false) String targetData,
 			@RequestParam(value = "sourceData", required = false) String sourceData,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
-			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
+			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) throws ParseException {
+		//转化日期格式
+		if(startTime.length()!=0&&endTime.length()!=0) {
+			startTime = startTime.replace("Z", " UTC");
+			endTime = endTime.replace("Z", " UTC");
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS Z");
+			SimpleDateFormat sdf1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			Date ds = sdf.parse(startTime);
+			Date de = sdf.parse(endTime);
+			startTime = sdf1.format(ds);
+			endTime = sdf1.format(de).substring(0, 11)+"23:59:59";	
+		}
+			
 		try {
 			Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
-			Page<TestResult> testResultList = testReSultService.findTestResultByCaseAndStartTimeAndEndTime(caseId,startTime,endTime,execState,testRoundId,targetData,sourceData,pageable);
+			Page<TestResult> testResultList = testReSultService.findTestResultByCaseAndStartTimeAndEndTime(caseId,
+					startTime, endTime, execState, testRoundId, targetData, sourceData, pageable);
 			ArrayList<TestResultVO> testResultVOList = new ArrayList<TestResultVO>();
 			for (TestResult testResult : testResultList) {
 				TestResultVO testResultVO = new TestResultVO(testResult);
 				Integer id = Integer.valueOf(caseId);
 				TestCase testCase = testCaseService.findById(id);
-				if(testCase==null||testCase.equals("")) {
+				if (testCase == null || testCase.equals("")) {
 					testResultVO.setCaseName(null);
-				}else {
+				} else {
 					testResultVO.setCaseName(testCase.getName());
 				}
 				testResultVOList.add(testResultVO);
@@ -379,22 +378,25 @@ public class TestResultController {
 	}
 
 	/**
-	 * 根据源数据源查询结果
+	 * 根据案例id和源数据源查询
 	 * 
+	 * @param caseId
 	 * @param dataSource
 	 * @param pageNum
 	 * @param pageSize
 	 * @return
 	 */
-	@RequestMapping(value = "findBySourceDataSource", method = RequestMethod.GET)
-	public ResultVO findBySourceDataSource(
-			@RequestParam(value = "dataSource", defaultValue = "", required = false) String dataSource,
+	@RequestMapping(value = "findByCaseIdAndSourceDataSource", method = RequestMethod.GET)
+	public ResultVO findByCaseIdAndSourceDataSource(
+			@RequestParam(value = "caseId", defaultValue = "", required = false) String caseId,
+			@RequestParam(value = "sourceData", defaultValue = "", required = false) String sourceData,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
 		Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
 		ArrayList<TestResultVO> testResultVOList = new ArrayList<TestResultVO>();
 		try {
-			Page<TestResult> testResultList = testReSultService.findBySourceDataSource(dataSource, pageable);
+			Page<TestResult> testResultList = testReSultService.findByCaseIdAndSourceDataSource(caseId, sourceData,
+					pageable);
 			for (TestResult testResult : testResultList) {
 				TestResultVO vo = new TestResultVO(testResult);
 				testResultVOList.add(vo);
@@ -405,29 +407,32 @@ public class TestResultController {
 			map.put("list", testResultVOList);
 			return new ResultVO(true, StatusCode.OK, "查询成功", map);
 		} catch (Exception e) {
-			log.error("根据源数据源查询报错" + dataSource, e);
+			log.error("根据源数据源查询报错" + sourceData, e);
 			e.printStackTrace();
 			return new ResultVO(false, StatusCode.ERROR, "查询异常");
 		}
 	}
 
 	/**
-	 * 根据目标数据源查询
+	 * 根据案例的id和目标数据源查询执行结果
 	 * 
+	 * @param caseId
 	 * @param dataSource
 	 * @param pageNum
 	 * @param pageSize
 	 * @return
 	 */
-	@RequestMapping(value = "findByTargetDataSource", method = RequestMethod.GET)
-	public ResultVO findByTargetDataSource(
-			@RequestParam(value = "dataSource", defaultValue = "", required = false) String dataSource,
+	@RequestMapping(value = "findByCaseIdAndTargetDataSource", method = RequestMethod.GET)
+	public ResultVO findByCaseIdAndTargetDataSource(
+			@RequestParam(value = "caseId", defaultValue = "", required = false) String caseId,
+			@RequestParam(value = "targetData", defaultValue = "", required = false) String targetData,
 			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
 		Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
 		ArrayList<TestResultVO> testResultVOList = new ArrayList<TestResultVO>();
 		try {
-			Page<TestResult> testResultList = testReSultService.findByTargetDataSource(dataSource, pageable);
+			Page<TestResult> testResultList = testReSultService.findByCaseIdAndTargetDataSource(caseId, targetData,
+					pageable);
 			for (TestResult testResult : testResultList) {
 				TestResultVO vo = new TestResultVO(testResult);
 				testResultVOList.add(vo);
@@ -438,7 +443,7 @@ public class TestResultController {
 			map.put("list", testResultVOList);
 			return new ResultVO(true, StatusCode.OK, "查询成功", map);
 		} catch (Exception e) {
-			log.error("根据目标数据源查询报错" + dataSource, e);
+			log.error("根据目标数据源查询报错" + targetData, e);
 			e.printStackTrace();
 			return new ResultVO(false, StatusCode.ERROR, "查询异常");
 		}

@@ -40,6 +40,7 @@ public class TestQuery extends BaseEntity {
 	private List<TestRule> testRules;
 	private String keyText;
 	private String pageText;
+	private String sqlIntro; //sql注释
 
 	public String getName() {
 		return name;
@@ -158,6 +159,14 @@ public class TestQuery extends BaseEntity {
 
 	public void setPageText(String pageText) {
 		this.pageText = pageText;
+	}
+
+	public String getSqlIntro() {
+		return sqlIntro;
+	}
+
+	public void setSqlIntro(String sqlIntro) {
+		this.sqlIntro = sqlIntro;
 	}
 
 }

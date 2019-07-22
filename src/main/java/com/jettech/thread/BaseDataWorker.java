@@ -5,6 +5,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,10 +20,13 @@ import com.jettech.db.adapter.AdapterFactory;
 import com.jettech.domain.DbModel;
 import com.jettech.domain.FieldModel;
 import com.jettech.domain.QueryModel;
+import com.jettech.entity.TestResultItem;
+import com.jettech.util.StringUtil;
+import com.jettech.domain.CaseModel;
 import com.jettech.domain.DataField;
 
-public abstract class BaseDataWorker {
-	protected Logger logger = LoggerFactory.getLogger(BaseDataWorker.class);
+public abstract class BaseDataWorker extends BaseWorker {
+	protected Logger logger = null;
 	protected BlockingQueue<BaseData> queue = null;
 	protected volatile boolean _isRunning = true;
 	protected DbModel dataSource = null;
@@ -36,6 +40,11 @@ public abstract class BaseDataWorker {
 	protected int duplicatedKeyCount = 0;
 	protected QueryModel testQuery;
 	protected Map<String, FieldModel> keyMap;
+	BlockingQueue<TestResultItem> itemQueue;
+
+	public BaseDataWorker() {
+		logger = LoggerFactory.getLogger(this.getClass());
+	}
 
 	/**
 	 * 
@@ -46,6 +55,7 @@ public abstract class BaseDataWorker {
 	 * @throws Exception
 	 */
 	public BaseDataWorker(BlockingQueue<BaseData> queue, QueryModel testQuery) throws Exception {
+		this();
 		if (queue == null) {
 			throw new Exception("queue is null,create DataWorker failed");
 		} else {
@@ -77,6 +87,13 @@ public abstract class BaseDataWorker {
 		this.duplicatedKeyCount = 0;
 	}
 
+	public BaseDataWorker(BlockingQueue<BaseData> queue, BlockingQueue<TestResultItem> itemQueue, QueryModel testQuery,
+	        CaseModel testCase) throws Exception {
+		this(queue, testQuery);
+		this.itemQueue = itemQueue;
+		this.testResultId = testCase.getTestResult().getId();
+	}
+
 	protected Map<String, FieldModel> getKeyMap(QueryModel testQuery) {
 		Map<String, FieldModel> keyMap = new HashMap<>();
 		List<FieldModel> list = testQuery.getKeyFields();
@@ -100,9 +117,92 @@ public abstract class BaseDataWorker {
 	protected void getMixMaxKey(PageData page, Set<String> keySet) {
 		List<String> list = new ArrayList<>();
 		list.addAll(keySet);
-		Collections.sort(list);
+		if (StringUtil.isNumeric(list)) {
+			// 当key的值全是数值时用下面方法比较
+			Collections.sort(list, new Comparator<String>() {
+				public int compare(String left, String right) {
+					if (left == null)
+						return -1;
+					if (right == null)
+						return 1;
+					if (left.length() < right.length())
+						return -1;
+					if (left.length() > right.length())
+						return 1;
+					return left.compareTo(right);
+				}
+			});
+		} else {
+			// 当key的值不全是数值时按字符类型比较
+			Collections.sort(list);
+		}
 		page.setMinKey(list.get(0));
 		page.setMaxKey(list.get(list.size() - 1));
+
+	}
+
+	/**
+	 * key有可能是多个值，按“|”把每个key分割开，根据key在String[]中的位置放在不同的list中，
+	 * 对每个list中的元素排序，后续在targetSQL中按条件查询时，分别添加每个key的最大值和最小值
+	 * 
+	 * @param page
+	 * @param ArrayList
+	 */
+	protected void getMixMaxKey2(PageData page, ArrayList<List<String>> arrayList, int k) {
+		// 因为key既可以是数值又可以是字符类型，单纯转换成字符串类型排序结果会有问题，所以要重写比较规则
+
+		List<String> list = arrayList.get(k);
+
+		if (StringUtil.isNumeric(list)) {
+			// 当key的值全是数值时用下面方法比较
+			/*
+			 * 当数据库中被选做key的那列(数值)有空值(NULL)的时候查询SQL会报错
+			 */
+			Collections.sort(list, new Comparator<String>() {
+				public int compare(String left, String right) {
+					if (left == null)
+						return -1;
+					if (right == null)
+						return 1;
+					if (left.length() < right.length())
+						return -1;
+					if (left.length() > right.length())
+						return 1;
+					return left.compareTo(right);
+				}
+			});
+		} else {
+			// 当key的值不全是数值时按字符类型比较
+			Collections.sort(list);
+		}
+		page.setMinKey(list.get(0));
+		page.setMaxKey(list.get(list.size() - 1));
+
+	}
+
+	/**
+	 * 对多个key生成的keySet进行重新组合，使每个list中的元素都是相同类型的内容
+	 * 
+	 * @param keySets
+	 * @return
+	 */
+	protected ArrayList<List<String>> generateKeyList(Set<String> keySets) {
+		ArrayList<List<String>> arrayList = new ArrayList<>();
+		for (String keySet : keySets) {
+			String[] keys = keySet.split("\\|");
+			int len = keys.length;
+			if (arrayList.isEmpty()) {
+				for (int i = 0; i < len; i++) {
+					List<String> list = new ArrayList<>();
+					arrayList.add(list);
+				}
+			}
+			for (int i = 0; i < len; i++) {
+				arrayList.get(i).add(keys[i]);
+			}
+		}
+		System.out.println("新的key值集合：" + arrayList);
+		return arrayList;
 	}
 
 	protected String getDbInfo(DbModel ds) {
@@ -116,7 +216,7 @@ public abstract class BaseDataWorker {
 
 	protected String getQuerySQL() {
 		String sql = testQuery.getSqlText();
-		logger.info(String.format("Query:[%s]\r\n\t\t\t获取数据SQL:[%s]", this.testQuery.getName(), sql));
+		logger.info(String.format("Query:[%s],获取数据SQL:[%s]", this.testQuery.getName(), sql));
 		return sql;
 	}
 
@@ -133,7 +233,7 @@ public abstract class BaseDataWorker {
 			col.setColumnName(rsmd.getColumnLabel(i));// 名称
 			col.setLabel(rsmd.getColumnLabel(i));// 标签
 			col.setDataType(rsmd.getColumnTypeName(i));// 数据类型名称
-			col.setDataLength(rsmd.getPrecision(i));// 长度？
+			col.setDataLength(rsmd.getPrecision(i));// 长度？数据类型不同可能不同
 			col.setScale(rsmd.getScale(i));// 小数精度?
 			// System.out.println("getSchemaName" + rsmd.getSchemaName(i));//数据库
 			// System.out.println("getCatalogName" +
@@ -175,4 +275,5 @@ public abstract class BaseDataWorker {
 
 		return list;
 	}
+
 }

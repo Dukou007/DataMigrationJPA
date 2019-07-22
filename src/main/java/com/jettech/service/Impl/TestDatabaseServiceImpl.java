@@ -14,21 +14,20 @@ import javax.transaction.Transactional;
 import org.apache.poi.hssf.usermodel.HSSFCellStyle;
 import org.apache.poi.hssf.usermodel.HSSFDataFormat;
 import org.apache.poi.hssf.usermodel.HSSFFont;
+import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.Row;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.jcraft.jsch.Logger;
-import com.jettech.entity.CaseModelSetDetails;
 import com.jettech.entity.DataSource;
 import com.jettech.entity.DataTable;
 import com.jettech.entity.DataSchema;
 import com.jettech.entity.DataField;
 import com.jettech.entity.MetaHistory;
+import com.jettech.entity.QualityTestQuery;
 import com.jettech.entity.TestQueryField;
 import com.jettech.repostory.CaseModelSetDetailsRepository;
 import com.jettech.repostory.CaseModelSetRepository;
@@ -38,10 +37,12 @@ import com.jettech.repostory.DataSourceRepository;
 import com.jettech.repostory.DataTableRepository;
 import com.jettech.repostory.MetaHistoryItemRepository;
 import com.jettech.repostory.MetaHistoryRepository;
+import com.jettech.repostory.QualityTestQueryRepository;
 import com.jettech.repostory.TestQueryFieldRepository;
 import com.jettech.service.DataSchemaService;
 import com.jettech.service.IDataSourceService;
 import com.jettech.service.IMetaDataManageService;
+import com.jettech.service.ITestTableService;
 import com.jettech.vo.ResultVO;
 import com.jettech.vo.StatusCode;
 import com.jettech.vo.SycData;
@@ -57,6 +58,8 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 	private DataFieldRepository testFieldRepository;
 	@Autowired
 	TestQueryFieldRepository testQueryFieldrepository;
+	@Autowired
+	QualityTestQueryRepository qualityTestQueryRepository;
 	@Autowired
 	private IMetaDataManageService metaDataManageService;
 	@Autowired
@@ -111,6 +114,7 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 			dataSchema.setId(testDatabaseVO.getId());
 			dataSchema.setIsDict(testDatabaseVO.getIsDict());
 			dataSchema.setName(testDatabaseVO.getName());
+			dataSchema.setEditTime(new Date());
 			testDatabaseRepository.save(dataSchema);
 		}else{
 			int data_source_id=testDatabaseVO.getDataSourceId() ;
@@ -118,9 +122,11 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 			if(exdataSchema!=null){
 				return new ResultVO(false, StatusCode.ERROR, "修改失败,同名称同数据源的数据已经存在");
 			}
+			Date date = dataSchema.getEditTime();
+			date=new Date();
 			testDatabaseRepository.update(dataSchema.getVersion(),
 					testDatabaseVO.getId(), testDatabaseVO.getIsDict(),
-					testDatabaseVO.getName(), testDatabaseVO.getDataSourceId());
+					testDatabaseVO.getName(), testDatabaseVO.getDataSourceId(),date);
 		}
 		
 		return new ResultVO(true, StatusCode.OK, "修改成功");
@@ -137,15 +143,16 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 				List<DataField> testFields = testFieldRepository
 						.findByForeignKey(testTable.getId());
 				for (DataField testField : testFields) {
-					// 根据testfieldid查询testqueryfield
+					List<QualityTestQuery> qualityTestQuerys=qualityTestQueryRepository.findByTestFieldId(testField.getId());
+					/*// 根据testfieldid查询testqueryfield
 					List<TestQueryField> testQueryFields = testQueryFieldrepository
-							.findByForeignKey(testField.getId());
-					if (testQueryFields.size() != 0) {
+							.findByForeignKey(testField.getId());*/
+					if (qualityTestQuerys.size() != 0) {
 						return new ResultVO(false, StatusCode.ERROR, "案例关联禁止删除");
 					}
-					for (TestQueryField testQueryField : testQueryFields) {
+					/*for (TestQueryField testQueryField : testQueryFields) {
 						testQueryFieldrepository.delete(testQueryField);
-					}
+					}*/
 					testFieldRepository.delById(testField.getId());
 				}
 				caseModelSetDetailsRepository.deleteBydatumTabOrTestTab(testTable.getId(), testTable.getId());
@@ -182,9 +189,12 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 	@Override
 	public void buildExcelDocument(String filename, HSSFWorkbook workbook,
 			HttpServletResponse response) throws Exception {
-		response.setContentType("application/vnd.ms-excel");
+		response.reset();
+		response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+		response.setHeader("Access-Control-Allow-Origin", "*");// 允许跨域请求
 		response.setHeader("Content-Disposition", "attachment;filename="
 				+ URLEncoder.encode(filename, "utf-8"));
+		
 		OutputStream outputStream = response.getOutputStream();
 		workbook.write(outputStream);
 		outputStream.flush();
@@ -219,7 +229,7 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 			// 新增数据行，并且设置单元格数据
 			int rowNum = 1;
 			for (TestFieldVO testfield : rows) {
-				Row testfieldRow = sheet.createRow(rowNum++);
+				HSSFRow testfieldRow = sheet.createRow(rowNum++);
 				testfieldRow.createCell(0).setCellValue(testfield.getId());
 				testfieldRow.createCell(1).setCellValue(
 						sdf.format(testfield.getCreateTime()));
@@ -290,7 +300,7 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 		HSSFFont font = workbook.createFont();
 		style.setAlignment(HSSFCellStyle.ALIGN_CENTER);
 		style.setFont(font);
-		Row header = sheet.createRow(0);
+		HSSFRow header = sheet.createRow(0);
 		header.createCell(0).setCellValue("编号");
 		header.getCell(0).setCellStyle(style);
 		header.createCell(1).setCellValue("创建时间");
@@ -370,44 +380,64 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 	@Override
 	public ResultVO copyDataSchema(int id, String name) {
 		DataSchema dataSchema = testDatabaseRepository.findById(id).get();
-		DataSchema exitsdataSchema = testDatabaseRepository.findByName(name);
+		DataSchema copyDataSchema = new DataSchema();
+		DataSchema exitsdataSchema =null;
+		if(dataSchema.getIsDict()){
+			exitsdataSchema = testDatabaseRepository.findByNameAndIsDict(name);
+		}else{
+			int dataSourceId=dataSchema.getDataSource().getId();
+			exitsdataSchema = testDatabaseRepository.findByNameAndDataSourceId(name,dataSourceId);
+		}
 		if (exitsdataSchema != null) {
 			return new ResultVO(false, StatusCode.ERROR, "名称重复");
 		}
-		DataSchema copyDataSchema = new DataSchema();
+		
 		BeanUtils.copyProperties(dataSchema, copyDataSchema);
 		copyDataSchema.setCreateTime(new Date());
 		copyDataSchema.setCreateUser(null);
 		copyDataSchema.setEditTime(new Date());
 		copyDataSchema.setEditUser(null);
 		copyDataSchema.setId(null);
+		copyDataSchema.setDataTables(null);
 		copyDataSchema.setName(name);
-		testDatabaseRepository.save(copyDataSchema);
+		copyDataSchema=testDatabaseRepository.save(copyDataSchema);
 		List<DataTable> dataTables = dataSchema.getDataTables();
-		if (!dataTables.isEmpty()) {
-			DataSchema savedataSchema = testDatabaseRepository.findByName(name);
-			List<DataTable> copydataTables = new ArrayList<DataTable>();
-			for (DataTable dataTable : dataTables) {
-				DataTable copyDataTable = new DataTable();
-				BeanUtils.copyProperties(dataTable, copyDataTable);
-				copyDataTable.setId(null);
-				copyDataTable.setCreateTime(new Date());
-				copyDataTable.setCreateUser(null);
-				copyDataTable.setEditTime(new Date());
-				copyDataTable.setEditUser(null);
-				copyDataTable.setDataSchema(savedataSchema);
-				copydataTables.add(copyDataTable);
+		for(DataTable dataTable:dataTables){
+			DataTable copyDataTable = new DataTable();
+			BeanUtils.copyProperties(dataTable, copyDataTable);
+			copyDataTable.setCreateTime(new Date());
+			copyDataTable.setCreateUser(null);
+			copyDataTable.setEditTime(new Date());
+			copyDataTable.setEditUser(null);
+			copyDataTable.setId(null);
+			copyDataTable.setDataSchema(copyDataSchema);
+			copyDataTable = testTableRepository.save(copyDataTable);
+			List<DataField> exitsdataFields = dataTable.getDataFields();
+			if (exitsdataFields.size() != 0) {
+				List<DataField> copydataFields = new ArrayList<DataField>();
+				for (DataField dataField : exitsdataFields) {
+					DataField copyDataFiled = new DataField();
+					BeanUtils.copyProperties(dataField, copyDataFiled);
+					copyDataFiled.setDataTable(copyDataTable);
+					copyDataFiled.setId(null);
+					copyDataFiled.setCreateTime(new Date());
+					copyDataFiled.setCreateUser(null);
+					copyDataFiled.setEditTime(new Date());
+					copyDataFiled.setEditUser(null);
+					copydataFields.add(copyDataFiled);
+				}
+				testFieldRepository.saveAll(copydataFields);
 			}
-			testTableRepository.saveAll(copydataTables);
-		}
 
+		}
+		
 		return new ResultVO(true, StatusCode.OK, "复制成功");
 
 	}
 
 	@Override
 	@Transactional
-	public void SetOneDataSchema(int id) {
+	public void SetOneDataSchema(int id) throws Exception {
 		// 找到这个库
 		DataSchema tongbuDataSchema = testDatabaseRepository.findById(id).get();
 		DataSource dataSource = tongbuDataSchema.getDataSource();
@@ -417,12 +447,18 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 					dataSource.getUrl(), dataSource.getPort(),
 					dataSource.getHost(), dataSource.getUserName(),
 					dataSource.getPassword(), dataSource.getSid());
+			List<DataSchema> testdatabaseList = sycData.getAdapter().getDatabase(tongbuDataSchema.getName(),sycData.getConn());
+			if (testdatabaseList.size() == 0) {
+				 String message = "这个源下面没有这个库，不能进行同步";
+				throw new Exception(message);
+			}
 			// 同步表和字段
 			dataSourceService.syncTableAndFiled(sycData.getAdapter(),
 					sycData.getConn(), tongbuDataSchema);
 
 		} else {
-			System.out.println("没有数据源不能进行同步");
+			logger.info("没有数据源不能进行同步");
+			throw new Exception();
 		}
 	}
 	@Override
@@ -440,5 +476,15 @@ public class TestDatabaseServiceImpl implements DataSchemaService {
 	public List<DataSchema> getSchemasByDataSourceID(int dataSourceID, String schemaName) {
 		List<DataSchema> list = testDatabaseRepository.findSchemasByDataSourceID(dataSourceID,schemaName);
 		return list;
+	}
+	@Override
+	public DataSchema getSchemasByDataSourceIdAndName(int dataSourceID, String schemaName) {
+		DataSchema dataSchema = testDatabaseRepository.findSchemasByDataSourceIdAndName(dataSourceID,schemaName);
+		return dataSchema;
+	}
+	
+	@Override
+	public DataSchema findByName(String sourceDataSchemaName) {
+		return testDatabaseRepository.findByName(sourceDataSchemaName);
 	}
 }

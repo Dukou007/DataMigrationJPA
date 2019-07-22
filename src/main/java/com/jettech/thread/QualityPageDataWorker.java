@@ -220,6 +220,8 @@ public class QualityPageDataWorker extends QualityBaseDataWorker implements Runn
 		case DB2:
 			break;
 		case Informix:
+			//select skip 2 first 10 * from Table(multiset(select * FROM AA10TEMP order by AA10BKNO)) t;
+			sql ="select skip "+ ((pageIndex - 1) * pageSize + 1)+" first "+ pageSize+ " * from Table(Multiset("+sql +")) t";
 			break;
 		default:
 			throw new Exception("not support databasetype:" + this.testQuery.getDataSource().getDbtype().getName());

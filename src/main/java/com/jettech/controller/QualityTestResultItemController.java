@@ -21,9 +21,6 @@ import com.jettech.vo.ResultVO;
 import com.jettech.vo.StatusCode;
 
 import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiImplicitParam;
-import io.swagger.annotations.ApiImplicitParams;
-import io.swagger.annotations.ApiOperation;
 
 @RestController
 @Api(value="数据质量的测试结果集，根据result的id来查找")
@@ -68,5 +65,37 @@ public class QualityTestResultItemController {
 			return new ResultVO(false, StatusCode.ERROR, "查询失败");
 		}
 	}
+
+	//取所有正向明细
+	@RequestMapping(value = "/findFalse", method = RequestMethod.GET)
+	public ResultVO findItemFalse(@RequestParam Integer testResultId,
+								  @RequestParam(value = "sign",  required = false) int sign,
+								  @RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
+								  @RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
+
+		try {
+			Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
+			Page<QualityTestResultItem> testResultItemList = qualityTestResultItemService.findByTestIdAndSign(testResultId,sign,pageable);
+			ArrayList<QualityTestResultItemVO> testResultItemVOList = new ArrayList<QualityTestResultItemVO>();
+			for (QualityTestResultItem testResultItem : testResultItemList) {
+				QualityTestResultItemVO testResultItemVO = new QualityTestResultItemVO(testResultItem);
+				testResultItemVOList.add(testResultItemVO);
+			}
+			HashMap<String, Object> map = new HashMap<String, Object>();
+			map.put("totalElements", testResultItemList.getTotalElements());
+			map.put("totalPages", testResultItemList.getTotalPages());
+			map.put("list", testResultItemVOList);
+			return new ResultVO(true, StatusCode.OK, "查询成功", map);
+		} catch (Exception e) {
+			log.error("查询异常:", e);
+			e.printStackTrace();
+			return new ResultVO(false, StatusCode.ERROR, "查询失败");
+		}
+
+
+	}
+
+
+
 
 }

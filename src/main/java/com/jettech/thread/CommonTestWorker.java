@@ -17,6 +17,7 @@ import com.jettech.domain.FieldModel;
 import com.jettech.domain.QueryModel;
 import com.jettech.domain.ResultModel;
 import com.jettech.entity.TestResultItem;
+import com.jettech.service.WebSocketService;
 
 public class CommonTestWorker extends BaseTestCompareWorker implements Runnable {
 
@@ -31,7 +32,7 @@ public class CommonTestWorker extends BaseTestCompareWorker implements Runnable 
 	private EnumCompareDirection enumCompareDirection;
 
 	public CommonTestWorker(BlockingQueue<BaseData> sourceQueue, BlockingQueue<BaseData> targetQueue,
-			BlockingQueue<TestResultItem> itemQueue, CaseModel testCase) {
+	        BlockingQueue<TestResultItem> itemQueue, CaseModel testCase) {
 		super(itemQueue);
 		this.sourceQueue = sourceQueue;
 		this.targetQueue = targetQueue;
@@ -39,8 +40,8 @@ public class CommonTestWorker extends BaseTestCompareWorker implements Runnable 
 		this.caseName = testCase.getName();
 		this.testResultId = testCase.getTestResult().getId();
 		this.enumCompareDirection = testCase.getEnumCompareDirection() == null ? EnumCompareDirection.LeftToRight
-				: testCase.getEnumCompareDirection();
-		logger.info(caseName + "testResultId:[" + testResultId + "]");
+		        : testCase.getEnumCompareDirection();
+		logger.info(caseName + ",testResultId:[" + testResultId + "]");
 	}
 
 	@Override
@@ -55,14 +56,22 @@ public class CommonTestWorker extends BaseTestCompareWorker implements Runnable 
 		CommonData targetData = null;
 		try {
 			ResultModel testResult = testCase.getTestResult();
+			CompareResult cpResult = new CompareResult(0L, 0L, 0L);
+			;
 			while (true) {
 				if (sourceData == null) {
 					sourceData = (CommonData) sourceQueue.poll(100, TimeUnit.MICROSECONDS);
 					if (sourceData != null) {
 						if (sourceData.getMap() != null && sourceData.getMap().size() > 0) {
 							logger.info(caseName + " 获取到源数据结束,数量:" + sourceData.getMap().size());
+							testResult.setSourceCount(sourceData.getMap().size());
 						} else {
 							logger.info(caseName + " 获取到源数据结束,返回空");
+							cpResult.setSourceCount(0L);// 源数据返回的数据为空
+							sourceQueue.remove(sourceData);// 获取到队首数据后从队列中删掉
+							targetQueue.remove(targetData);// 获取到队首数据后从队列中删掉
+							logger.info(caseName + " 对比终止");
+							break;
 						}
 					} else {
 						logger.info(caseName + " 等待源数据...");
@@ -73,8 +82,15 @@ public class CommonTestWorker extends BaseTestCompareWorker implements Runnable 
 					if (targetData != null) {
 						if (targetData.getMap() != null && targetData.getMap().size() > 0) {
 							logger.info(caseName + " 获取到目标数据结束,数量:" + targetData.getMap().size());
+							testResult.setTargetCount(targetData.getMap().size());
 						} else {
+							WebSocketService.sendMsgToAll(caseName + " 获取到目标数据结束,返回空");
 							logger.info(caseName + " 获取到目标数据结束,返回空");
+							cpResult.setTargetCount(0L);// 目标数据返回的为空
+							sourceQueue.remove(sourceData);// 获取到队首数据后从队列中删掉
+							targetQueue.remove(targetData);// 获取到队首数据后从队列中删掉
+							logger.info(caseName + " 对比终止");
+							break;
 						}
 					} else {
 						logger.info(caseName + " 等待目标数据...");
@@ -83,40 +99,46 @@ public class CommonTestWorker extends BaseTestCompareWorker implements Runnable 
 				if (null != sourceData && null != targetData) {// 有数据时直接从队列的队首取走，无数据时阻塞，在2s内有数据取走
 					logger.info(caseName + "拿到队首源数据：" + sourceData.getMap().size());
 					logger.info(caseName + "拿到队首目标数据：" + targetData.getMap().size());
-					testResult.setSourceCount(sourceData.getMap().size());
-					testResult.setTargetCount(targetData.getMap().size());
+					
 					// this.dataCompare(sourceData, targetData, itemQueue);//
 					// 数据比对
-					CompareResult cpResult = null;
+
 					if (this.enumCompareDirection == EnumCompareDirection.LeftToRight) {
 						cpResult = doCompare(sourceData.getMap(), sourceData.getTestQuery(), targetData.getMap(),
-								targetData.getTestQuery(), itemQueue);
+						        targetData.getTestQuery(), itemQueue);
 					} else if (this.enumCompareDirection == EnumCompareDirection.RightToLeft) {
 						cpResult = doRightCompare(sourceData.getMap(), sourceData.getTestQuery(), targetData.getMap(),
-								targetData.getTestQuery(), itemQueue);
+						        targetData.getTestQuery(), itemQueue);
 					} else if (this.enumCompareDirection == EnumCompareDirection.TwoWay) {
 						cpResult = doTwoWayCompare(sourceData.getMap(), sourceData.getTestQuery(), targetData.getMap(),
-								targetData.getTestQuery(), itemQueue);
+						        targetData.getTestQuery(), itemQueue);
 					} else if (this.enumCompareDirection == EnumCompareDirection.ToFile) {
 						cpResult = doCompareToFile(sourceData.getMap(), sourceData.getTestQuery(), targetData.getMap(),
-								targetData.getTestFileQuery(), itemQueue);
+						        targetData.getTestFileQuery(), itemQueue);
 					}
-
-					testResult.setSameRow(cpResult.getSameRow().intValue());// 暂时使用int值，存在溢出的可能
-					testResult.setNotSameData(cpResult.getNotSameData().intValue());// 暂时使用int值，存在溢出的可能
-					testResult.setNotSameRow(cpResult.getNotSameRow().intValue());
-					sourceQueue.remove(sourceData);// 获取到队首数据后从队列中删掉
-					targetQueue.remove(targetData);// 获取到队首数据后从队列中删掉
 
 					logger.info(caseName + " 队首源数据被消费sourceData：" + sourceData.getMap().size());
 					logger.info(caseName + " 队首目标数据被消费targetData：" + targetData.getMap().size());
+					
+					testResult.setSameRow(cpResult.getSameRow().intValue());// 暂时使用int值，存在溢出的可能
+					testResult.setNotSameData(cpResult.getNotSameData().intValue());// 暂时使用int值，存在溢出的可能
+					testResult.setNotSameRow(cpResult.getNotSameRow().intValue());
+					
+					sourceData.getMap().clear();
+					targetData.getMap().clear();
+					sourceQueue.remove(sourceData);// 获取到队首数据后从队列中删掉
+					targetQueue.remove(targetData);// 获取到队首数据后从队列中删掉
+				
 					logger.info(caseName + " 对比结束");
-
 					break;
 				} else {// 超过2s还没数据，认为所有生产线程都已经退出，自动退出消费线程。
 					Thread.sleep(100);
 					waitCount = waitCount + 1;
 					if (waitCount > MaxWaitTime) {
+						testResult.setSameRow(cpResult.getSameRow().intValue());// 暂时使用int值，存在溢出的可能
+						testResult.setNotSameData(cpResult.getNotSameData().intValue());// 暂时使用int值，存在溢出的可能
+						testResult.setNotSameRow(cpResult.getNotSameRow().intValue());
+						logger.info(caseName + " 等待数据超时：" + MaxWaitTime);
 						break;
 					}
 				}
@@ -124,6 +146,7 @@ public class CommonTestWorker extends BaseTestCompareWorker implements Runnable 
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			logger.error(caseName + "数据比对异常！！！");
+			WebSocketService.sendMsgToAll(caseName + "数据比对异常！！！");
 			// Thread.currentThread().interrupt();
 		} finally {
 			logger.info(caseName + "退出消费者线程！");
@@ -132,7 +155,7 @@ public class CommonTestWorker extends BaseTestCompareWorker implements Runnable 
 	}
 
 	private CompareResult doCompare2(CommonData sourceData, CommonData targetData,
-			BlockingQueue<TestResultItem> itemQueue) {
+	        BlockingQueue<TestResultItem> itemQueue) {
 
 		Map<String, List<Object>> sourceMap = sourceData.getMap();
 		// TestQueryService testQueryService =
@@ -190,9 +213,9 @@ public class CommonTestWorker extends BaseTestCompareWorker implements Runnable 
 								} catch (Exception e) {
 									e.printStackTrace();
 									logger.warn(caseName + "keyValue:" + keyValue + "sourceValue:" + sourceValue
-											+ " convert to BigDecimal error", e);
+									        + " convert to BigDecimal error", e);
 									itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
-											"Convert to Decimal Error"));
+									        "Convert to Decimal Error"));
 									notSameData++;
 									continue;
 								}
@@ -202,9 +225,9 @@ public class CommonTestWorker extends BaseTestCompareWorker implements Runnable 
 								} catch (Exception e) {
 									e.printStackTrace();
 									logger.warn(caseName + " keyValue:" + keyValue + "targetValue:" + targetValue
-											+ " convert to BigDecimal error", e);
+									        + " convert to BigDecimal error", e);
 									itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
-											"Convert to Decimal Error"));
+									        "Convert to Decimal Error"));
 									notSameData++;
 									continue;
 								}
@@ -213,7 +236,7 @@ public class CommonTestWorker extends BaseTestCompareWorker implements Runnable 
 									sameDataInRow++;
 								} else {
 									itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
-											"not same value"));
+									        "not same value"));
 									// this.append(keyValue,
 									// col.getColumnName(),
 									// "not same data,source:" + srcData +
@@ -224,7 +247,7 @@ public class CommonTestWorker extends BaseTestCompareWorker implements Runnable 
 								// 其它类型转换为字符串比较
 								if (!sourceValue.toString().trim().equals(targetValue.toString().trim())) {
 									itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
-											"not same value"));
+									        "not same value"));
 									notSameData++;
 								} else {
 									sameDataInRow++;
@@ -236,12 +259,12 @@ public class CommonTestWorker extends BaseTestCompareWorker implements Runnable 
 						} else if (sourceValue == null && targetValue != null) {
 							// 源数据null,目标数据非null
 							itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
-									"sourceValue is null"));
+							        "sourceValue is null"));
 							notSameData++;
 						} else if (targetValue == null && sourceValue != null) {
 							// 源数据非null,目标数据null
 							itemQueue.add(createItem(keyValue, sourceField.getName(), sourceValue, targetValue,
-									"targetValue is null"));
+							        "targetValue is null"));
 							notSameData++;
 						}
 					} else {
@@ -265,7 +288,7 @@ public class CommonTestWorker extends BaseTestCompareWorker implements Runnable 
 			}
 		}
 		logger.info(caseName + " compare end sameRow:" + sameRow + " notSameRow:" + notSameRow + " notSameData:"
-				+ notSameData);
+		        + notSameData);
 		CompareResult result = new CompareResult(sameRow, notSameData, notSameRow);
 		return result;
 	}
@@ -302,7 +325,7 @@ public class CommonTestWorker extends BaseTestCompareWorker implements Runnable 
 					out: for (Object sourceObj : sourceList) {
 						for (Object targetObj : targetList) {
 							if (sourceObj != null && targetObj != null
-									&& sourceObj.toString().equals(targetObj.toString())) {
+							        && sourceObj.toString().equals(targetObj.toString())) {
 								tri.setSourceValue(sourceObj.toString());
 								tri.setTargetValue(targetObj.toString());
 								comFlag = true;

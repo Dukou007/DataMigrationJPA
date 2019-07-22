@@ -18,6 +18,8 @@ public class QualityTestResultItem extends BaseEntity{
 	private String selectValue;
 	private String result;
 	private String columnName;
+	private String idNumber;	//质量id值
+    private int sign;   //取正反标记 0为反  1为正
 	/*private String columnName;
 	private String soruceValue;
 	private String tragetValue;*/
@@ -122,5 +124,20 @@ public class QualityTestResultItem extends BaseEntity{
 		this.testResultId = testResultId;
 	}
 
-	
+
+	public String getIdNumber() {
+		return idNumber;
+	}
+
+	public void setIdNumber(String idNumber) {
+		this.idNumber = idNumber;
+	}
+
+    public int getSign() {
+        return sign;
+    }
+
+    public void setSign(int sign) {
+        this.sign = sign;
+    }
 }

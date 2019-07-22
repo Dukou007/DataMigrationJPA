@@ -12,20 +12,28 @@ public enum EnumQualityRuleType {
 	_RANGE_GREAT_EQUALS("范围大于等于>=", "_RANGE_GREAT_EQUALS"),
 	_RANGE_SMALL("范围小于<", "_RANGE_SMALL"),
 	_RANGE_SMALL_EQUALS("范围小于等于<=", "_RANGE_SMALL_EQUALS"),
-	_RANGE__EQUALS("范围等于=", "_RANGE__EQUALS"),
+	_RANGE_EQUALS("范围等于=", "_RANGE_EQUALS"),
 	_LENGTH_GREAT("长度大于>", "_LENGTH_GREAT"),
 	_LENGTH_GREAT_EQUALS("长度大于等于>=", "_LENGTH_GREAT_EQUALS"),
 	_LENGTH_SMALL("长度小于<", "_LENGTH_SMALL"),
 	_LENGTH_SMALL_EQUALS("长度小于等于<=", "_LENGTH_SMALL_EQUALS"),
 	_LENGTH_EQUALS("长度等于=", "_LENGTH_EQUALS"),
-	_CODE_IN("码值包含", "_CODE_IN"),
-	_CODE_NOTIN("码值不包含", "_CODE_NOTIN"),
+	_LENGTH_NOT_EQUALS("长度不等于","_LENGTH_NOT_EQUALS"),
+	_CODE_IN("码值包含in", "_CODE_IN"),
+	_CODE_NOTIN("码值不包含not in", "_CODE_NOTIN"),
 	_NOT_EQUALS("不等于<>", "_NOT_EQUALS"),
 	_DEAULT_VALUE("默认值=", "_DEAULT_VALUE"),
 	_NOT_FLOAT("非浮点数", "_NOT_FLOAT"),
 	_CHAIN_RUPTURE("数仓拉链表断链", "_CHAIN_RUPTURE"),
-	_IN_TALBE_COMPARE("表内比较", "_IN_TALBE_COMPARE");
-
+	_IN_TALBE_COMPARE("表内比较", "_IN_TALBE_COMPARE"),
+	_IS_PRIMARY_KEY("是否主键","_IS_PRIMARY_KEY"),
+	_CHECK_FLOAT("浮点数范围检查","_CHECK_FLOAT"),
+	_CHECK_FLOAT_LENGTH("浮点数范围整数长度","_CHECK_FLOAT_LENGTH"),
+    _IS_NOT_NULL("非空值","_IS_NOT_NULL"),
+	_UNIQUE("唯一","_UNIQUE"),
+	_CHECK_POINT_DATE("日期格式校验","_CHECK_POINT_DATE"),
+	_CHECK_POINT_TIME("时间格式校验","_CHECK_POINT_TIME"),
+	_DECIMAL_CHOICE("选择浮点数长度和小数点位数","_DECIMAL_CHOICE");
 	private String name;
 	private String code;
 	
@@ -55,10 +63,14 @@ public enum EnumQualityRuleType {
      * @return
      */
     public static boolean contains(String code) {
+    	boolean flag = false;
         for (EnumQualityRuleType eqrt: EnumQualityRuleType.values()) {
-        	code.equals(eqrt.getCode());
+        	if(code.equals(eqrt.getCode())){
+        		flag = true;
+        		break;
+        	}
         }
-        return false;
+        return flag;
     }
     
 	public String getName() {

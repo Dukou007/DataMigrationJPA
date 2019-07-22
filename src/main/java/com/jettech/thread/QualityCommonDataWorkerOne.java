@@ -1,7 +1,6 @@
 package com.jettech.thread;
 
-import com.jettech.db.adapter.AbstractAdapter;
-import com.jettech.db.adapter.AdapterFactory;
+import com.jettech.db.adapter.*;
 import com.jettech.domain.*;
 import com.jettech.entity.QualityTestResultItem;
 import org.slf4j.Logger;
@@ -9,9 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
 public class QualityCommonDataWorkerOne implements Runnable {
@@ -24,7 +21,8 @@ public class QualityCommonDataWorkerOne implements Runnable {
     protected boolean state = true;
     AbstractAdapter adapter = null;
     //添加质量方法    20190412
-    // protected int DataCount;
+    protected int dataCount = 0;
+    protected int allDataCount = 0;
     protected BlockingQueue<QualityTestResultItem> queue = null;
     protected Integer qualityTestResultId;
 
@@ -52,9 +50,6 @@ public class QualityCommonDataWorkerOne implements Runnable {
             throw new Exception(info);
         }
     }
-
-
-//==================================
 
     public void stop() {
         _isRunning = false;
@@ -96,6 +91,23 @@ public class QualityCommonDataWorkerOne implements Runnable {
             // 获取数据到Map
             getDataRows(rs);
 
+
+            //求总数
+
+            String sqlCount = "select count(*) from " + this.testQuery.getDataSchemaName()+"."+this.testQuery.getDataTableName();
+            if(dataSource.getDatabaseType().getName() == "Oracle"){
+                sqlCount = "select count(*) from " + this.testQuery.getDataSchemaName()+".\""+this.testQuery.getDataTableName()+"\"";
+            }
+            System.out.println("=====求总数===sqlCount=====>"+sqlCount);
+            System.out.println("=====执行sql===sql=====>"+sql);
+            pStmt = conn.prepareStatement(sqlCount);
+            ResultSet rsCount = pStmt.executeQuery();
+            while (rsCount.next())
+            {
+                allDataCount =  rsCount.getInt(1);
+            }
+
+
             //    logger.info(String.format("[%s]获取数据行数:[%d]", this.testQuery.getDataSource().getName(), map.size()));
         } catch (Exception e) {
             state = false;
@@ -121,7 +133,7 @@ public class QualityCommonDataWorkerOne implements Runnable {
         return sql;
     }
 
-    protected void getDataRows(ResultSet rs) throws SQLException {
+    protected void getDataRows(ResultSet rs) throws SQLException, InterruptedException {
         //  Map<String, DataField> map = new HashMap<>();
         List<DataField> list = new ArrayList<>();
         ResultSetMetaData rsmd = rs.getMetaData();
@@ -142,6 +154,35 @@ public class QualityCommonDataWorkerOne implements Runnable {
         }
 
         while (rs.next()) {
+            dataCount++;
+            for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
+                String columnName = rs.getMetaData().getColumnName(i);
+                if(columnName != testQuery.getTestFields().get(0).getName() && !columnName.equals(testQuery.getTestFields().get(0).getName())){
+                    continue;
+                }
+                QualityTestResultItem item = new QualityTestResultItem();
+                Object selectValue = rs.getObject(i);
+                //插入id
+                item.setIdNumber(rs.getObject(1).toString());
+               //没有包的明细为1
+                item.setSign(1);
+                // 列名称统一转换为大写[这里根据不同数据库可能需要调整]
+                //     String columnLabel = rs.getMetaData().getColumnLabel(i).toUpperCase().trim();
+                if(selectValue != null && selectValue != ""){
+                    item.setSelectValue(selectValue.toString());
+                }else{
+                    item.setSelectValue("null");
+                }
+                item.setResult("true value");
+                item.setColumnName(columnName);
+                item.setTestResultId(qualityTestResultId);
+                queue.put(item);
+             //   queue.add(item);
+            }
+        }
+
+       /* while (rs.next()) {
+            dataCount++;
             for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
                 QualityTestResultItem item = new QualityTestResultItem();
                 Object selectValue = rs.getObject(i);
@@ -159,7 +200,12 @@ public class QualityCommonDataWorkerOne implements Runnable {
                 //   queue.put(item);
                 queue.add(item);
             }
-        }
+        }*/
+
+
+
+
+
     }
 
 

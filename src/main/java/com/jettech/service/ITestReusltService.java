@@ -60,8 +60,8 @@ public interface ITestReusltService extends IService<TestResult, Integer> {
 	 */
 	Page<TestResult> findAllByExecState(String state, Pageable pageable);
 
-	Page<TestResult> findBySourceDataSource(String dataSource, Pageable pageable);
-	Page<TestResult> findByTargetDataSource(String dataSource, Pageable pageable);
+	Page<TestResult> findByCaseIdAndSourceDataSource(String caseId,String sourceData, Pageable pageable);
+	Page<TestResult> findByCaseIdAndTargetDataSource(String caseId,String targetData, Pageable pageable);
 
 	/**多条件混合查询并分页
 	 * @param caseId
@@ -79,7 +79,7 @@ public interface ITestReusltService extends IService<TestResult, Integer> {
 
 	List<TestResult> findByTestRoundId(Integer testRoundId);
 
-	void exportMigrationResult(Integer testRoundId, HttpServletResponse res) throws BizException;
+	void exportMigrationResult(String testResultIds, HttpServletResponse res) throws BizException;
 
 	
 	TestResult findEndTimeByCaseId(Integer caseId);

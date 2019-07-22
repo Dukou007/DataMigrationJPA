@@ -86,9 +86,9 @@ public class ProductController {
 
 			return new ResultVO(true, StatusCode.OK, "查询成功", resultMap);
 		} catch (BeansException e) {
-
+			log.error("查询失败：",e);
 			e.printStackTrace();
-			return new ResultVO(true, StatusCode.OK, "查询失败");
+			return new ResultVO(false, StatusCode.ERROR, "查询失败");
 		}
 
 	}
@@ -112,9 +112,9 @@ public class ProductController {
 			}
 			return new ResultVO(true, StatusCode.OK, "查询成功", productVOList);
 		} catch (BeansException e) {
-
+			log.error("查询失败：",e);
 			e.printStackTrace();
-			return new ResultVO(true, StatusCode.OK, "查询失败");
+			return new ResultVO(false, StatusCode.ERROR, "查询失败");
 		}
 
 	}
@@ -131,15 +131,21 @@ public class ProductController {
 	@ApiOperation(value = "新增子产品", notes = "需要判断productID")
 	@ApiImplicitParam(name = "productVO", value = "productVO实体", required = true, paramType = "ProductVO")
 	public ResultVO addSubProduct(@RequestBody ProductVO productVO) {
-		Product product = new Product();
-		BeanUtils.copyProperties(productVO, product);
-		if (productVO.getParentID() > 0) {
-			Product parent = productService.findById(productVO.getParentID());
-			product.setParent(parent);
-			productService.save(product);
-			return new ResultVO(true, StatusCode.OK, "新增成功");
-		} else {
-			return new ResultVO(true, StatusCode.OK, "新增失败");
+		try {
+			Product product = new Product();
+			BeanUtils.copyProperties(productVO, product);
+			if (productVO.getParentID() > 0) {
+				Product parent = productService.findById(productVO.getParentID());
+				product.setParent(parent);
+				productService.save(product);
+				return new ResultVO(true, StatusCode.OK, "新增成功");
+			} else {
+				return new ResultVO(false, StatusCode.ERROR, "新增失败");
+			}
+		} catch (BeansException e) {
+			log.error("新增失败：",e);
+			e.printStackTrace();
+			return new ResultVO(false, StatusCode.ERROR, "新增失败");
 		}
 	}
 
@@ -177,25 +183,31 @@ public class ProductController {
 			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
 		HashMap<String, Object> resultMap = new HashMap<String, Object>();
 		PageRequest pageable = PageRequest.of(pageNum - 1, pageSize);
-		Page<Product> products = productService.findProductByProductName(productName, pageable);
-		List<ProductVO> productVOs = new ArrayList<ProductVO>();
-		if (products.getSize() > 0) {
-			for (Product product : products) {
-				ProductVO vo = new ProductVO();
-				BeanUtils.copyProperties(product, vo);
-				if (product.getParent() != null) {
-					vo.setParentID(product.getParent().getId());
-					vo.setParentName(product.getParent().getName());
+		try {
+			Page<Product> products = productService.findProductByProductName(productName, pageable);
+			List<ProductVO> productVOs = new ArrayList<ProductVO>();
+			if (products.getSize() > 0) {
+				for (Product product : products) {
+					ProductVO vo = new ProductVO();
+					BeanUtils.copyProperties(product, vo);
+					if (product.getParent() != null) {
+						vo.setParentID(product.getParent().getId());
+						vo.setParentName(product.getParent().getName());
+					}
+					productVOs.add(vo);
+					resultMap.put("totalPages", products.getTotalPages());
+					resultMap.put("totalElements", products.getTotalElements());
+					resultMap.put("list", productVOs);
 				}
-				productVOs.add(vo);
-				resultMap.put("totalPages", products.getTotalPages());
-				resultMap.put("totalElements", products.getTotalElements());
-				resultMap.put("list", productVOs);
-			}
 
-			return new ResultVO(true, StatusCode.OK, "查询成功", resultMap);
-		} else {
-			return new ResultVO(true, StatusCode.OK, "查询失败");
+				return new ResultVO(true, StatusCode.OK, "查询成功", resultMap);
+			} else {
+				return new ResultVO(false, StatusCode.ERROR, "查询失败");
+			}
+		} catch (BeansException e) {
+			log.error("查询失败：",e);
+			e.printStackTrace();
+			return new ResultVO(false, StatusCode.ERROR, "查询失败");
 		}
 
 	}
@@ -298,6 +310,7 @@ public class ProductController {
 			productService.deleteProduct(ids);
 			return new ResultVO(true, StatusCode.OK, "删除成功");
 		} catch (Exception e) {
+			log.error("删除失败：",e);
 			e.printStackTrace();
 			return new ResultVO(false, StatusCode.ERROR, "删除失败");
 		}
@@ -316,6 +329,16 @@ public class ProductController {
 	@ApiImplicitParam(name = "productVO", value = "productVO实体", required = true, paramType = "ProductVO")
 	public ResultVO addProduct(@RequestBody ProductVO productVO) {
 		try {
+			if(productVO.getName().trim()==null||productVO.getName().trim().equals("")) {
+				return new ResultVO(false, StatusCode.ERROR, "请输入合理的被测系统名称");
+			}
+			Integer parentID = productVO.getParentID();
+			if(parentID!=null) {
+				Product parentProduct = productService.findById(parentID);
+				if (parentProduct.getParent()!=null) {
+					return new ResultVO(false, StatusCode.ERROR, "不可以新增第三级子系统");
+				}
+			}
 			Product product = productService.findByName(productVO.getName());
 			if (product != null) {
 				return new ResultVO(false, StatusCode.ERROR, "新增失败，已存在相同名称的被测系统");
@@ -360,7 +383,7 @@ public class ProductController {
 	}
 
 	/**
-	 * 根据副产品的id查询所有的子产品
+	 **根据父产品的id查询所有的子产品
 	 * 
 	 * @param pageNum
 	 * @param pageSize

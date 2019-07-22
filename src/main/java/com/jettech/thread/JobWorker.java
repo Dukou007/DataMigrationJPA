@@ -3,6 +3,7 @@ package com.jettech.thread;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -78,6 +79,7 @@ public class JobWorker implements Runnable {
 	ModelTestResultService modelTestResultService = null;
 	TestResult testResult = null;
 	ModelTestResult modeltestResult = null;
+	String secordaryTable = null;// 明细表的名称
 
 	QualityTestResult qualityTestResult = null;
 
@@ -146,28 +148,24 @@ public class JobWorker implements Runnable {
 		// 创建存储源数据的队列，默认大小为5
 		BlockingQueue<QualityBaseData> dataQueue = new LinkedBlockingQueue<>(maxPagesInQueue);
 
-		//新加质量方法执行案例写入结果集   20190412
+		// 新加质量方法执行案例写入结果集 20190412
 		testCase.getTargetQuery().setQualityTestResultId(qualityTestResult.getId());
-		QualityCommonDataWorkerOne qulityDataWorker = new QualityCommonDataWorkerOne(itemQueue,testCase.getTargetQuery());
+		QualityCommonDataWorkerOne qulityDataWorker = new QualityCommonDataWorkerOne(itemQueue,
+		        testCase.getTargetQuery());
 		Thread dataThread = new Thread(qulityDataWorker);
 		dataThread.setName("DT:" + testCase.getName());
 		dataThread.start();
-		dataThread.join();
-		Boolean bo = qulityDataWorker.state;
-		//System.out.println("bo===>"+bo);
-		int itemCount = itemQueue.size();
-		// 全量读取到队列单个对象中
-	/*	QualityCommonDataWorker dataWorker = new QualityCommonDataWorker(dataQueue, testCase.getTargetQuery());
-		Thread dataThread = new Thread(dataWorker);
-		dataThread.setName("DT:" + testCase.getName());
-		dataThread.start();
-		dataThread.join();*/
 
-		// 执行操作
-		/*CommonCheckWorker worker = new CommonCheckWorker(dataQueue, itemQueue, testCase);
-		Thread testThread = new Thread(worker);
-		testThread.setName("Do:" + testCase.getName());
-		testThread.start();*/
+		// sql查询数据量
+
+		// 取反结果集
+		QualityCommonDataWorkerTwo qulityWorker = new QualityCommonDataWorkerTwo(itemQueue, testCase.getTargetQuery());
+		Thread dataTwoThread = new Thread(qulityWorker);
+		dataTwoThread.setName("DTT:" + testCase.getName());
+		dataTwoThread.start();
+
+		dataThread.join();
+		dataTwoThread.join();
 
 		// 启动写主结果记录进程
 		QualityTestResultWorker resultWorker = new QualityTestResultWorker(itemQueue);
@@ -175,95 +173,102 @@ public class JobWorker implements Runnable {
 		resultThread.setName("Item:" + testCase.getName());
 		resultThread.start();
 
-	//	testThread.join();
-		//添加写结果集方法 20190409
 		resultThread.join();
+
+		int allDataCount = qulityDataWorker.allDataCount;
+		int dataCount = qulityDataWorker.dataCount;
+		int dataCountSign = allDataCount - dataCount;
+
+		Boolean bo = qulityDataWorker.state;
+
+		if (!bo) {
+			this.qualityTestResult.setExecState(EnumExecuteStatus.Interrupt);
+		} else {
+			this.qualityTestResult.setExecState(EnumExecuteStatus.Finish);
+		}
+		if (dataCountSign != 0) {
+			bo = false;
+		}
+
+		// testThread.join();
+		// 添加写结果集方法 20190409
 		List<DataField> colsList = qulityDataWorker.testQuery.getQueryColumns();
-		//List<DataField> colsList = dataWorker.testQuery.getQueryColumns();
+		// List<DataField> colsList = dataWorker.testQuery.getQueryColumns();
 		StringBuffer sb = new StringBuffer();
-		if(colsList != null){
+		if (colsList != null) {
 			for (int i = 0; i < colsList.size(); i++) {
-				if(i < colsList.size()-1){
-					sb.append(colsList.get(i).getColumnName()+",");
-				}else{
+				if (i < colsList.size() - 1) {
+					sb.append(colsList.get(i).getColumnName() + ",");
+				} else {
 					sb.append(colsList.get(i).getColumnName());
 				}
 			}
 		}
-		int dataCount = 0;
-		if(colsList != null && colsList.size()> 0){
-			dataCount = itemCount/colsList.size();
-		}
+
 		this.qualityTestResult.setSelectCols(sb.toString());
-		//质量代码添加结果集主表的部分信息   20190409 ==
-		if(testCase.getTargetQuery()!=null){
+		// 质量代码添加结果集主表的部分信息 20190409 ==
+		if (testCase.getTargetQuery() != null) {
 			this.qualityTestResult.setSqlText(testCase.getTargetQuery().getSqlText());
-			if(testCase.getTargetQuery().getDataSource() != null)
+			if (testCase.getTargetQuery().getDataSource() != null)
 				this.qualityTestResult.setDataSource(testCase.getTargetQuery().getDataSource().getName());
 		}
 		this.qualityTestResult.setTestCaseName(testCase.getName());
 
-		this.qualityTestResult.setExecState(EnumExecuteStatus.Finish);
 		this.qualityTestResult.setEndTime(new Date());
-	//	this.qualityTestResult.setDataCount(testCase.getTestQualityResult().getDataCount()); dataCount
-		this.qualityTestResult.setDataCount(dataCount);
-	//	this.qualityTestResult.setItemCount(testCase.getTestQualityResult().getItemCount());
-		this.qualityTestResult.setItemCount(itemCount);
-
+		this.qualityTestResult.setDataCount(allDataCount);
+		// 目标表数据量改成全量
+		this.qualityTestResult.setItemCount(dataCount);// dataCount
+		// 添加取反数量
+		this.qualityTestResult.setFalseItemCount(dataCountSign);
 		this.qualityTestResult.setResult(bo);
-		//添加测试意图 testCase
-		//qualityTestResult.setTestPurpose(testCase.getTargetQuery());   修改中
-		//this.qualityTestResult.setResult(testCase.getTestQualityResult().getResult());
+		// 添加测试意图 testCase
+		// qualityTestResult.setTestPurpose(testCase.getTargetQuery()); 修改中
+		// this.qualityTestResult.setResult(testCase.getTestQualityResult().getResult());
 		this.qualityTestResultService.save(qualityTestResult);
 		logger.info("Job is end." + testCase.getName() + " use " + DateUtil.getEclapsedTimesStr(start));
 
-	/*	//添加保存轮次的方法   20190416  TestRoundServiceImpl
-		TestRoundServiceImpl testRoundService = (TestRoundServiceImpl) SpringUtils
-				.getBean(TestRoundServiceImpl.class);
-		//查询轮次
-		TestRound tr = testRoundService.findById(testCase.getTestRoundId());
-		if(bo){
-			if(tr.getSuccessCount() == null){
-				tr.setSuccessCount(1);
-			}else{
-				int successCount = tr.getSuccessCount().intValue();
-				tr.setSuccessCount(successCount+1);
-			}
-		}
-		tr.setEndTime(new Date());
-		tr.setEditTime(new Date());
-		testRoundService.save(tr);*/
-		if( testCase.getTestRoundId()!= null && testCase.getTestRoundId() != 0 ){
-			updateTestRound( bo);
+		/*
+		 * //添加保存轮次的方法 20190416 TestRoundServiceImpl TestRoundServiceImpl
+		 * testRoundService = (TestRoundServiceImpl) SpringUtils
+		 * .getBean(TestRoundServiceImpl.class); //查询轮次 TestRound tr =
+		 * testRoundService.findById(testCase.getTestRoundId()); if(bo){
+		 * if(tr.getSuccessCount() == null){ tr.setSuccessCount(1); }else{ int
+		 * successCount = tr.getSuccessCount().intValue();
+		 * tr.setSuccessCount(successCount+1); } } tr.setEndTime(new Date());
+		 * tr.setEditTime(new Date()); testRoundService.save(tr);
+		 */
+		if (testCase.getTestRoundId() != null && testCase.getTestRoundId() != 0) {
+			updateTestRound(qulityDataWorker.state);
 		}
 
 	}
 
-	private void updateTestRound(Boolean bo){
+	private void updateTestRound(Boolean bo) {
 		try {
-			//添加保存轮次的方法   20190416  TestRoundRepository TestRoundServiceImpl
+			// 添加保存轮次的方法 20190416 TestRoundRepository TestRoundServiceImpl
 			TestRoundServiceImpl testRoundService = (TestRoundServiceImpl) SpringUtils
-					.getBean(TestRoundServiceImpl.class);
-			//查询轮次
+			        .getBean(TestRoundServiceImpl.class);
+			// 查询轮次
 			TestRound tr = testRoundService.findById(testCase.getTestRoundId());
-			if(bo){
-				if(tr.getSuccessCount() == null || tr.getSuccessCount() == 0){
+			if (bo) {
+				if (tr.getSuccessCount() == null || tr.getSuccessCount() == 0) {
 					tr.setSuccessCount(1);
-				}else{
-					tr.setSuccessCount(tr.getSuccessCount()+1);
+				} else {
+					tr.setSuccessCount(tr.getSuccessCount() + 1);
 				}
 			}
 			tr.setEndTime(new Date());
-			int ok = testRoundService.updateWithVersion(tr.getId(),tr.getSuccessCount(),new Date(),tr.getVersion());
-			if(ok == 0){
+			int ok = testRoundService.updateWithVersion(tr.getId(), tr.getSuccessCount(), new Date(), tr.getVersion());
+			if (ok == 0) {
 				updateTestRound(bo);
 			}
-		}catch (Exception e){
-			if (e instanceof ObjectOptimisticLockingFailureException || e instanceof StaleObjectStateException || e instanceof TransactionSystemException) {
-				logger.error("乐观锁循环"+e);
+		} catch (Exception e) {
+			if (e instanceof ObjectOptimisticLockingFailureException || e instanceof StaleObjectStateException
+			        || e instanceof TransactionSystemException) {
+				logger.error("乐观锁循环" + e);
 				updateTestRound(bo);
-			}else{
-				logger.error("保存失败！"+e);
+			} else {
+				logger.error("保存失败！" + e);
 			}
 		}
 	}
@@ -295,7 +300,7 @@ public class JobWorker implements Runnable {
 		// Integer pageSize = testCase.getPageSize();
 		// 全量读取到队列单个对象中
 		QualityPageDataWorker dataWorker = new QualityPageDataWorker(dataQueue, testCase.getTargetQuery(),
-				testCase.getPageSize());
+		        testCase.getPageSize());
 		Thread dataThread = new Thread(dataWorker);
 		dataThread.setName("DT:" + testCase.getName());
 		dataThread.start();
@@ -339,7 +344,7 @@ public class JobWorker implements Runnable {
 
 		// 全量读取到队列单个对象中
 		QualityPageDataWorker dataWorker = new QualityPageDataWorker(dataQueue, testCase.getTargetQuery(),
-				testCase.getPageSize());
+		        testCase.getPageSize());
 		Thread dataThread = new Thread(dataWorker);
 		dataThread.setName("DT:" + testCase.getName());
 
@@ -449,7 +454,7 @@ public class JobWorker implements Runnable {
 		this.testResult.setExecState(EnumExecuteStatus.Executing);
 		this.testResult.setStartTime(new Date());
 		this.testResultService.save(testResult);
-
+		Integer maxResultRows = testCase.getMaxResultRows();
 		// 结果明细队列
 		BlockingQueue<TestResultItem> itemQueue = new LinkedBlockingQueue<>();
 
@@ -473,7 +478,7 @@ public class JobWorker implements Runnable {
 		targetThread.join();
 
 		// 启动写主结果记录进程
-		TestResultWorker resultWorker = new TestResultWorker(itemQueue);
+		TestResultWorker resultWorker = new TestResultWorker(itemQueue, maxResultRows);
 		Thread resultThread = new Thread(resultWorker);
 		resultThread.setName("Item:" + testCase.getName());
 		resultThread.start();
@@ -499,7 +504,7 @@ public class JobWorker implements Runnable {
 		updateTestResult(testCase.getTestResult());
 
 		logger.info("Job is end.结果:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
-				+ DateUtil.getEclapsedTimesStr(start));
+		        + DateUtil.getEclapsedTimesStr(start));
 	}
 
 	private void doCommonWork(CompareCaseModel testCase) throws Exception, InterruptedException {
@@ -507,96 +512,149 @@ public class JobWorker implements Runnable {
 		final CountDownLatch latch = new CountDownLatch(3);
 		// QualityTestResult testReulst =null;
 		// 更新结果状态
-		
-		this.testResult.setExecState(EnumExecuteStatus.Executing);
+
+		this.testResult.setExecState(EnumExecuteStatus.Ready);
 		this.testResult.setStartTime(new Date());
 		this.testResultService.save(testResult);
-		
+		Integer maxResultRows = testCase.getMaxResultRows();
+
 		WebSocketService.sendMsgToAll("开始进行比较:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
-				+ DateUtil.getEclapsedTimesStr(start));
+		        + DateUtil.getEclapsedTimesStr(start));
 
 		// 结果明细队列
 		BlockingQueue<TestResultItem> itemQueue = new LinkedBlockingQueue<>();
+		WebSocketService.sendMsgToAll("启动写主结果记录进程:" + testResult.getId() + " 案例:" + testCase.getName());
+		// 启动写主结果记录进程
+		TestResultWorker resultWorker = new TestResultWorker(itemQueue, maxResultRows);
+		Thread resultThread = new Thread(resultWorker);
+		resultThread.setName("Item:" + testCase.getName());
+		resultThread.start();
 
 		// 启动获取源数据的进程
 		// 创建存储源数据的队列，默认大小为5
 		BlockingQueue<BaseData> sourceQueue = new LinkedBlockingQueue<>(maxPagesInQueue);
 		// 全量读取到队列单个对象中
-		CommonDataWorker sourceDataWorker = new CommonDataWorker(sourceQueue, testCase.getSourceQuery());
+		CommonDataWorker sourceDataWorker = new CommonDataWorker(sourceQueue, itemQueue, testCase.getSourceQuery(),
+		        testCase);
 		Thread sourceThread = new Thread(sourceDataWorker);
 		sourceThread.setName("S.DT:" + testCase.getName());
 		sourceThread.start();
 		WebSocketService.sendMsgToAll("获取目标数据中:" + testResult.getId() + " 案例:" + testCase.getName());
+
 		// 启动获取目标数据的进程
 		BlockingQueue<BaseData> targetQueue = new LinkedBlockingQueue<>(maxPagesInQueue);
-		CommonDataWorker targetDataWorker = new CommonDataWorker(targetQueue, testCase.getTargetQuery());
+		CommonDataWorker targetDataWorker = new CommonDataWorker(targetQueue, itemQueue, testCase.getTargetQuery(),
+		        testCase);
 		Thread targetThread = new Thread(targetDataWorker);
 		targetThread.setName("T.DT:" + testCase.getName());
 		targetThread.start();
 
 		sourceThread.join();
 		targetThread.join();
-		WebSocketService.sendMsgToAll("启动写主结果记录进程:" + testResult.getId() + " 案例:" + testCase.getName());
-		// 启动写主结果记录进程
-		TestResultWorker resultWorker = new TestResultWorker(itemQueue);
-		Thread resultThread = new Thread(resultWorker);
-		resultThread.setName("Item:" + testCase.getName());
-		resultThread.start();
-		WebSocketService.sendMsgToAll("比较线程执行中:" + testResult.getId() + " 案例:" + testCase.getName() );
-		// 比较操作
-		CommonTestWorker worker = new CommonTestWorker(sourceQueue, targetQueue, itemQueue, testCase);
-		// worker.compare();//使用当前线程进行执行，不新开子线程
-		Thread compareThread = new Thread(worker);
-		compareThread.setName("Do:" + testCase.getName());
-		compareThread.start();
 
-		compareThread.join();
-		resultThread.join();
-		WebSocketService.sendMsgToAll("执行结果详情写入中:" + testResult.getId() + " 案例:" + testCase.getName() );
-		// 比较操作
-		// 等待结果详情写完
-		// while (!itemQueue.isEmpty()) {
-		// try {
-		// Thread.sleep(100);
-		// } catch (InterruptedException e) {
-		// e.printStackTrace();
-		// }
-		// }
+		updateTestResult(sourceQueue, targetQueue);
 
-		updateTestResult(testCase.getTestResult());
+		if (testCase.getSourceQuery().getExecState() == EnumExecuteStatus.Finish
+		        && testCase.getTargetQuery().getExecState() == EnumExecuteStatus.Finish) {
+			// 比较操作
+			WebSocketService.sendMsgToAll("比较线程执行中:" + testResult.getId() + " 案例:" + testCase.getName());
+			CommonTestWorker worker = new CommonTestWorker(sourceQueue, targetQueue, itemQueue, testCase);
+			// worker.compare();//使用当前线程进行执行，不新开子线程
+			Thread compareThread = new Thread(worker);
+			compareThread.setName("Do:" + testCase.getName());
+			compareThread.start();
+			compareThread.join();
 
-		logger.info("Job is end.结果:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
-				+ DateUtil.getEclapsedTimesStr(start));
-		WebSocketService.sendMsgToAll("Job is end.结果:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
-				+ DateUtil.getEclapsedTimesStr(start));
+			WebSocketService.sendMsgToAll("执行结果详情写入中:" + testResult.getId() + " 案例:" + testCase.getName());
+			updateTestResult(testCase.getTestResult());
+
+			resultWorker.stop();
+
+			logger.info("###Job is end.结果:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
+			        + DateUtil.getEclapsedTimesStr(start));
+			WebSocketService.sendMsgToAll("Job is end.结果:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
+			        + DateUtil.getEclapsedTimesStr(start));
+		} else {
+			resultWorker.stop();
+			testCase.getTestResult().setExecState(EnumExecuteStatus.Interrupt);
+			updateTestResult(testCase.getTestResult());
+			String info = "";
+			if (testCase.getSourceQuery().getExecState() != EnumExecuteStatus.Finish)
+				info += testCase.getName() + "读取源数据错误";
+			if (testCase.getSourceQuery().getExecState() != EnumExecuteStatus.Finish)
+				info += testCase.getName() + "读取目标数据错误";
+			logger.info("###Job is Interrupt." + info + " use:" + DateUtil.getEclapsedTimesStr(start));
+		}
+	}
+
+	/**
+	 * 非分表模式，在获取到数据后进行结果更新
+	 * 
+	 * @param sourceQueue
+	 * @param targetQueue
+	 * @throws InterruptedException
+	 */
+	private void updateTestResult(BlockingQueue<BaseData> sourceQueue, BlockingQueue<BaseData> targetQueue)
+	        throws InterruptedException {
+		String caseName = null;
+		try {
+			caseName = this.testCase.getName();
+			this.testResult.setExecState(EnumExecuteStatus.Executing);
+			this.testResult.setEditTime(new Date());
+			// 从队列里面取顶部元素,不移除元素
+			if (sourceQueue.size() > 0) {
+				Map<String, List<Object>> sourceMap = sourceQueue.element().getMap();
+				if (sourceMap != null)
+					this.testResult.setSourceCount(sourceMap.size());
+			}
+
+			if (targetQueue.size() > 0) {
+				Map<String, List<Object>> targetMap = targetQueue.element().getMap();
+				if (targetMap != null)
+					this.testResult.setSourceCount(targetMap.size());
+			}
+
+			this.testResultService.save(testResult);
+		} catch (Exception e) {
+			logger.error("updateTestResult error,case[" + caseName + "]", e);
+		}
 	}
 
 	private void updateTestResult(ResultModel resultModel) {
-		this.testResult.setExecState(EnumExecuteStatus.Finish);
-		this.testResult.setEndTime(new Date());
-		this.testResult.setSourceCount(resultModel.getSourceCount());
-		this.testResult.setTargetCount(resultModel.getTargetCount());
-		this.testResult.setSameRow(resultModel.getSameRow());
-		this.testResult.setNotSameData(resultModel.getNotSameData());
-		this.testResult.setNotSameRow(resultModel.getNotSameRow());
-		if (resultModel.getSameRow() != null && resultModel.getSameRow() > 0
-				&& (resultModel.getNotSameData() == null || resultModel.getNotSameData() == 0)
-				&& (resultModel.getNotSameRow() == null || resultModel.getNotSameRow() == 0)) {
-			this.testResult.setResult(String.valueOf(Boolean.TRUE));
-		} else {
-			this.testResult.setResult(String.valueOf(Boolean.FALSE));
+		String caseName = null;
+		try {
+			caseName = this.testCase.getName();
+			this.testResult.setExecState(EnumExecuteStatus.Finish);
+			this.testResult.setEndTime(new Date());
+			this.testResult.setSourceCount(resultModel.getSourceCount());
+			this.testResult.setTargetCount(resultModel.getTargetCount());
+			this.testResult.setSameRow(resultModel.getSameRow());
+			this.testResult.setNotSameData(resultModel.getNotSameData());
+			this.testResult.setNotSameRow(resultModel.getNotSameRow());
+			if (resultModel.getSameRow() != null && resultModel.getSameRow() > 0
+			        && (resultModel.getNotSameData() == null || resultModel.getNotSameData() == 0)
+			        && (resultModel.getNotSameRow() == null || resultModel.getNotSameRow() == 0)) {
+				this.testResult.setResult(String.valueOf(Boolean.TRUE));
+			} else {
+				this.testResult.setResult(String.valueOf(Boolean.FALSE));
+			}
+			this.testResultService.save(testResult);
+		} catch (Exception e) {
+			logger.error("updateTestResult error,case:[" + caseName + "]", e);
 		}
-		this.testResultService.save(testResult);
 	}
-	private void updateUnionTestResult(ResultModel resultModel) {
+	private void updateUnionTestResult(ResultModel resultModel, UnionDataWorker unionDataWorker) {
 		this.testResult.setExecState(EnumExecuteStatus.Finish);
 		this.testResult.setEndTime(new Date());
 		this.testResult.setSourceCount(resultModel.getSourceCount());
-		this.testResult.setTargetCount(resultModel.getTargetCount());
+		this.testResult.setTargetCount(unionDataWorker.allTarDataCount);
 		this.testResult.setSameRow(resultModel.getSameRow());
 		this.testResult.setNotSameData(resultModel.getNotSameData());
 		this.testResult.setNotSameRow(resultModel.getNotSameRow());
-		if(!String.valueOf(Boolean.FALSE).equals(this.testResult.getResult())) {
+		if (this.testResult.getResult() == null) {
+			this.testResult.setResult(String.valueOf(Boolean.TRUE));
+		}
+		if (!String.valueOf(Boolean.FALSE).equals(this.testResult.getResult())) {
 			if (resultModel.getSameRow() != null && resultModel.getSameRow() > 0
 			        && (resultModel.getNotSameData() == null || resultModel.getNotSameData() == 0)
 			        && (resultModel.getNotSameRow() == null || resultModel.getNotSameRow() == 0)) {
@@ -605,10 +663,48 @@ public class JobWorker implements Runnable {
 				this.testResult.setResult(String.valueOf(Boolean.FALSE));
 			}
 		}
-		
-		
+
 		this.testResultService.save(testResult);
 	}
+
+	private void doPageWork(CompareCaseModel testCase) throws Exception {
+		long start = DateUtil.getNow().getTime();
+
+		// 更新结果状态
+		this.testResult.setExecState(EnumExecuteStatus.Executing);
+		this.testResult.setStartTime(new Date());
+		this.testResultService.save(testResult);
+		Integer maxResultRows = testCase.getMaxResultRows();
+
+		WebSocketService.sendMsgToAll("开始进行比较:" + testResult.getId() + " 案例:" + testCase.getName());
+		// 结果明细队列
+		BlockingQueue<TestResultItem> itemQueue = new LinkedBlockingQueue<>();
+
+		// 启动写主结果记录进程
+		WebSocketService.sendMsgToAll("启动写主结果记录进程:" + testResult.getId() + " 案例:" + testCase.getName());
+		TestResultWorker resultWorker = new TestResultWorker(itemQueue, maxResultRows);
+		Thread resultThread = new Thread(resultWorker);
+		resultThread.setName("Result:" + testCase.getName());
+		resultThread.start();	
+		
+		//读取源数据的Key放入缓存
+		// 启动获取源数据的进程
+		// 创建存储源数据的队列，默认大小为5
+		BlockingQueue<BaseData> sourceQueue = new LinkedBlockingQueue<>(maxPagesInQueue);
+		// 全量读取到队列单个对象中
+//		PageDataWorker sourceDataWorker = new PageDataWorker(sourceQueue, itemQueue, testCase.getSourceQuery(),
+//		        testCase);		
+		
+		//读取目标数据的Key放入缓存
+		
+		// 比较操作
+		
+		logger.info("Job is end.结果:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
+		        + DateUtil.getEclapsedTimesStr(start));
+		WebSocketService.sendMsgToAll("Job is end.结果:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
+		        + DateUtil.getEclapsedTimesStr(start));
+	}
+
 	private void doUnionWork(CompareCaseModel testCase) throws Exception {
 		long start = DateUtil.getNow().getTime();
 
@@ -616,14 +712,15 @@ public class JobWorker implements Runnable {
 		this.testResult.setExecState(EnumExecuteStatus.Executing);
 		this.testResult.setStartTime(new Date());
 		this.testResultService.save(testResult);
+		Integer maxResultRows = testCase.getMaxResultRows();
+
 		WebSocketService.sendMsgToAll("开始进行比较:" + testResult.getId() + " 案例:" + testCase.getName());
 		// 结果明细队列
 		BlockingQueue<TestResultItem> itemQueue = new LinkedBlockingQueue<>();
-       
+
 		// 启动写主结果记录进程
-		// 启动写主结果记录进程
-		WebSocketService.sendMsgToAll("启动写主结果记录进程:" + testResult.getId() + " 案例:" + testCase.getName() );
-		TestResultWorker resultWorker = new TestResultWorker(itemQueue);
+		WebSocketService.sendMsgToAll("启动写主结果记录进程:" + testResult.getId() + " 案例:" + testCase.getName());
+		TestResultWorker resultWorker = new TestResultWorker(itemQueue, maxResultRows);
 		Thread resultThread = new Thread(resultWorker);
 		resultThread.setName("Result:" + testCase.getName());
 		resultThread.start();
@@ -633,7 +730,7 @@ public class JobWorker implements Runnable {
 		WebSocketService.sendMsgToAll("启动获取数据的进程:" + testResult.getId() + " 案例:" + testCase.getName());
 		BlockingQueue<BaseData> dataQueue = new LinkedBlockingQueue<>(maxPagesInQueue);
 		UnionDataWorker unionDataWorker = new UnionDataWorker(dataQueue, testCase, testCase.getPageSize(),
-				testCase.getTargetQuery());
+		        testCase.getTargetQuery());
 		Thread dataThread = new Thread(unionDataWorker);
 		dataThread.setName("UData:" + testCase.getName());
 		dataThread.start();
@@ -650,12 +747,12 @@ public class JobWorker implements Runnable {
 		compareThread.join();
 		resultThread.join();
 		WebSocketService.sendMsgToAll("比较结果详情写入线程启动:" + testResult.getId() + " 案例:" + testCase.getName());
-		updateUnionTestResult(testCase.getTestResult());
+		updateUnionTestResult(testCase.getTestResult(), unionDataWorker);
 
 		logger.info("Job is end.结果:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
-				+ DateUtil.getEclapsedTimesStr(start));
+		        + DateUtil.getEclapsedTimesStr(start));
 		WebSocketService.sendMsgToAll("Job is end.结果:" + testResult.getId() + " 案例:" + testCase.getName() + " use "
-				+ DateUtil.getEclapsedTimesStr(start));
+		        + DateUtil.getEclapsedTimesStr(start));
 	}
 
 	private QualityTestResult createTestResult(QualityTestCaseModel testCase,
@@ -667,12 +764,11 @@ public class JobWorker implements Runnable {
 			result.setTestCaseId(testCase.getId());
 		}
 
-		String secordaryTable = null;// 明细表的名称
 		result.setSecordaryTable(secordaryTable);
 
-		result.setExecState(EnumExecuteStatus.Ready);
+		result.setExecState(EnumExecuteStatus.Init);
 		result.setStartTime(new Date());
-		//添加轮次id
+		// 添加轮次id
 		result.setTestRoundId(testCase.getTestRoundId());
 		result = testResultService.saveOne(result);
 		return result;
@@ -686,10 +782,9 @@ public class JobWorker implements Runnable {
 			result.setCaseId(testCase.getId().toString());
 		}
 
-		String secordaryTable = null;// 明细表的名称
 		result.setSecordaryTable(secordaryTable);
 
-		result.setExecState(EnumExecuteStatus.Ready);
+		result.setExecState(EnumExecuteStatus.Init);
 		result.setStartTime(new Date());
 		result = testResultService.saveOne(result);
 		return result;
@@ -703,10 +798,9 @@ public class JobWorker implements Runnable {
 			result.setCaseId(testCase.getId().toString());
 		}
 
-		String secordaryTable = null;// 明细表的名称
 		result.setSecordaryTable(secordaryTable);
 
-		result.setExecState(EnumExecuteStatus.Ready);
+		result.setExecState(EnumExecuteStatus.Init);
 		result.setStartTime(new Date());
 		result = modelTestResultService.saveOne(result);
 		TestResult testResult = new TestResult();
@@ -722,7 +816,6 @@ public class JobWorker implements Runnable {
 			result.setCaseId(testCase.getId().toString());
 		}
 
-		String secordaryTable = null;// 明细表的名称
 		result.setSecordaryTable(secordaryTable);
 
 		// source

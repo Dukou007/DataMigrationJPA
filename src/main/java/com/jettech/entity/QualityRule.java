@@ -1,7 +1,9 @@
 package com.jettech.entity;
 
 import java.util.List;
+import java.util.Map;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
@@ -44,7 +46,7 @@ public class QualityRule extends BaseEntity {
 	public void setName(String name) {
 		this.name = name;
 	}
-
+	
 	public String getDes() {
 		return des;
 	}
@@ -59,9 +61,13 @@ public class QualityRule extends BaseEntity {
 	}
 
 	public void setRuleType(EnumQualityRuleType ruleType) {
+//		 List<Map<String,Object>> list = EnumQualityRuleType.toList();
+//		 for(Map<String,Object> map:list){
+//			 this.ruleType = map.get(ruleType.toString());
+//		 }
 		this.ruleType = ruleType;
 	}
-
+	@Column(columnDefinition="text")
 	public String getDefaultValue() {
 		return defaultValue;
 	}

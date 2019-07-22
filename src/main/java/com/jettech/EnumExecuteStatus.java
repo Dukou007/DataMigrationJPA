@@ -1,5 +1,5 @@
 package com.jettech;
 
 public enum EnumExecuteStatus {
-	Ready, Executing, Interrupt, Finish
+	Ready, Executing, Interrupt, Finish, Init
 }

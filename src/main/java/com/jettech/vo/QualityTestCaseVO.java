@@ -1,7 +1,11 @@
 package com.jettech.vo;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.jettech.entity.BaseEntity;
 import com.jettech.entity.QualityTestCase;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.util.Date;
 
 //@JsonInclude(JsonInclude.Include.NON_NULL)
 public class QualityTestCaseVO extends BaseVO {
@@ -15,10 +19,17 @@ public class QualityTestCaseVO extends BaseVO {
 	private String version; // 版本
 	private Boolean isSQLCase;
 	private Integer maxResultRows;
-//	private Integer pageSize = 0;
+	private Integer pageSize = 0;
 	private Boolean usePage = false;// 默认不分页
 	private QualityTestQueryVO qualityTestQueryVo;
     private Integer testSuiteId;
+
+	private String caseStatus; //案例状态
+	@DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+	private Date endTime; //案例最后执行时间
+
+	private Boolean newStatus;//最新案例执行结果
 	public QualityTestQueryVO getQualityTestQueryVo() {
 		return qualityTestQueryVo;
 	}
@@ -49,6 +60,17 @@ public class QualityTestCaseVO extends BaseVO {
 		}
 
 	}
+
+	public QualityTestCase getQualityTestCase(){
+		QualityTestCase testCase = new QualityTestCase();
+		testCase.setName(this.name);
+		testCase.setVersion(this.version);
+		testCase.setIsSQLCase(this.isSQLCase);
+
+		return testCase;
+	}
+
+
 
 	public QualityTestCaseVO() {
 	}
@@ -110,4 +132,38 @@ public class QualityTestCaseVO extends BaseVO {
 		this.testSuiteId = testSuiteId;
 	}
 
+
+	public String getCaseStatus() {
+		return caseStatus;
+	}
+
+	public void setCaseStatus(String caseStatus) {
+		this.caseStatus = caseStatus;
+	}
+
+	public Date getEndTime() {
+		return endTime;
+	}
+
+	public void setEndTime(Date endTime) {
+		this.endTime = endTime;
+	}
+
+	public Boolean getNewStatus() {
+		return newStatus;
+	}
+
+	public void setNewStatus(Boolean newStatus) {
+		this.newStatus = newStatus;
+	}
+
+	public Integer getPageSize() {
+		return pageSize;
+	}
+
+	public void setPageSize(Integer pageSize) {
+		this.pageSize = pageSize;
+	}
+
+	
 }

@@ -15,7 +15,7 @@ import com.jettech.entity.DataField;
 import com.jettech.entity.DataTable;
 
 public class SyBaseAdapter extends AbstractAdapter {
-
+	public static String DEFAULT_DRIVER="com.sybase.jdbc3.jdbc.SybDriver";
 	private Logger logger = LoggerFactory.getLogger(SyBaseAdapter.class);
 
 	@Override
@@ -50,7 +50,7 @@ public class SyBaseAdapter extends AbstractAdapter {
 		try {
 			Statement stmt = conn.createStatement();
 
-			StringBuffer sql = new StringBuffer("SELECT name FROM sysobjects  WHERE TYPE='U' ");
+			StringBuffer sql = new StringBuffer("select a.name AS name from sysobjects a,sysusers b where a.uid=b.uid and a.type='U'");
 			ResultSet rs = stmt.executeQuery(sql.toString());
 
 			while (rs.next()) {
@@ -149,6 +149,11 @@ public class SyBaseAdapter extends AbstractAdapter {
 
 		}
 		return tableobj;
+	}
+
+	@Override
+	public Integer getTableCount(String sourceTableName, Connection conn, String schema) {
+		return null;
 	}
 
 }

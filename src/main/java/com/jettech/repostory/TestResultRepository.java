@@ -54,15 +54,13 @@ public interface TestResultRepository extends JpaRepository<TestResult, Integer>
     @Query(value="SELECT * FROM `test_result` tr WHERE  tr.exec_state=?1",countQuery="SELECT count(*) FROM `test_result` tr WHERE  tr.exec_state=?1",nativeQuery=true)
 	Page<TestResult> findAllByExecState(String state,Pageable pageable);
 
-  /*  @Query(value="",countQuery="",nativeQuery=true)
-	Page<TestResult> findByDateSource(String dataSource, Pageable pageable);*/
 
     @Transactional(timeout=30000)
-    @Query(value="SELECT * FROM test_result tr WHERE tr.target_data LIKE CONCAT('%',?1,'%')",countQuery="SELECT count(*) FROM test_result tr WHERE tr.target_data LIKE CONCAT('%',?1,'%')",nativeQuery=true)
-	Page<TestResult> findByTargetDateSourceLike(String dataSource, Pageable pageable);
+    @Query(value="SELECT * FROM test_result tr WHERE tr.case_id=?1 AND tr.source_data LIKE CONCAT('%',?2,'%')",countQuery="SELECT count(*) FROM test_result tr WHERE tr.case_id=?1 AND tr.source_data LIKE CONCAT('%',?2,'%')",nativeQuery=true)
+	Page<TestResult> findByCaseIdAndSourceDataSource(String caseId,String dataSource, Pageable pageable);
     @Transactional(timeout=30000)
-    @Query(value="SELECT * FROM test_result tr WHERE tr.source_data LIKE CONCAT('%',?1,'%')",countQuery="SELECT count(*) FROM test_result tr WHERE tr.source_data LIKE CONCAT('%',?1,'%')",nativeQuery=true)
-	Page<TestResult> findbySourceDataSourceLike(String dataSource, Pageable pageable);
+    @Query(value="SELECT * FROM test_result tr WHERE tr.case_id=?1 AND tr.target_data LIKE CONCAT('%',?2,'%')",countQuery="SELECT count(*) FROM test_result tr WHERE tr.case_id=?1 AND tr.target_data LIKE CONCAT('%',?2,'%')",nativeQuery=true)
+	Page<TestResult> findByCaseIdAndTargetDataSource(String caseId,String dataSource, Pageable pageable);
     
     
     @Query(value="select * from test_result where case_id=?1 order by start_time desc,end_time desc limit 1",nativeQuery=true)
@@ -70,14 +68,18 @@ public interface TestResultRepository extends JpaRepository<TestResult, Integer>
 
     @Query(value="select exec_state,count(*) as num from test_result where case_id=?1 group by exec_state",nativeQuery=true)
     List<Map<String,Object>>findTestCaseStatus(Integer caseId);
-
+    @Query(value="select id from test_result where case_id=?1 ",nativeQuery=true)
+    List<Integer> findByCaseId(Integer caseId);
 	List<TestResult> findByTestRoundId(Integer testRoundId);
 
-	
+	@Query(value="select * from test_result  where case_id in (select id from test_case where id=?1) order by create_time desc limit 0,1",nativeQuery=true)
+	List<TestResult> findResultByCaseIds(int caseId);
 
 
 
 
-	
- 
+
+
+
+
 }

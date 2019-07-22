@@ -1,11 +1,8 @@
 package com.jettech.controller;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map.Entry;
 
-import org.hibernate.mapping.Array;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -17,7 +14,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.alibaba.fastjson.JSONObject;
-import com.jettech.EnumConvertRule;
 import com.jettech.entity.DataSource;
 import com.jettech.entity.TestCase;
 import com.jettech.entity.TestQuery;
@@ -28,7 +24,6 @@ import com.jettech.service.ITestFieldService;
 import com.jettech.service.TestQueryFieldService;
 import com.jettech.service.TestQueryService;
 import com.jettech.service.TestRuleService;
-import com.jettech.vo.TestFieldVO;
 import com.jettech.vo.TestQueryFieldVO;
 import com.jettech.vo.TestQueryVO;
 import com.jettech.vo.TestRuleVO;

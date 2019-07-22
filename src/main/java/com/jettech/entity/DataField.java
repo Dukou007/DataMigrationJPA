@@ -25,6 +25,8 @@ public class DataField extends BaseEntity {
 	 */
 	private static final long serialVersionUID = -8715986279017808804L;
 
+	private Integer fieldId;
+	
 	private String talbeName;
 
 	private String name;
@@ -212,6 +214,14 @@ public class DataField extends BaseEntity {
 
 	public void setQualityTestQuery(QualityTestQuery qualityTestQuery) {
 		this.qualityTestQuery = qualityTestQuery;
+	}
+
+	public Integer getFieldId() {
+		return fieldId;
+	}
+
+	public void setFieldId(Integer fieldId) {
+		this.fieldId = fieldId;
 	}
 
 	/*

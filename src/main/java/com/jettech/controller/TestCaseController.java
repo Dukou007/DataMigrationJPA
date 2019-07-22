@@ -11,7 +11,7 @@ import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.hibernate.hql.internal.ast.tree.FromElement;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -30,16 +30,23 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.alibaba.fastjson.JSONObject;
+import com.jettech.BizException;
 import com.jettech.EnumCompareDirection;
+import com.jettech.EnumExecuteStatus;
+import com.jettech.entity.DataSchema;
+import com.jettech.entity.DataSource;
+import com.jettech.entity.DataTable;
+import com.jettech.entity.Product;
 import com.jettech.entity.TestCase;
-import com.jettech.entity.TestResult;
-import com.jettech.entity.TestSuite;
+import com.jettech.service.DataSchemaService;
 import com.jettech.service.IDataSourceService;
 import com.jettech.service.IKeyMapperService;
 import com.jettech.service.ProductService;
 import com.jettech.service.ITestCaseService;
 import com.jettech.service.ITestReusltService;
+import com.jettech.service.ITestTableService;
 import com.jettech.service.TestQueryService;
+import com.jettech.service.TestSuiteCaseService;
 import com.jettech.service.TestSuiteService;
 import com.jettech.util.DateUtil;
 import com.jettech.vo.ResultVO;
@@ -82,13 +89,18 @@ public class TestCaseController {
 	@SuppressWarnings("unused")
 	@Autowired
 	private TestQueryService testQueryService;
-
+	@Autowired
+	private TestSuiteCaseService testSuiteCaseService;
 	@SuppressWarnings("unused")
 	@Autowired
 	private IDataSourceService dataSourceService;
 	@Autowired
 	private ITestReusltService testRusltService;
-	
+	@Autowired
+	private ITestTableService testTableService;
+	@Autowired
+	private DataSchemaService dataSchemaService;
+
 	/*
 	 * @Autowired private TestQueryService testQueryService;
 	 */
@@ -109,140 +121,74 @@ public class TestCaseController {
 
 	}
 
-	// private final static String filePath = "D://tmp/";
-	/*
-	 * private final static String filePath = File.separator + "wls" +
-	 * File.separator + "wls81" + File.separator + "tmp" + File.separator;
-	 */
 	@Value("${file.filePath}")
 	private String filePath;
-	// private final static String filePath = "D://tmp/";
-	// private final static String filePath =
-	// File.separator+"wls"+File.separator+"wls81"+File.separator+"tmp"+File.separator;
 
-	@ResponseBody
-	@RequestMapping(value = "/uploadMapper", method = RequestMethod.POST, headers = "content-type=multipart/form-data")
-	@ApiOperation(value = "上传文件")
-	@ApiImplicitParams({ @ApiImplicitParam(name = "file", dataType = "String", required = true, value = "文件"),
-	        @ApiImplicitParam(name = "request", dataType = "String", required = true, paramType = "query") })
-	public JSONObject upload(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
 
-		JSONObject result = new JSONObject();
-
-		// 数据库
-		String productName = request.getParameter("productName");
-		System.out.println("产品：" + productName);
-		String testSuiteName = request.getParameter("testSuiteName");
-		System.out.println("测试集：" + testSuiteName);
-
-		// 文件名
-		String fileName = file.getOriginalFilename();
-		System.out.println("文件名： " + fileName);
-
-		// 文件后缀
-		String suffixName = fileName.substring(fileName.lastIndexOf("."));
-		System.out.println("文件后缀名： " + suffixName);
-
-		// 重新生成唯一文件名，用于存储数据库
-		String newFileName = UUID.randomUUID().toString() + suffixName;
-		System.out.println("新的文件名： " + newFileName);
-
-		// 创建文件
-		File dest = new File(filePath + newFileName);
-
-		Map<String, String> map = new HashMap<>();
-		map.put("filePath", dest.getAbsolutePath());
-		map.put("productName", productName);
-		map.put("testSuiteName", testSuiteName);
-		try {
-			file.transferTo(dest);
-
-			// TestCase testCase =
-			// mapperServiceImpl.loadMapper(dest.getAbsolutePath(), sheetName,
-			// MapperEntity.class);
-			// String fileName,String dataBaseName,String testSuiteName
-			// mapperServiceImpl.loadMappers(dest.getAbsolutePath(),
-			// productName, "demo1");
-			result.put("success", true);
-			result.put("data", map);
-			return result;
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return (JSONObject) result.put("success", false);
-	}
-
-	/**
-	 * 实现对案例的下载
-	 * 
-	 * @param file
-	 * @param request
-	 * @return
-	 */
+	// 上传案例uploadExcelCase
 	@SuppressWarnings("unused")
 	@ResponseBody
-	@RequestMapping(value = "/downloadSQLCase", method = RequestMethod.POST, produces = {
-	        "application/json;charset=utf-8" })
-	@ApiOperation(value = "下载案例")
-	@ApiImplicitParam(name = "testCaseId", value = "案例ID", paramType = "query", required = true, dataType = "Long")
-	public JSONObject downloadSQLCase(@RequestParam Integer testCaseId) {
-		JSONObject result = new JSONObject();
-		StringBuffer buffer = testCaseService.exportTestCase(testCaseId);
-		return result;
-	}
-
-	@SuppressWarnings("unused")
-	@ResponseBody
-	@RequestMapping(value = "/uploadSQLCase", method = RequestMethod.POST, headers = "content-type=multipart/form-data")
-	@ApiOperation(value = "上传SQLCase")
-	@ApiImplicitParams({ @ApiImplicitParam(name = "file", dataType = "String", required = true, value = "上传案例"),
+	@RequestMapping(value = "/uploadExcelCase", method = RequestMethod.POST, headers = "content-type=multipart/form-data")
+	@ApiOperation(value = "导入迁移案例")
+	@ApiImplicitParams({ @ApiImplicitParam(name = "file", dataType = "String", required = true, value = "导入迁移案例"),
 	        @ApiImplicitParam(name = "request", dataType = "String", required = false, paramType = "query") })
-	public JSONObject uploadSQLCase(@ApiParam(value = "上传案例", required = true) @RequestParam("file") MultipartFile file,
-	        HttpServletRequest request) {
+	public JSONObject uploadTestCase(
+	        @ApiParam(value = "导入迁移案例", required = true) @RequestParam("file") MultipartFile file,
+	        HttpServletRequest request) throws BizException {
 
 		JSONObject result = new JSONObject();
-
 		// 数据库
+		String productId = request.getParameter("productId");
+		System.out.println("产品：" + productId);
+
 		String testSuiteId = request.getParameter("testSuiteId");
-		System.out.println("测试集Id：" + testSuiteId);
+		System.out.println("测试集：" + testSuiteId);
+
 		// 文件名
 		String fileName = file.getOriginalFilename();
 		System.out.println("文件名： " + fileName);
 
 		// 文件后缀
-		String suffixName = fileName.substring(fileName.lastIndexOf("."));
+		String suffixName = fileName.substring(fileName.lastIndexOf(".") + 1);
 		System.out.println("文件后缀名： " + suffixName);
 
 		// 重新生成唯一文件名，用于存储数据库
-		String newFileName = UUID.randomUUID().toString() + suffixName;
-		System.out.println("新的文件名： " + newFileName);
-
-		// 创建文件
-		File dest = new File(filePath + fileName);
+		String filePath = System.getProperty("user.dir");
+		File dest = new File(filePath, fileName);
 
 		Map<String, String> map = new HashMap<>();
 		map.put("filePath", dest.getAbsolutePath());
+		map.put("productId", productId);
 		map.put("testSuiteId", testSuiteId);
 		try {
 			// 将流写入本地文件
 			file.transferTo(dest);
 			if (dest.exists()) {
 				log.info("临时文件:" + dest.getAbsolutePath());
-				result.put("success", true);
-				result.put("data", map);
-				ResultVO resultVo = testCaseService.readSQLCase(map);
-				result.put("message", resultVo.getMessage());
+
+				if (suffixName.equals("txt")) {
+					result.put("data", map);
+					ResultVO resultVo = testCaseService.readSQLCase(map);
+					result.put("success", resultVo.isFlag());
+					result.put("message", resultVo.getMessage());
+				} else if (suffixName.equals("xls") || suffixName.equals("xlsx")) {
+					ResultVO resultVo = testCaseService.uploadTestCase(map);
+					result.put("success", resultVo.isFlag());
+					result.put("message", resultVo.getMessage());
+				}
 			} else {
 				String msg = "临时文件不存在:" + dest.getAbsolutePath();
 				log.info(msg);
 				result.put("success", false);
-				result.put("data", map);
 				result.put("message", msg);
 			}
 			return result;
 		} catch (IOException e) {
 			e.printStackTrace();
-			return (JSONObject) result.put("success", false);
+			String msg = e.getLocalizedMessage();
+			result.put("success", false);
+			result.put("message", msg);
+			return (JSONObject) result;
 		}
 
 	}
@@ -255,47 +201,16 @@ public class TestCaseController {
 	        @ApiImplicitParam(paramType = "query", name = "pageNum", value = "页码值", required = false, dataType = "Long"),
 	        @ApiImplicitParam(paramType = "query", name = "pageSize", value = "每页条数", required = false, dataType = "Long") })
 	public ResultVO getAllTestCaseByPage(@RequestParam(value = "name", defaultValue = "", required = false) String name,
+			@RequestParam(value = "caseStatus", defaultValue = "", required = false) String caseStatus,
 	        @RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
 	        @RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize,
-	        @RequestParam(value = "enumCompareDirection", defaultValue = "", required = false) EnumCompareDirection enumCompareDirection
-	        ) {
-		Map<String, Object> resultmap = new HashMap<String, Object>();
-		PageRequest pageable = PageRequest.of(pageNum - 1, pageSize);
+	        @RequestParam(value = "testSuiteId", defaultValue = "", required = false) Integer testSuiteId,
+	        @RequestParam(value = "enumCompareDirection", defaultValue = "", required = false) EnumCompareDirection enumCompareDirection) {
+		
+		String name1 = name.trim();
+		name = name1;
 		try {
-			long beginTime = (new Date()).getTime();
-			Page<TestCase> testCaseList = testCaseService.getAllTestCaseByPage(name,enumCompareDirection, pageable);// findAllPage(pageNum,pageSize);
-			List<TestCaseVO> testCaseVOList = new ArrayList<TestCaseVO>();
-			for (TestCase testCase : testCaseList) {
-				TestCaseVO testCaseVO = new TestCaseVO(testCase);
-				TestResult testResult = testRusltService.findEndTimeByCaseId(testCase.getId());
-				List<Map<String, Object>> testCaseStatus = testRusltService.findTestCaseStatus(testCase.getId());
-				
-				if(testResult!=null) {
-					testCaseVO.setEndTime(testResult.getEndTime()==null?testResult.getStartTime():testResult.getEndTime());
-				}
-				if(testCaseStatus!=null && testCaseStatus.size()>0) {
-					for (Map<String,Object> map : testCaseStatus) {
-						if(map.get("exec_state").equals("Ready")) {
-							testCaseVO.setCaseStatus("执行中");
-							break;
-						}
-						if(map.get("exec_state").equals("Finish")) {
-							testCaseVO.setCaseStatus("执行完成");
-						}
-					}
-				}else {
-					testCaseVO.setCaseStatus("准备中");
-				}
-				
-				testCaseVOList.add(testCaseVO);
-				
-			}
-			resultmap.put("totalElements", testCaseList.getTotalElements());
-			resultmap.put("totalPages", testCaseList.getTotalPages());
-			resultmap.put("list", testCaseVOList);
-			log.info("getAllTestCaseByPage use:" + DateUtil.getEclapsedTimesStr(beginTime) + " name:" + name
-			        + " pageNum:" + pageNum + " pageSize:" + pageSize);
-			return new ResultVO(true, StatusCode.OK, "查询成功", resultmap);
+			 return testCaseService.getAllTestCaseByPage(name1,caseStatus, pageNum, pageSize, testSuiteId, enumCompareDirection);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return new ResultVO(false, StatusCode.ERROR, "查询失败");
@@ -346,56 +261,15 @@ public class TestCaseController {
 		} catch (BeansException e) {
 			e.printStackTrace();
 			log.error("", e);
-			return new ResultVO(true, StatusCode.OK, "查询失败");
-		}
-	}
-
-/*	*//**
-	 * @Description:根据testSuiteID查询testCase集合
-	 * @tips:null
-	 * 
-	 * @author:zhou_xiaolong in 2019年1月30日下午9:11:42
-	 *//*
-
-	@ResponseBody
-	@RequestMapping(value = "/getTestCaseListByTestSuiteID", produces = {
-	        "application/json;charset=UTF-8" }, method = RequestMethod.POST)
-	public ResultVO getTestCaseListByTestSuiteID(
-	        @RequestParam Integer testSuiteID,
-	        @RequestParam(value = "name",defaultValue = "", required = false) String name,
-	        @RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
-	        @RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
-		HashMap<String, Object> resultMap = new HashMap<String, Object>();
-		PageRequest pageable = PageRequest.of(pageNum - 1, pageSize);
-		try {
-			Page<TestCase> list = testCaseService.findBySuiteId(testSuiteID,name, pageable);
-			List<TestCaseVO> voList = new ArrayList<TestCaseVO>();
-			for (TestCase testCase : list) {
-				TestCaseVO vo = new TestCaseVO(testCase);
-//				BeanUtils.copyProperties(testCase, vo);
-//				vo.setTestSuiteID(testSuiteID);
-//				vo.setSourceQueryID(testCase.getSourceQuery().getId());
-//				vo.setTargetQueryID(testCase.getTargetQuery().getId());
-//				vo.setSourceDataSourceName(testCase.getSourceQuery().getDataSource().getName());
-//				vo.setTargetDataSourceName(testCase.getTargetQuery().getDataSource().getName());
-				voList.add(vo);
-			}
-			resultMap.put("totalPages", list.getTotalPages());
-			resultMap.put("totalElements", list.getTotalElements());
-			resultMap.put("list", voList);
-			return new ResultVO(true, StatusCode.OK, "查询成功", resultMap);
-		} catch (Exception e) {
-			e.printStackTrace();
-			log.error("", e);
 			return new ResultVO(false, StatusCode.ERROR, "查询失败");
 		}
-
 	}
-*/
+
+
 	/**
 	 * 新增TestCase
 	 * 
-	 * @param TestCaseVO
+	 * @param TestSuite
 	 * @return
 	 */
 	@ResponseBody
@@ -431,7 +305,7 @@ public class TestCaseController {
 			TestCaseVO testCaseVO = testCaseService.getTestCaseDetail(testCaseID);
 			testCaseVO.setId(null);
 			testCaseVO.setCreateTime(new Date());
-			testCaseVO.setName(testCaseVO.getName()+"_copy");
+			testCaseVO.setName(testCaseVO.getName() + "_copy");
 			TestQueryVO sourceQuery = testCaseVO.getSourceQuery();
 			if (sourceQuery != null) {
 				sourceQuery.setId(null);
@@ -458,7 +332,7 @@ public class TestCaseController {
 		} catch (Exception e) {
 			log.error("", e);
 			e.printStackTrace();
-			return new ResultVO(true, StatusCode.OK, "复制失败");
+			return new ResultVO(false, StatusCode.ERROR, "复制失败");
 		}
 
 	}
@@ -478,8 +352,8 @@ public class TestCaseController {
 	public ResultVO updateTestCase(@RequestBody TestCaseVO testCaseVO) {
 		try {
 			TestCase testCase = testCaseService.findById(testCaseVO.getId());
-			if(testCase==null) {
-				return new ResultVO(false,StatusCode.ERROR,"要修改的案例不存在");
+			if (testCase == null) {
+				return new ResultVO(false, StatusCode.ERROR, "要修改的案例不存在");
 			}
 			testCaseService.updateTestCase(testCaseVO);
 			return new ResultVO(true, StatusCode.OK, "修改成功");
@@ -502,22 +376,21 @@ public class TestCaseController {
 	@ApiOperation(value = "根据ID删除testCase", notes = "可批量删除")
 	@ApiImplicitParam(paramType = "query", name = "testCaseIDS", value = "案例ID", required = true, dataType = "String")
 	public ResultVO deleteCase(String testCaseIDS) {
-		if (testCaseIDS != null) {
-			try {
+		try {
+			if (StringUtils.isNotBlank(testCaseIDS)) {
 				String[] list = testCaseIDS.split(",");
-				System.out.println("list.size()");
 				for (int i = 0; i < list.length; i++) {
 					int id = Integer.parseInt(list[i]);
-					System.out.println(id);
 					testCaseService.delete(id);
+					testSuiteCaseService.deleteByCaseId(id);
 				}
-			} catch (Exception e) {
-				log.error("删除失败", e);
-				return new ResultVO(false, StatusCode.ERROR, "删除失败"+e.getLocalizedMessage());
+				return new ResultVO(true, StatusCode.OK, "删除成功");
+			} else {
+				return new ResultVO(false, StatusCode.ERROR, "删除失败");
 			}
-			return new ResultVO(true, StatusCode.OK, "删除成功");
-		} else {
-			return new ResultVO(false, StatusCode.ERROR, "删除失败");
+		} catch (Exception e) {
+			log.error("删除失败", e);
+			return new ResultVO(false, StatusCode.ERROR, "删除失败" + e.getLocalizedMessage());
 		}
 
 	}
@@ -534,36 +407,35 @@ public class TestCaseController {
 		TestCaseVO testCase = new TestCaseVO();
 		try {
 			testCase = testCaseService.getTestCaseDetail(testCaseID);
+			return new ResultVO(true, StatusCode.OK, "查询成功", testCase);
 		} catch (Exception e) {
-			// TODO: handle exception
 			e.printStackTrace();
 			return new ResultVO(false, StatusCode.ERROR, "查询失败");
 		}
 
-		return new ResultVO(true, StatusCode.OK, "查询成功", testCase);
-
 	}
 
-	/**查询所有的案例，不再指定案例集中根据
+	/**
+	 * 查询所有的案例，不再指定案例集中根据
+	 * 
 	 * @param testSuiteID
 	 * @param name
 	 * @param pageNum
 	 * @param pageSize
-	 * @return 左侧
-	 * findAllNotInSuite
+	 * @return 左侧 findAllNotInSuite
 	 */
 	@ResponseBody
 	@RequestMapping(value = "/findAllNotInSuite", produces = {
-			"application/json;charset=UTF-8" }, method = RequestMethod.GET)
-	public ResultVO findAllNotInSuite(
-			@RequestParam(value = "testSuiteID") Integer testSuiteID,
-			@RequestParam(value = "name", required = false) String name,
-			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
-			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
+	        "application/json;charset=UTF-8" }, method = RequestMethod.GET)
+	public ResultVO findAllNotInSuite(@RequestParam(value = "testSuiteID") Integer testSuiteID,
+	        @RequestParam(value = "name", required = false) String name,//exeState
+            @RequestParam(value = "exeState",defaultValue = "", required = false) EnumExecuteStatus exeState,
+	        @RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
+	        @RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
 		HashMap<String, Object> resultMap = new HashMap<String, Object>();
 		Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
 		try {
-			Page<TestCase> list = testCaseService.findALLBySuiteId(testSuiteID, name, pageable);
+			Page<TestCase> list = testCaseService.findALLBySuiteId(testSuiteID, name,exeState, pageable);
 			List<TestCaseVO> voList = new ArrayList<TestCaseVO>();
 			for (TestCase testCase : list) {
 				TestCaseVO vo = new TestCaseVO(testCase);
@@ -572,35 +444,32 @@ public class TestCaseController {
 			resultMap.put("totalPages", list.getTotalPages());
 			resultMap.put("totalElements", list.getTotalElements());
 			resultMap.put("list", voList);
-			return new ResultVO(true, StatusCode.OK, "查询成功", resultMap);
 		} catch (Exception e) {
 			e.printStackTrace();
 			log.error("", e);
 			return new ResultVO(false, StatusCode.ERROR, "查询失败");
 		}
-
+		return new ResultVO(true, StatusCode.OK, "查询成功", resultMap);
 	}
-	
-	
-	
-	/** suiteid，案例名称查询指定的案例集中的案例，未在指定的集合中
+
+	/**
+	 * suiteid，案例名称查询指定的案例集中的案例，未在指定的集合中
+	 * 
 	 * @param suiteId
 	 * @param name
 	 * @param pageNum
 	 * @param pageSize
-	 * @return 右侧
-	 * getTestCaseListByTestSuiteID
+	 * @return 右侧 getTestCaseListByTestSuiteID
 	 */
-	@RequestMapping(value = "/getTestCaseListByTestSuiteID",method=RequestMethod.GET)
-	public ResultVO getTestCaseListByTestSuiteID(
-			@RequestParam(value = "testSuiteID") Integer testSuiteID,
-			@RequestParam(value = "name", required = false) String name,
-			@RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
-			@RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
-		Pageable pageable = PageRequest.of(pageNum-1, pageSize);
+	@RequestMapping(value = "/getTestCaseListByTestSuiteID", method = RequestMethod.GET)
+	public ResultVO getTestCaseListByTestSuiteID(@RequestParam(value = "testSuiteID") Integer testSuiteID,
+	        @RequestParam(value = "name", required = false) String name,
+	        @RequestParam(value = "pageNum", defaultValue = "1", required = false) Integer pageNum,
+	        @RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize) {
+		Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
 		HashMap<String, Object> resultMap = new HashMap<String, Object>();
 		try {
-			Page<TestCase> list=testCaseService.findBySuiteId(testSuiteID,name,pageable);
+			Page<TestCase> list = testCaseService.findBySuiteId(testSuiteID, name, pageable);
 			ArrayList<TestCaseVO> voList = new ArrayList<TestCaseVO>();
 			for (TestCase testCase : list) {
 				TestCaseVO vo = new TestCaseVO(testCase);
@@ -609,14 +478,181 @@ public class TestCaseController {
 			resultMap.put("totalPages", list.getTotalPages());
 			resultMap.put("totalElements", list.getTotalElements());
 			resultMap.put("list", voList);
-			return new ResultVO(true, StatusCode.OK, "查询成功", resultMap);
 		} catch (Exception e) {
 			e.printStackTrace();
-			log.error("查询报错：",e);
-			return new ResultVO(false, StatusCode.ERROR, "查询成功");
+			log.error("查询报错：", e);
+			return new ResultVO(false, StatusCode.ERROR, "查询失败");
 		}
+		return new ResultVO(true, StatusCode.OK, "查询成功", resultMap);
 	}
-	
-	
-	
+
+	/**
+	 * <h1>以下为自动生成案例代码 1、调用metaData/getAllDataSource(源和目标) 2、通过选择源，展示该源下所有的表
+	 * 3、选择表进行比较,生成案例 4、生成案例
+	 * 
+	 * @return
+	 */
+	// 2、查询源下面默认的库的表
+	@ResponseBody
+	@RequestMapping(value = "/getTableByDateSource", produces = { "application/json;charset=UTF-8" })
+	public String getTableByDateSource(@RequestParam("dataSourceName") String dataSourceName) {
+		JSONObject JsonObject = new JSONObject();
+
+		String dataTableName = testCaseService.getDataTableName(dataSourceName);
+		JsonObject.put("tableName", dataTableName);
+		return JsonObject.toJSONString();
+	}
+
+	// 3.1、选择表进行比较,生成总数案例
+	@ResponseBody
+	@RequestMapping(value = "/compareTwoTable", produces = { "application/json;charset=UTF-8" })
+	public String choiceTwoTable(String sourceTableName, String targetTableName) throws Exception {
+		JSONObject json = new JSONObject();
+		DataTable sourceDataTable = testTableService.findByName(sourceTableName);
+		DataTable targetDataTable = testTableService.findByName(targetTableName);
+		// 处理源表
+		DataSource sourceDataSource = sourceDataTable.getDataSchema().getDataSource();
+		Integer sourceCount = testCaseService.getTableCount(sourceDataSource.getId(), sourceTableName);
+		// 处理目标表
+		DataSource targetDataSource = targetDataTable.getDataSchema().getDataSource();
+		Integer targetCount = testCaseService.getTableCount(targetDataSource.getId(), targetTableName);
+		json.put("sourceCount", sourceCount);
+		json.put("targetCount", targetCount);
+		return json.toJSONString();
+	}
+
+	// 3.2、选择表进行比较,生成明细案例
+	// 3.3（临时修改选择源下的默认库，所有的表生成案例）
+	@SuppressWarnings("unused")
+	@ResponseBody
+	@RequestMapping(value = "/choiceTwoTableDetail", produces = { "application/json;charset=UTF-8" })
+	public String choiceTwoTableDetail(@RequestParam("sourceTableName") String sourceTableName,
+	        @RequestParam("targetTableName") String targetTableName) throws Exception {
+		JSONObject json = new JSONObject();
+		DataTable sourceDataTable = testTableService.findByName(sourceTableName);
+		DataTable targetDataTable = testTableService.findByName(targetTableName);
+		// 处理源表
+		DataSource sourceDataSource = sourceDataTable.getDataSchema().getDataSource();
+		// 处理目标表
+		DataSource targetDataSource = targetDataTable.getDataSchema().getDataSource();
+		// 自动生成案例
+		ResultVO result = testCaseService.autoCreateCase(sourceDataSource, targetDataSource, sourceTableName,
+		        targetTableName);
+		json.put("status", "success");
+		return json.toJSONString();
+	}
+
+	@ResponseBody
+	@RequestMapping(value = "/createCaseByTwoSchema", produces = { "application/json;charset=UTF-8" })
+	public String createTestCaseByTwoDataschema(@RequestParam("sourceDataSchemaName") String sourceDataSchemaName,
+	        @RequestParam("targetDataSchemaName") String targetDataSchemaName,
+	        @RequestParam("productName") String productName, @RequestParam("testSuiteName") String testSuiteName) {
+		JSONObject json = new JSONObject();
+		try {
+			log.info("开始自动生成迁移测试案例,源库[" + sourceDataSchemaName + "],目标库[" + targetDataSchemaName + "]");
+
+			// 源库模型
+			DataSchema sdataSchema = dataSchemaService.findByName(sourceDataSchemaName);
+			// 目标库模型
+			DataSchema tdataSchema = dataSchemaService.findByName(targetDataSchemaName);
+
+			// 产品
+			String product = null;
+			if (productName == null || productName.trim().isEmpty()) {
+				List<Product> allProducts = productService.findAll();
+				if (allProducts != null && allProducts.size() > 0) {
+					product = allProducts.get(0).getName();// 产品名称为空,使用随机产品名称
+				} else {
+					throw new BizException("未找到任何产品");
+				}
+			}
+
+			// 测试集
+			String suiteName = null;
+			if (testSuiteName == null || testSuiteName.trim().isEmpty()) {
+				// 测试集名称为空,使用来源数据库名称+时间戳
+				suiteName = sourceDataSchemaName + "_"
+				        + DateUtil.getDateStr(DateUtil.getNow(), DateUtil.TIME_PATTREN_COMPACTED2);
+			} else {
+				suiteName = testSuiteName;
+			}
+
+			String result = testCaseService.createCaseByDataSource(productName, testSuiteName, sdataSchema,
+			        tdataSchema);
+			
+			json.put("status", result);
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return json.toJSONString();
+	}
+
+	// 3.3（临时修改选择源下的默认库，所有的表生成案例）
+	@SuppressWarnings("unused")
+	@ResponseBody
+	@RequestMapping(value = "/choiceSourceToCase", produces = { "application/json;charset=UTF-8" })
+	public String choiceDataSourceCreateCase(@RequestParam("sourceDataSchemaName") String sourceDataSchemaName,
+	        @RequestParam("targetDataSchemaName") String targetDataSchemaName,
+	        @RequestParam("productName") String productName, @RequestParam("testSuiteName") String testSuiteName)
+	        throws Exception {
+		JSONObject json = new JSONObject();
+		try {
+			log.info("开始自动生成迁移测试案例,源库[" + sourceDataSchemaName + "],目标库[" + targetDataSchemaName + "]");
+			// 源操作：
+			DataSchema sdataSchema = dataSchemaService.findByName(sourceDataSchemaName);
+			System.out.println(sdataSchema.getId());
+			Integer sourceDataSourceId = sdataSchema.getDataSource().getId();
+			System.out.println(sdataSchema.getDataSource().getId());
+			List<DataTable> sourDataTableList = testTableService.findBySchemaId(sdataSchema.getId());
+
+			// 目标操作:
+			DataSchema tdataSchema = dataSchemaService.findByName(targetDataSchemaName);
+			System.out.println(tdataSchema.getId());
+			Integer targetDataSourceId = tdataSchema.getDataSource().getId();
+			System.out.println(targetDataSourceId);
+			List<DataTable> tarDataTableList = testTableService.findBySchemaId(tdataSchema.getId());
+
+			log.info("自动生成迁移测试案例,源库数据源[" + sourceDataSourceId + "]名称[" + sdataSchema.getDataSource().getName()
+			        + "],目标库数据源[" + targetDataSchemaName + "]名称[" + tdataSchema.getDataSource().getName() + "]");
+			// 生成案例
+			String product = null;
+			if (productName == null || productName.trim().isEmpty()) {
+				List<Product> allProducts = productService.findAll();
+				if (allProducts != null && allProducts.size() > 0) {
+					product = allProducts.get(0).getName();// 产品名称为空,使用随机产品名称
+				} else {
+					throw new BizException("未找到任何产品");
+				}
+			}
+
+			String suiteName = null;
+			if (testSuiteName == null || testSuiteName.trim().isEmpty()) {
+				// 测试集名称为空,使用来源数据库名称+时间戳
+				suiteName = sourceDataSchemaName + "_"
+				        + DateUtil.getDateStr(DateUtil.getNow(), DateUtil.TIME_PATTREN_COMPACTED2);
+			} else {
+				suiteName = testSuiteName;
+			}
+
+			String message = testCaseService.createCaseByDataSource(productName, testSuiteName, sdataSchema,
+			        tdataSchema);
+			
+			json.put("status", message);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return json.toJSONString();
+	}
+
+	/**
+	 * 查询所有的案例状态类型
+	 * @return List<String>
+	 */
+	@RequestMapping(value = "/getCaseStatus", produces = {
+			"application/json;charset=UTF-8" }, method = RequestMethod.GET)
+	public EnumExecuteStatus[] getCaseStatus() {
+		return EnumExecuteStatus.values();
+	}
+
 }

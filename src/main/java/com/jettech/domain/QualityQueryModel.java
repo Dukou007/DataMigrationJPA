@@ -34,7 +34,10 @@ public class QualityQueryModel extends BaseModel {
 	private List<FieldModel> pageFields = new ArrayList<>();//
 	
 	private List<DataField> queryColumns;
-
+	//数据库名称
+	private String dataSchemaName;
+	//表名称
+	private String dataTableName;
 	public QualityQueryModel(QualityTestQuery qualityTestQuery) throws Exception {
 		// super.parse(qualityTestQuery);
 		if (qualityTestQuery == null) {
@@ -44,11 +47,12 @@ public class QualityQueryModel extends BaseModel {
 		this.dbModel = new DbModel(qualityTestQuery.getDataSource());
 		//质量代码添加 20190408  qualityTestQuery.getDataFields(); =============
 		List<FieldModel> fieldModels = new ArrayList<>();
-		for(com.jettech.entity.DataField s : qualityTestQuery.getDataFields()){
-			FieldModel fm = new FieldModel(s);
-			fieldModels.add(fm);
-		}
+		FieldModel fm = new FieldModel(qualityTestQuery.getDataField());
+		fieldModels.add(fm);
 		this.testFields = fieldModels;
+
+		this.dataSchemaName = qualityTestQuery.getDataSchema().getName();
+		this.dataTableName = qualityTestQuery.getDataTable().getName();
 		// =====================================================
 
 
@@ -212,5 +216,21 @@ public class QualityQueryModel extends BaseModel {
 
 	public void setQualityTestResultId(Integer qualityTestResultId) {
 		QualityTestResultId = qualityTestResultId;
+	}
+
+	public String getDataSchemaName() {
+		return dataSchemaName;
+	}
+
+	public void setDataSchemaName(String dataSchemaName) {
+		this.dataSchemaName = dataSchemaName;
+	}
+
+	public String getDataTableName() {
+		return dataTableName;
+	}
+
+	public void setDataTableName(String dataTableName) {
+		this.dataTableName = dataTableName;
 	}
 }

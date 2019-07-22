@@ -15,26 +15,27 @@ import com.jettech.entity.DataTable;
 public interface DataTableRepository extends JpaRepository<DataTable, Integer> {
 	@Query("select d from DataTable d where d.name = ?1")
 	DataTable findByName(String name);
-
+	@Query(value = "select t.* from test_table t where  t.name = ?1 and  t.test_database_id=?2 ", nativeQuery = true)
+	DataTable findByNameAndDbid(String name,int id);
 	// add
-	@Query(value = "select t.* from test_table t,test_database db where t.test_database_id= db.id and t.name = ?1 and  db.name=?2", nativeQuery = true)
+	@Query(value = "select t.* from test_table t,test_database db where t.test_database_id= db.id and t.name = ?1 and  db.name=?2 and t.deleted=false", nativeQuery = true)
 	DataTable findByNameAndDBName(String name, String dbname);
 
-	@Query(value = "select * from test_table  where test_database_id =?1", nativeQuery = true)
+	@Query(value = "select * from test_table  where test_database_id =?1 ", nativeQuery = true)
 	List<DataTable> findByForeignKey(int test_database_id);
 
-	@Query(value = "select * from test_table  where test_database_id =?1 and if(?2 is null or ?2 = '',1=1,name like concat('%',?2,'%'))", nativeQuery = true)
+	@Query(value = "select * from test_table  where test_database_id =?1 and if(?2 is null or ?2 = '',1=1,name like concat('%',?2,'%')) and deleted=false", nativeQuery = true)
 	List<DataTable> findTablesBySchemaID(int test_database_id, String name);
 
-	@Query(value = "select * from test_table  where test_database_id =?1", countQuery = "select count(*) from test_table  where test_database_id =?1", nativeQuery = true)
+	@Query(value = "select * from test_table  where test_database_id =?1 and deleted=false", countQuery = "select count(*) from test_table  where test_database_id =?1 and deleted=false", nativeQuery = true)
 	Page<DataTable> findByForeignKeyByPage(int test_database_id,
 			Pageable pageable);
 
-	@Query(value = "select * from test_table  where test_database_id =?1 and name  like CONCAT('%',?2,'%') ", countQuery = "select count(*) from test_table  where test_database_id =?1 and name like CONCAT('%',?2,'%') ", nativeQuery = true)
+	@Query(value = "select * from test_table  where test_database_id =?1 and name  like CONCAT('%',?2,'%') and deleted=false ", countQuery = "select count(*) from test_table  where test_database_id =?1 and name like CONCAT('%',?2,'%') and deleted=false", nativeQuery = true)
 	Page<DataTable> findByForeignKeyAndTableByPage(int test_database_id,
 			String tableName, Pageable pageable);
 
-	@Query(value = "select t.* from test_table t,test_database db where t.test_database_id= db.id and db.name=?1", nativeQuery = true)
+	@Query(value = "select t.* from test_table t,test_database db where t.test_database_id= db.id and db.name=?1 and t.deleted=false", nativeQuery = true)
 	List<DataTable> findByDbName(String name);
 
 	@Modifying
@@ -51,4 +52,6 @@ public interface DataTableRepository extends JpaRepository<DataTable, Integer> {
 	@Transactional
 	@Query("delete from DataTable  where id = ?1")
 	int delById(int id);
+	@Query(value = "select * from test_table t join test_database td on td.id=t.test_database_id where td.id=?1", nativeQuery = true)
+	List<DataTable> findBySchemaId(Integer id);
 }

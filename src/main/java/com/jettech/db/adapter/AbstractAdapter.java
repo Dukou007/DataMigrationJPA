@@ -38,7 +38,8 @@ public abstract class AbstractAdapter {
 		if (db.getAutoCommit() != null) {
 			return getConnectoin2(db, db.getAutoCommit());
 		} else {
-			return getConnectoin2(db, false);
+			//informix必须设置autocommit为null
+			return getConnectoin2(db, null);
 		}
 	}
 
@@ -100,7 +101,7 @@ public abstract class AbstractAdapter {
 			}
 			Class.forName(db.getDriver());
 			Connection conn = DriverManager.getConnection(db.getUrl(), db.getUsername(), db.getPassword());
-			if (autoCommit != null)
+			if (autoCommit != null && db.getDatabaseType()!= EnumDatabaseType.Informix)
 				conn.setAutoCommit(autoCommit);
 			return conn;
 		} catch (Exception e) {
@@ -221,6 +222,55 @@ public abstract class AbstractAdapter {
 		}
 	}
 
+	protected List<com.jettech.entity.DataField> getTableFields(Connection conn, String tableName) {
+		List<com.jettech.entity.DataField> list = new ArrayList<com.jettech.entity.DataField>();
+		ResultSet rs = null;
+		Statement stmt = null;
+		String sql=null;
+		try {
+		stmt = conn.createStatement();
+		sql = "select * from " + tableName + " where 1=2";// 获取0条数据
+		rs = stmt.executeQuery(sql);
+		ResultSetMetaData rsmd = rs.getMetaData(); // 获取元数据
+		int ColNum = rsmd.getColumnCount();// 取得列的数量
+		for (int i = 1; i <= ColNum; i++) {
+			com.jettech.entity.DataField col = new com.jettech.entity.DataField();
+			// if (tableName.contains(".")) {
+			// col.setName(name);(tableName.substring(0,
+			// tableName.indexOf(".")));
+			// col.setTableName(tableName.substring(tableName.indexOf(".") +
+			// 1));
+			// } else {
+			// col.setTableName(tableName);
+			// }
+//			col.setName(rsmd.getColumnName(i));
+			col.setName(rsmd.getColumnLabel(i));
+			col.setDataType(rsmd.getColumnTypeName(i));
+			col.setDataLength(rsmd.getPrecision(i));
+			list.add(col);
+		}
+		// map.put(tableName, list);
+		stmt.close();
+		} catch (SQLException e) {
+			logger.error("getTableColumns sql error." + sql, e);
+		} catch (Exception e) {
+			logger.error("getTableColumns error.", e);
+		} finally {
+			try {
+				if (rs != null) {
+					rs.close();
+				}
+				if (stmt != null) {
+					stmt.close();
+				}
+			}catch(SQLException e)
+			{
+				e.printStackTrace();
+			}
+		}
+		return list;
+	}
+	
 	/**
 	 * 通过一个表名称获取该表的结构定义
 	 * 
@@ -260,6 +310,7 @@ public abstract class AbstractAdapter {
 //				col.setName(rsmd.getColumnName(i));
 				col.setName(rsmd.getColumnLabel(i));
 				col.setDataType(rsmd.getColumnTypeName(i));
+				col.setDataPrecision( rsmd.getScale(i));
 				col.setDataLength(rsmd.getPrecision(i));
 				list.add(col);
 			}
@@ -339,4 +390,18 @@ public abstract class AbstractAdapter {
 	 * @return
 	 */
 	abstract public DataTable getTable(String databaseName,String tableName, Connection conn);
+
+	public abstract Integer getTableCount(String sourceTableName, Connection conn, String schema);
+
+	public Connection createConnection(String driver, String fullURL) {
+		try {
+			Class.forName(driver).newInstance();
+			Connection conn = DriverManager.getConnection(fullURL);
+			// conn.setAutoCommit(false);//Informx不支持
+			return conn;
+		} catch (Exception e) {
+			logger.error("createConnection error." + driver + ",fullURL[" + fullURL+"]", e);
+		}
+		return null;
+	}
 }

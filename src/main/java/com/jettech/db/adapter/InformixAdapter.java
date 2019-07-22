@@ -10,6 +10,8 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import com.jettech.EnumDatabaseType;
 import com.jettech.domain.DbModel;
@@ -24,9 +26,92 @@ import com.jettech.entity.DataSchema;
  * @author tan
  *
  */
-public class InformixAdapter extends AbstractAdapter{
+public class InformixAdapter extends AbstractAdapter {
 
-	private static final String _DEFAULT_DRIVER = "com.informix.jdbc.IfxDriver";
+	private static Map<Integer, String> _colTypes = new TreeMap<>();
+
+	static {
+		_colTypes.put(0, "CHAR");
+		_colTypes.put(1, "SMALLINT");
+		_colTypes.put(2, "INTEGER");
+		_colTypes.put(3, "FLOAT");
+		_colTypes.put(4, "SMALLFLOAT");
+		_colTypes.put(5, "DECIMAL");
+		_colTypes.put(6, "SERIAL*");
+		_colTypes.put(7, "DATE");
+		_colTypes.put(8, "MONEY");
+		_colTypes.put(9, "NULL");
+		_colTypes.put(10, "DATETIME");
+		_colTypes.put(11, "BYTE");
+		_colTypes.put(12, "TEXT");
+		_colTypes.put(13, "VARCHAR");
+		_colTypes.put(14, "INTERVAL");
+		_colTypes.put(15, "NCHAR");
+		_colTypes.put(16, "NVARCHAR");
+		_colTypes.put(17, "INT8");
+		_colTypes.put(18, "SERIAL8*");
+		_colTypes.put(19, "SET");
+		_colTypes.put(20, "MULTISET");
+		_colTypes.put(21, "LIST");
+		_colTypes.put(22, "Unnamed ROW");
+		_colTypes.put(40, "Variable-length opaque type(LVARCHAR)");
+		_colTypes.put(41, "Fixed-length opaque type 2");
+		_colTypes.put(43, "LVARCHAR (client-side only)");
+		_colTypes.put(45, "BOOLEAN");
+		_colTypes.put(52, "BIGINT");
+		_colTypes.put(53, "BIGSERIAL");
+		_colTypes.put(53, "IDSSECURITYLABEL 2");
+		_colTypes.put(4118, "NamedROW");
+		// 0 = CHAR
+		// 1 = SMALLINT
+		// 2 = INTEGE R
+		// 3 = FLOAT
+		// 4 = SMALLFLOAT
+		// 5 = DECIMAL
+		// 6 = SERIAL *
+		// 7 = DATE
+		// 8 = MONEY
+		// 9 = NULL
+		// 10 = DATETIME
+		// 11 = BYTE
+		// 12 = TEXT
+		// 13 = VARCHAR
+		// 14 = INTERVAL
+		// 15 = NCHAR
+		// 16 = NVARCHAR
+		// 17 = INT8
+		// 18 = SERIAL8 *
+		// 19 = SET
+		// 20 = MULTISET
+		// 21 = LIST
+		// 22 = Unnamed ROW
+		// 40 = Variable-length opaque type (LVARCHAR)
+		// 41 = Fixed-length opaque type 2
+		// 43 = LVARCHAR (client-side only)
+		// 45 = BOOLEAN
+		// 52 = BIGINT
+		// 53 = BIGSERIAL
+		// 2061 = IDSSECURITYLABEL 2
+		// 4118 = Named ROW
+		//
+		// 如果，某字段要求非空，则在原数字上加256，
+		// 如：某字段coltype=262,那么,262-256=6，该字段就应该为：SERIAL not NULL 类型！
+
+	}
+
+	private static String convertColType(Integer colType) {
+		if (colType == null)
+			return null;
+		if (_colTypes.containsKey(colType)) {
+			return _colTypes.get(colType).toString();
+		} else if (colType >= 256 & _colTypes.containsKey(colType - 256)) {
+			return _colTypes.get(colType - 256).toString();
+		}
+		return colType.toString();
+
+	}
+
+	public static final String DEFAULT_DRIVER = "com.informix.jdbc.IfxDriver";
 	private static final String _DEFAULT_URL = "jdbc:informix-sqli://192.168.146.128:9090/testDB:INFORMIXSERVER=ol_demo1;user=informix;password=P@ssw0rd";
 	//
 	// @Override
@@ -50,7 +135,8 @@ public class InformixAdapter extends AbstractAdapter{
 	// }
 
 	public static void main(String[] args) {
-		testPage();
+		testGetTableColumns();
+		// testConnection1();
 		// testConnect2();
 		// testConnection();
 		// testExecute();
@@ -58,29 +144,19 @@ public class InformixAdapter extends AbstractAdapter{
 		// testGetTableColumns();
 	}
 
-	public Connection createConnection(String driver, String fullURL) {
-		try {
-			Class.forName(driver).newInstance();
-			Connection conn = DriverManager.getConnection(fullURL);
-			// conn.setAutoCommit(false);//Informx不支持
-			return conn;
-		} catch (Exception e) {
-			logger.error("createConnection error." + driver + "," + fullURL, e);
-		}
-		return null;
-	}
-
 	private static void testGetTableColumns() {
 		DbModel db = new DbModel();
 		db.setDbtype(EnumDatabaseType.Informix);
-		db.setDriver(_DEFAULT_DRIVER);
-		db.setUrl("jdbc:informix-sqli://192.168.48.150:9090/testDB:INFORMIXSERVER=ol_demo1");
+		db.setDriver(DEFAULT_DRIVER);
+		db.setUrl("jdbc:informix-sqli://192.168.146.128:9090/testDB:INFORMIXSERVER=ol_demo1");
 		db.setUsername("informix");
 		db.setPassword("P@ssw0rd");
+		db.setAutoCommit(null);// informix必须设置autocommit为null
 		InformixAdapter informixAdapter = new InformixAdapter();
-		List<com.jettech.entity.DataField> list = informixAdapter.getTableFields(db, "t1");
+		List<com.jettech.entity.DataField> list = informixAdapter.getTableFields(db, "newtable");
 		for (com.jettech.entity.DataField col : list) {
-			System.out.println(col.getName() + ":" + col.getDataType());
+			System.out.println(
+			        col.getName() + ":" + col.getDataType() + " " + col.getDataLength() + " " + col.getDataPrecision());
 		}
 	}
 
@@ -106,7 +182,7 @@ public class InformixAdapter extends AbstractAdapter{
 
 		InformixAdapter adapter = new InformixAdapter();
 		try {
-			conn = (new InformixAdapter()).createConnection(_DEFAULT_DRIVER, _DEFAULT_URL);
+			conn = (new InformixAdapter()).createConnection(DEFAULT_DRIVER, _DEFAULT_URL);
 			long start = new Date().getTime();
 			int i = 0;
 			for (String sql : sqlList) {
@@ -148,10 +224,11 @@ public class InformixAdapter extends AbstractAdapter{
 	private static void testConnection1() {
 		DbModel db = new DbModel();
 		db.setDbtype(EnumDatabaseType.Informix);
-		db.setDriver(_DEFAULT_DRIVER);
-		db.setUrl("jdbc:informix-sqli://192.168.48.150:9090/testDB:INFORMIXSERVER=ol_demo1");
+		db.setDriver(DEFAULT_DRIVER);
+		db.setUrl("jdbc:informix-sqli://192.168.146.128:9090/testDB:INFORMIXSERVER=ol_demo1");
 		db.setUsername("informix");
 		db.setPassword("P@ssw0rd");
+		db.setAutoCommit(null);// informix必须设置autocommit为nulls
 		// Connection conn = (new InformixAdapter()).createConnection(db);
 		// String url =
 		// "jdbc:informix-sqli://192.168.48.150:9090/testDB:INFORMIXSERVER=ol_demo1;user=informix;password=P@ssw0rd";
@@ -159,7 +236,8 @@ public class InformixAdapter extends AbstractAdapter{
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
-			conn = (new InformixAdapter()).createConnection(_DEFAULT_DRIVER, _DEFAULT_URL);
+			// jdbc:informix-sqli://192.168.146.128:9090/testDB:INFORMIXSERVER=ol_demo1;user=informix;password=P@ssw0rd";
+			conn = (new InformixAdapter()).createConnection(DEFAULT_DRIVER, _DEFAULT_URL);
 			String sql1 = "select * from t1";
 			ps = conn.prepareStatement(sql1);
 			// Statement stmt =
@@ -168,11 +246,15 @@ public class InformixAdapter extends AbstractAdapter{
 			// rs = stmt.executeQuery(sql1);
 			rs = ps.executeQuery();
 			// System.out.println(rs.first());
+			int i = 0;
 			while (rs.next()) {
 				if (rs.getObject(1) != null) {
 					// list.add(rs.getObject(1).toString());// + "," +
 					// rs.getObject(2).toString());
-					System.out.println(rs.getObject(1).toString() + ":" + rs.getObject(2).toString());
+					System.out.println(rs.getObject(1).toString() + "|" + rs.getObject(2).toString());
+					i++;
+					if (i > 10)
+						break;
 				}
 			}
 		} catch (SQLException e) {
@@ -209,7 +291,7 @@ public class InformixAdapter extends AbstractAdapter{
 	private static void testPage() {
 		Connection conn = null;
 		try {
-			Class.forName(_DEFAULT_DRIVER).newInstance();
+			Class.forName(DEFAULT_DRIVER).newInstance();
 			conn = DriverManager.getConnection(_DEFAULT_URL);
 			Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
 			String sql = "select * from t1 order by col1";
@@ -223,7 +305,7 @@ public class InformixAdapter extends AbstractAdapter{
 			System.out.println("ColNum:" + ColNum);
 			for (int i = 1; i <= ColNum; i++) {
 				System.out.println("col:" + rsmd.getColumnLabel(i) + " type:" + rsmd.getColumnTypeName(i) + " prec:"
-						+ rsmd.getPrecision(i));
+				        + rsmd.getPrecision(i));
 			}
 
 			int i = 0;
@@ -282,7 +364,7 @@ public class InformixAdapter extends AbstractAdapter{
 		// [;name=value[;name=value]...]
 		// logger.info("testConnect to informix");
 		try {
-			Class.forName(_DEFAULT_DRIVER).newInstance();
+			Class.forName(DEFAULT_DRIVER).newInstance();
 
 			Connection conn = DriverManager.getConnection(_DEFAULT_URL);
 			Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -298,7 +380,7 @@ public class InformixAdapter extends AbstractAdapter{
 			System.out.println("ColNum:" + ColNum);
 			for (int i = 1; i <= ColNum; i++) {
 				System.out.println("col:" + rsmd.getColumnLabel(i) + " type:" + rsmd.getColumnTypeName(i) + " prec:"
-						+ rsmd.getPrecision(i));
+				        + rsmd.getPrecision(i));
 			}
 			rs.close();
 			stmt.close();
@@ -325,112 +407,108 @@ public class InformixAdapter extends AbstractAdapter{
 
 	@Override
 	public List<DataSchema> getDatabase(String databaseName, Connection conn) {
-		List<DataSchema>  databaselist=new ArrayList<DataSchema>();
+		List<DataSchema> databaselist = new ArrayList<DataSchema>();
 		try {
 			Statement stmt = conn.createStatement();
-			StringBuffer sql=new StringBuffer("SELECT name, owner FROM sysdatabases ");
-			if(!databaseName.equals("")) {
+			StringBuffer sql = new StringBuffer("SELECT name, owner FROM sysdatabases ");
+			if (!databaseName.equals("")) {
 				sql.append(" where name='").append(databaseName).append("' ");
 			}
-			System.out.println("sql="+sql);
-			String usedatabase="DATABASE sysmaster ";
-			query(usedatabase,conn);
+			System.out.println("sql=" + sql);
+			String usedatabase = "DATABASE sysmaster ";
+			query(usedatabase, conn);
 			ResultSet rs = stmt.executeQuery(sql.toString());
 			// user 为你表的名称
-			
+
 			while (rs.next()) {
-				DataSchema databaseobj=new DataSchema();
+				DataSchema databaseobj = new DataSchema();
 				databaseobj.setName(rs.getString("name"));
 				databaselist.add(databaseobj);
-				//System.out.println(rs.getString("TABLE_SCHEMA"));
+				// System.out.println(rs.getString("TABLE_SCHEMA"));
 			}
 		} catch (SQLException e) {
-			
+
 		}
-		 return databaselist;
+		return databaselist;
 	}
 
 	@Override
 	public List<DataTable> getTable(String databaseName, Connection conn) {
-		List<DataTable>  tablelist=new ArrayList<DataTable>();
+		List<DataTable> tablelist = new ArrayList<DataTable>();
 		try {
 			Statement stmt = conn.createStatement();
-		  //StringBuffer sql=new StringBuffer("select tabname from syscat.tables where tabschema = current schema");
-			StringBuffer sql=new StringBuffer("SELECT tabname, owner, tabid FROM systables WHERE tabtype = 'T'  ");
-			//sql.append(" where tabschema='").append(databaseName).append("' ");
-			
-			String usedatabase="DATABASE "+databaseName+" ";
-			query(usedatabase,conn);
-			//System.out.println("table--------------sql==="+sql);
+			// StringBuffer sql=new StringBuffer("select tabname from
+			// syscat.tables where tabschema = current schema");
+			StringBuffer sql = new StringBuffer("SELECT tabname, owner, tabid FROM systables WHERE tabtype = 'T'  ");
+			// sql.append(" where tabschema='").append(databaseName).append("'
+			// ");
+
+			String usedatabase = "DATABASE " + databaseName + " ";
+			query(usedatabase, conn);
+			// System.out.println("table--------------sql==="+sql);
 			ResultSet rs = stmt.executeQuery(sql.toString());
 			// user 为你表的名称
-			
+
 			while (rs.next()) {
-				DataTable tableobj=new DataTable();
+				DataTable tableobj = new DataTable();
 				tableobj.setName(rs.getString("tabname"));
-			//	System.out.println("111table--------------tabname="+rs.getString("tabname"));
-//				tableobj.setCreateTime(rs.getDate("CREATE_TIME"));
-//				System.out.println("222table--------------CREATE_TIME");
-//				tableobj.setEditTime(rs.getDate("ALTER_TIME"));
-//				System.out.println("333table--------------ALTER_TIMe");
+				// System.out.println("111table--------------tabname="+rs.getString("tabname"));
+				// tableobj.setCreateTime(rs.getDate("CREATE_TIME"));
+				// System.out.println("222table--------------CREATE_TIME");
+				// tableobj.setEditTime(rs.getDate("ALTER_TIME"));
+				// System.out.println("333table--------------ALTER_TIMe");
 				tablelist.add(tableobj);
-				//System.out.println(rs.getString("TABLE_SCHEMA"));
+				// System.out.println(rs.getString("TABLE_SCHEMA"));
 			}
 		} catch (SQLException e) {
-			
+
 		}
-		 return tablelist;
+		return tablelist;
 	}
 
 	@Override
 	public List<com.jettech.entity.DataField> getField(String databaseName, String tableName, Connection conn) {
-		List<com.jettech.entity.DataField>  fieldlist=new ArrayList<com.jettech.entity.DataField>();
+		return getTableFields(conn, tableName);
+
+		// return getTableFileds(databaseName, tableName, conn);
+	}
+
+	private List<com.jettech.entity.DataField> getTableFileds(String databaseName, String tableName, Connection conn) {
+		List<com.jettech.entity.DataField> fieldlist = new ArrayList<com.jettech.entity.DataField>();
 		try {
 			Statement stmt = conn.createStatement();
-			StringBuffer sql=new StringBuffer("SELECT c.colname as a1,c.collength  as a2  FROM syscolumns c, systables t ");
-			sql.append(" WHERE c.tabid = t.tabid AND t.tabname='").append(tableName.toLowerCase()).append("' ");
-			
-			String usedatabase="DATABASE "+databaseName+" ";
-			query(usedatabase,conn);
-			
+			StringBuffer sql = new StringBuffer("SELECT t.tabname,c.colname,c.coltype,c.collength");
+			sql.append(" FROM syscolumns c, systables t ");
+			sql.append(" WHERE c.tabid = t.tabid AND t.tabname='").append(tableName.toLowerCase()).append("'");
+
+			String usedatabase = "DATABASE " + databaseName + " ";
+			query(usedatabase, conn);
+
 			ResultSet rs = stmt.executeQuery(sql.toString());
 			// user 为你表的名称
-			System.out.println("sql="+sql);
-			
+			System.out.println("getField sql=[" + sql + "]");
+
 			while (rs.next()) {
-				com.jettech.entity.DataField fieldobj=new com.jettech.entity.DataField();
-				fieldobj.setName(rs.getString("a1"));
-				//System.out.println("rs-----colname--------------"+rs.getString("a1"));
-//				Long datatype=rs.getLong("DATA_TYPE");
-//				System.out.println("rs-----datatype--------------"+datatype);
-//				fieldobj.setDataType(String.valueOf(datatype));
-//				if(rs.getString("NULLS").equals("Y")) {
-//					fieldobj.setIsNullable(true);
-//				}else {
-//					fieldobj.setIsNullable(false);
-//				}
-				fieldobj.setDataLength(rs.getInt("a2"));
-//				fieldobj.setDataPrecision(rs.getInt("NUMERIC_PRECISION"));
-//				if(rs.getString("COLUMN_KEY").equals("PRI")) {
-//					fieldobj.setIsPrimaryKey(true);
-//				}else {
-//					fieldobj.setIsPrimaryKey(false);
-//				}
-			//	fieldobj.setDes(rs.getString("Remarks"));
+				com.jettech.entity.DataField fieldobj = new com.jettech.entity.DataField();
+				fieldobj.setTalbeName(rs.getString("tabname"));
+				fieldobj.setName(rs.getString("colname"));
+				fieldobj.setDataType(convertColType(rs.getInt("coltype")));
+				fieldobj.setDataLength(rs.getInt("collength"));
 				fieldlist.add(fieldobj);
 			}
 
 		} catch (SQLException e) {
-			
+
 		}
-		 return fieldlist;
+		return fieldlist;
 	}
-    public void query( String sql,Connection conn) throws SQLException{
-        PreparedStatement pstmt;
-        pstmt =conn.prepareStatement(sql);
-        pstmt.execute();
-        pstmt.close();
-    }
+
+	public void query(String sql, Connection conn) throws SQLException {
+		PreparedStatement pstmt;
+		pstmt = conn.prepareStatement(sql);
+		pstmt.execute();
+		pstmt.close();
+	}
 	// @Override
 	// public ResultSet query(Connection conn, String sql) {
 	// return this.doQuery(conn, sql);
@@ -448,52 +526,60 @@ public class InformixAdapter extends AbstractAdapter{
 
 	@Override
 	public List<com.jettech.entity.DataField> getAllField(String dbName, Connection conn) {
-		List<com.jettech.entity.DataField>  fieldlist=new ArrayList<com.jettech.entity.DataField>();
+		List<com.jettech.entity.DataField> fieldlist = new ArrayList<com.jettech.entity.DataField>();
 		try {
 			Statement stmt = conn.createStatement();
-			StringBuffer sql=new StringBuffer("SELECT c.colname as a1,c.collength  as a2  FROM syscolumns c, systables t ");
+			StringBuffer sql = new StringBuffer(
+			        "SELECT t.tabname,c.colname,c.coltype,c.collength FROM syscolumns c, systables t  ");
 			sql.append(" WHERE c.tabid = t.tabid ");
-			
-			String usedatabase="DATABASE "+dbName+" ";
-			query(usedatabase,conn);
-			
+
+			String usedatabase = "DATABASE " + dbName + " ";
+			query(usedatabase, conn);
+
 			ResultSet rs = stmt.executeQuery(sql.toString());
 			// user 为你表的名称
-			System.out.println("sql="+sql);
-			
+			System.out.println("sql=" + sql);
+
 			while (rs.next()) {
-				com.jettech.entity.DataField fieldobj=new com.jettech.entity.DataField();
-				fieldobj.setName(rs.getString("a1"));
-				fieldobj.setDataLength(rs.getInt("a2"));
+				com.jettech.entity.DataField fieldobj = new com.jettech.entity.DataField();
+				fieldobj.setTalbeName(rs.getString("tabname"));
+				fieldobj.setName(rs.getString("colname"));
+				fieldobj.setDataType(convertColType(rs.getInt("coltype")));
+				fieldobj.setDataLength(rs.getInt("collength"));
+				fieldobj.setDataPrecision(Integer.valueOf(rs.getInt("collength")));
 				fieldlist.add(fieldobj);
 			}
 
 		} catch (SQLException e) {
-			
+
 		}
-		 return fieldlist;
+		return fieldlist;
 	}
 
 	@Override
-	public DataTable getTable(String databaseName, String tableName,
-			Connection conn) {
-		DataTable tableobj=new DataTable();
+	public DataTable getTable(String databaseName, String tableName, Connection conn) {
+		DataTable tableobj = new DataTable();
 		try {
 			Statement stmt = conn.createStatement();
-			StringBuffer sql=new StringBuffer("SELECT tabname, owner, tabid FROM systables WHERE tabtype = 'T'  ");
+			StringBuffer sql = new StringBuffer("SELECT tabname, owner, tabid FROM systables WHERE tabtype = 'T'  ");
 			sql.append(" and tabname='").append(tableName.toLowerCase()).append("' ");
-			String usedatabase="DATABASE "+databaseName+" ";
-			query(usedatabase,conn);
+			String usedatabase = "DATABASE " + databaseName + " ";
+			query(usedatabase, conn);
 			ResultSet rs = stmt.executeQuery(sql.toString());
 			// user 为你表的名称
-			
+
 			while (rs.next()) {
 				tableobj.setName(rs.getString("tabname"));
 			}
 		} catch (SQLException e) {
-			
+
 		}
-		 return tableobj;
+		return tableobj;
+	}
+
+	@Override
+	public Integer getTableCount(String sourceTableName, Connection conn, String schema) {
+		return null;
 	}
 
 }

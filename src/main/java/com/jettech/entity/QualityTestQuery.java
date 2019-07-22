@@ -1,14 +1,7 @@
 package com.jettech.entity;
 
-import java.util.List;
 
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 @Entity
 @Table(name="quality_test_query")
@@ -22,8 +15,11 @@ public class QualityTestQuery extends BaseEntity {
 	private String name;
 	private String sqlText;
 	private DataSource dataSource;
+	private DataSchema dataSchema;
+	private DataTable dataTable;
+	private DataField dataField;
 	private QualityTestCase qualityTestCase;
-	private List<DataField> dataFields;
+	private QualitySuite qualitySuite;
 	private QualityTestPoint qualityTestPoint;
 	
 /*	@OneToOne
@@ -38,15 +34,33 @@ public class QualityTestQuery extends BaseEntity {
 	public QualityTestCase getQualityTestCase() {
 		return qualityTestCase;
 	}
-	@OneToMany(mappedBy = "qualityTestQuery")
-	public List<DataField> getDataFields() {
-		return dataFields;
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "test_field_id")
+	public DataField getDataField() {
+		return dataField;
 	}
 
-	public void setDataFields(List<DataField> dataFields) {
-		this.dataFields = dataFields;
+	public void setDataField(DataField dataField) {
+		this.dataField = dataField;
+	}
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "test_database_id")
+	public DataSchema getDataSchema() {
+		return dataSchema;
 	}
 
+	public void setDataSchema(DataSchema dataSchema) {
+		this.dataSchema = dataSchema;
+	}
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "test_table_id")
+	public DataTable getDataTable() {
+		return dataTable;
+	}
+
+	public void setDataTable(DataTable dataTable) {
+		this.dataTable = dataTable;
+	}
 	public void setQualityTestCase(QualityTestCase qualityTestCase) {
 		this.qualityTestCase = qualityTestCase;
 	}
@@ -58,7 +72,15 @@ public class QualityTestQuery extends BaseEntity {
 	public void setName(String name) {
 		this.name = name;
 	}
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "quality_suite_id")
+	public QualitySuite getQualitySuite() {
+		return qualitySuite;
+	}
 
+	public void setQualitySuite(QualitySuite qualitySuite) {
+		this.qualitySuite = qualitySuite;
+	}
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "data_source_id")
 	public DataSource getDataSource() {
@@ -69,6 +91,7 @@ public class QualityTestQuery extends BaseEntity {
 		this.dataSource = dataSource;
 	}
 
+	@Column(columnDefinition = "text")
 	public String getSqlText() {
 		return sqlText;
 	}
